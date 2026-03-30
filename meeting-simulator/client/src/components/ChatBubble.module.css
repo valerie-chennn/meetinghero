@@ -1,0 +1,166 @@
+/* 聊天气泡样式 */
+
+/* 气泡基础容器 */
+.bubble {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 6px 16px;
+  animation: fadeInUp 0.3s ease;
+}
+
+/* ===== 角色消息（左对齐）===== */
+.roleBubble {
+  justify-content: flex-start;
+}
+
+/* 头像 */
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* 角色消息内容区 */
+.roleContent {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: calc(100% - 52px);
+}
+
+/* 发言人信息行 */
+.speakerInfo {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.speakerName {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.speakerTitle {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* 气泡行（含 TTS 按钮）*/
+.roleBubbleRow {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+/* 角色气泡体 */
+.roleBubbleBody {
+  background: var(--bg-tertiary);
+  border-radius: 4px 16px 16px 16px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  flex: 1;
+  box-shadow: 0 1px 4px var(--shadow);
+}
+
+/* ===== 用户消息（右对齐）===== */
+.userBubble {
+  justify-content: flex-end;
+}
+
+.userContent {
+  max-width: 80%;
+}
+
+.userBubbleBody {
+  background: var(--user-bubble);
+  border-radius: 16px 4px 16px 16px;
+  padding: 10px 14px;
+  border: 1px solid rgba(37, 99, 235, 0.18);
+  box-shadow: 0 1px 4px var(--shadow);
+}
+
+/* ===== 气泡文字 ===== */
+.bubbleText {
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+/* ===== 气泡内中文翻译区域 ===== */
+.translationBlock {
+  margin-top: 6px;
+}
+
+.translationDivider {
+  height: 1px;
+  background: var(--border);
+  margin-bottom: 6px;
+  opacity: 0.6;
+}
+
+.translationText {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  word-break: break-word;
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+}
+
+/* "译" 标签小胶囊 */
+.translationTag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent-blue, #2563eb);
+  background: rgba(37, 99, 235, 0.08);
+  border-radius: 3px;
+  padding: 0 4px;
+  height: 16px;
+  flex-shrink: 0;
+  margin-top: 1px;
+  letter-spacing: 0;
+}
+
+/* ===== 系统消息（居中）===== */
+.systemMessage {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  margin: 4px 0;
+}
+
+.systemLine {
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.systemText {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* 翻译兜底提示：textZh 为空时显示灰色小字 */
+.translationFallback {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+  opacity: 0.7;
+}

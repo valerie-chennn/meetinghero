@@ -1,0 +1,250 @@
+/* ===== 首页高质感样式 ===== */
+
+/* 整体容器：移动端一屏，三区分布 */
+.container {
+  max-width: 430px;
+  margin: 0 auto;
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  background: var(--bg-primary);
+  animation: fadeIn 0.4s ease;
+}
+
+/* ===== 品牌区 ===== */
+.brandSection {
+  padding-top: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  animation: fadeInUp 0.5s ease 0.05s both;
+}
+
+/* 渐变品牌名：蓝→紫 */
+.brandName {
+  font-size: 32px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #2563EB 0%, #7C3AED 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+}
+
+/* Slogan 副标题 */
+.slogan {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  text-align: center;
+  letter-spacing: 0.2px;
+}
+
+/* ===== 预览区：沉浸式渐变背景 ===== */
+.previewSection {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  /* 顶部白色 → 浅蓝 → 浅紫，营造沉浸感 */
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(239, 246, 255, 0.6) 45%,
+    rgba(237, 233, 254, 0.45) 100%
+  );
+  border-radius: 24px;
+  padding: 24px 20px;
+  margin: 32px 16px 0;
+  animation: fadeInUp 0.5s ease 0.15s both;
+}
+
+/* 气泡行：头像 + 内容横排 */
+.bubbleRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+/* 渐变头像圆形，带微阴影 */
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+}
+
+/* Daniel：蓝色渐变 */
+.avatarD {
+  background: linear-gradient(135deg, #3B82F6, #2563EB);
+}
+
+/* Sarah：青绿渐变 */
+.avatarS {
+  background: linear-gradient(135deg, #14B8A6, #0D9488);
+}
+
+/* 气泡容器（发言者信息 + 文字气泡） */
+.bubbleWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+  min-width: 0;
+}
+
+/* 发言者信息行 */
+.speakerLine {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-left: 2px;
+}
+
+.speakerName {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.speakerDot {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.speakerRole {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* 精致文字气泡：白底 + 微边框 + 精致阴影，左下角小圆角模拟对话尖角 */
+.previewBubble {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 16px 16px 16px 4px;
+  padding: 12px 16px;
+  font-size: 14px;
+  color: var(--text-primary);
+  line-height: 1.6;
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.05),
+    0 0 0 1px rgba(0, 0, 0, 0.02);
+}
+
+/* 内心独白：淡紫背景 + 左竖线 */
+.narratorBox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 4px;
+  padding: 10px 14px;
+  background: rgba(243, 240, 255, 0.9);
+  border-left: 3px solid #9B8FD4;
+  border-radius: 0 10px 10px 0;
+}
+
+.narratorIcon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.narratorText {
+  font-size: 13px;
+  font-style: italic;
+  color: #5C5080;
+  line-height: 1.5;
+}
+
+/* Your Turn 分隔线：橙色 + 两侧渐变线条 */
+.yourTurnLine {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--accent-orange);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+.yourTurnLine::before,
+.yourTurnLine::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--accent-orange),
+    transparent
+  );
+}
+
+/* ===== CTA 区域 ===== */
+.ctaSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 24px 20px;
+  padding-bottom: max(24px, env(safe-area-inset-bottom, 24px));
+  margin-top: auto;
+  animation: fadeInUp 0.5s ease 0.25s both;
+}
+
+/* 渐变主按钮：蓝→靛蓝，大圆角，hover 微上浮 */
+.ctaButton {
+  width: 100%;
+  padding: 16px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #2563EB 0%, #4F46E5 100%);
+  color: #ffffff;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.3);
+  transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
+}
+
+.ctaButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(37, 99, 235, 0.4);
+}
+
+.ctaButton:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.25);
+}
+
+/* 按钮下方提示文字 */
+.ctaHint {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+  letter-spacing: 0.2px;
+}
+
+.editLink {
+  font-size: 13px;
+  color: var(--accent-primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

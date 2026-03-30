@@ -1,0 +1,262 @@
+/* ===== CSS 变量（全局设计 Token）===== */
+:root {
+  /* 主背景色系 — 温暖浅灰，参考 Apple / Linear 浅色模式 */
+  --bg-primary: #F5F5F7;
+  --bg-secondary: #EEEEF0;
+  --bg-tertiary: #FFFFFF;
+  --bg-elevated: #FFFFFF;
+
+  /* 文字色系 */
+  --text-primary: #1D1D1F;
+  --text-secondary: #6E6E73;
+  --text-muted: #AEAEB2;
+
+  /* 强调色 — 保持鲜艳，提升整体活力 */
+  --accent-primary: #2563EB;
+  --accent-orange: #EA580C;
+  --accent-teal: #0D9488;
+  --accent-purple: #7C3AED;
+
+  /* 角色颜色 */
+  --role-leader: #2563EB;
+  --role-collaborator: #0D9488;
+  --role-challenger: #EA580C;
+  --role-supporter: #7C3AED;
+
+  /* 用户气泡 */
+  --user-bubble: #EFF6FF;
+  --user-accent: #EA580C;
+
+  /* 边框和阴影 — 浅色主题下阴影是层次感的关键 */
+  --border: #E5E5EA;
+  --shadow: rgba(0, 0, 0, 0.08);
+  --shadow-md: rgba(0, 0, 0, 0.12);
+  --shadow-lg: rgba(0, 0, 0, 0.16);
+
+  /* 圆角 */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+
+  /* 字体 */
+  --font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
+}
+
+/* ===== 全局重置 ===== */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ===== 应用容器 ===== */
+#root {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== 页面容器（移动端优先，最大宽度 430px）===== */
+.page-container {
+  max-width: 430px;
+  margin: 0 auto;
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* ===== 通用工具类 ===== */
+.text-primary { color: var(--text-primary); }
+.text-secondary { color: var(--text-secondary); }
+.text-muted { color: var(--text-muted); }
+.text-accent { color: var(--accent-primary); }
+.text-teal { color: var(--accent-teal); }
+.text-orange { color: var(--accent-orange); }
+.text-purple { color: var(--accent-purple); }
+
+/* ===== 按钮基础样式 ===== */
+button {
+  font-family: var(--font-family);
+  cursor: pointer;
+  border: none;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ===== 输入框基础样式 ===== */
+input, textarea {
+  font-family: var(--font-family);
+  outline: none;
+  border: 1px solid var(--border);
+}
+
+/* ===== 滚动条样式 ===== */
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bg-elevated);
+  border-radius: 2px;
+}
+
+/* ===== 全局动画 ===== */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.4);
+    opacity: 0.5;
+  }
+}
+
+@keyframes breathe {
+  0%, 100% {
+    transform: scale(0.8);
+    opacity: 0.4;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes ripple {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+}
+
+@keyframes soundwave {
+  0%, 100% { transform: scaleY(0.4); }
+  50% { transform: scaleY(1); }
+}
+
+/* ===== 通用卡片样式 ===== */
+.card {
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  padding: 16px;
+  box-shadow: 0 1px 4px var(--shadow);
+}
+
+/* ===== Toast 提示 ===== */
+.toast-container {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.toast {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  padding: 12px 20px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  animation: fadeInDown 0.3s ease;
+  box-shadow: 0 4px 16px var(--shadow-md), 0 1px 4px var(--shadow);
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.toast.error {
+  border-left: 3px solid var(--accent-orange);
+}
+
+.toast.success {
+  border-left: 3px solid var(--accent-teal);
+}

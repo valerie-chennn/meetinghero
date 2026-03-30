@@ -1,0 +1,232 @@
+/* 复盘卡片样式 */
+.card {
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 2px 8px var(--shadow);
+}
+
+/* 步骤头部 */
+.stepHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stepNumber {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.stepNumberBright {
+  background: var(--accent-primary);
+  color: #fff;
+}
+
+.stepTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+/* ===== 步骤 1：你刚才说 ===== */
+.userSaidContent {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chineseBlock {
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+}
+
+.chineseText {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.englishBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.transcribeTag {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent-teal);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.englishText {
+  font-size: 15px;
+  color: var(--text-primary);
+  line-height: 1.5;
+  font-style: italic;
+}
+
+/* ===== 步骤 2：这里可以这样说 ===== */
+.betterWayCard {
+  background: #EFF6FF;
+  border-color: rgba(37, 99, 235, 0.2);
+}
+
+.betterSentenceRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.betterSentence {
+  flex: 1;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text-primary);
+}
+
+/* 句型高亮（加粗 + 紫色背景）*/
+.patternHighlight {
+  font-weight: 700;
+  color: var(--accent-purple);
+  background: #EDE9FE;
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
+/* 搭配高亮（下划线 + 青绿）*/
+.collocationHighlight {
+  font-style: normal;
+  text-decoration: underline;
+  text-decoration-color: var(--accent-teal);
+  color: var(--accent-teal);
+}
+
+.translation {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* ===== 步骤 3：下次可以这么说 ===== */
+.patternCard {
+  border-left: 3px solid var(--accent-purple);
+  border-radius: 4px var(--radius-lg) var(--radius-lg) 4px;
+}
+
+.patternBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.patternLabel {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent-purple);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.patternText {
+  font-size: 15px;
+  color: var(--text-primary);
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.collocationsBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.collocationsLabel {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent-teal);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.collocationsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.collocationChip {
+  font-size: 13px;
+  color: var(--accent-teal);
+  background: #F0FDFA;
+  padding: 3px 10px;
+  border-radius: 20px;
+  border: 1px solid rgba(13, 148, 136, 0.22);
+}
+
+.usageText {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* ===== 步骤 4：试着说一次 ===== */
+.practiceCard {
+  background: var(--bg-secondary);
+}
+
+.scenarioBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.scenarioLabel {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent-orange);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.scenarioText {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.taskText {
+  font-size: 15px;
+  color: var(--text-primary);
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.hintText {
+  font-size: 13px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  line-height: 1.5;
+}
+
+.hintIcon {
+  flex-shrink: 0;
+}

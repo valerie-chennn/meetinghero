@@ -1,0 +1,273 @@
+/* Onboarding 页面样式 */
+.container {
+  max-width: 430px;
+  margin: 0 auto;
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+  position: relative;
+  overflow: hidden;
+}
+
+/* 进度条 */
+.progressBar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 20px 24px 0;
+  position: relative;
+  z-index: 2;
+}
+
+.progressDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--bg-elevated);
+  transition: all 0.3s ease;
+}
+
+.progressDotActive {
+  width: 24px;
+  background: var(--accent-primary);
+}
+
+/* 步骤容器 */
+.stepsWrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 单个步骤 */
+.step {
+  flex: 1;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.stepContent {
+  flex: 1;
+  padding: 32px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* 步骤头部 */
+.stepHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stepLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent-primary);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.stepTitle {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.stepDesc {
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* 英文水平选项网格 */
+.levelGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.levelCard {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--border);
+  text-align: left;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px var(--shadow);
+}
+
+.levelCard:hover {
+  border-color: var(--accent-primary);
+  background: var(--bg-elevated);
+}
+
+.levelCardActive {
+  border-color: var(--accent-primary);
+  background: #EFF6FF;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.levelBadge {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent-primary);
+  min-width: 28px;
+}
+
+.levelDesc {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* 输入框 */
+.inputGroup {
+  position: relative;
+}
+
+.textInput {
+  width: 100%;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-size: 16px;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--border);
+  transition: border-color 0.2s ease;
+}
+
+.textInput:focus {
+  border-color: var(--accent-primary);
+}
+
+.textInput::placeholder {
+  color: var(--text-muted);
+}
+
+/* 推荐 chips */
+.chipsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  font-size: 13px;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  padding: 6px 14px;
+  border-radius: 20px;
+  transition: all 0.2s ease;
+}
+
+.chip:hover {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+.chipActive {
+  background: #EFF6FF;
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+/* 下一步按钮 */
+.nextButton {
+  width: 100%;
+  padding: 16px;
+  border-radius: var(--radius-lg);
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  font-size: 16px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  margin-top: auto;
+}
+
+.nextButtonActive {
+  background: var(--accent-primary);
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.25);
+}
+
+.nextButtonActive:hover {
+  background: #1D4ED8;
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.3);
+}
+
+/* 开始模拟按钮（特殊样式）*/
+.startButton {
+  width: 100%;
+  padding: 16px;
+  border-radius: var(--radius-lg);
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  font-size: 16px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  margin-top: auto;
+}
+
+.startButtonActive {
+  background: linear-gradient(135deg, var(--accent-primary), #7C3AED);
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.25);
+}
+
+.startButtonActive:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.35);
+}
+
+/* 加载动点 */
+.loadingDots {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.loadingDots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+.loadingDots span:nth-child(2) { animation-delay: 0.2s; }
+.loadingDots span:nth-child(3) { animation-delay: 0.4s; }
+
+/* 返回按钮 */
+.backButton {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.backButton:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}

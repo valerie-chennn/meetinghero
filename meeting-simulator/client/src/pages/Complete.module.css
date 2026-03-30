@@ -1,0 +1,148 @@
+/* 完成页样式 */
+.container {
+  max-width: 430px;
+  margin: 0 auto;
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 60px 32px 48px;
+  background: var(--bg-primary);
+  animation: fadeIn 0.4s ease;
+}
+
+/* ===== 完成图标区 ===== */
+.iconSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+  animation: fadeInUp 0.5s ease 0.1s both;
+}
+
+/* 图标包装层（带光晕动效） */
+.iconWrapper {
+  animation: fadeInUp 0.5s ease both;
+}
+
+/* 干得好！大标题 */
+.doneTitle {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.5px;
+}
+
+/* 副标题描述 */
+.doneDesc {
+  font-size: 15px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  max-width: 260px;
+}
+
+/* ===== 难度反馈区 ===== */
+.feedbackSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  animation: fadeInUp 0.5s ease 0.2s both;
+}
+
+/* 问题文字 */
+.feedbackQuestion {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* 三个选项横排 */
+.difficultyRow {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+/* 难度选项按钮 */
+.difficultyButton {
+  flex: 1;
+  padding: 12px 8px;
+  border-radius: var(--radius-md);
+  background: var(--bg-tertiary);
+  border: 1.5px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.difficultyButton:hover {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+/* 选中态 */
+.difficultyButtonActive {
+  background: #EFF6FF;
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+  font-weight: 700;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+/* ===== CTA 区域 ===== */
+.ctaSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  animation: fadeInUp 0.5s ease 0.3s both;
+}
+
+/* 主按钮：再来一场 */
+.primaryButton {
+  width: 100%;
+  padding: 16px;
+  border-radius: var(--radius-lg);
+  background: var(--accent-primary);
+  color: #fff;
+  font-size: 17px;
+  font-weight: 700;
+  transition: all 0.2s ease;
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.28);
+}
+
+.primaryButton:hover {
+  background: #1D4ED8;
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.35);
+}
+
+.primaryButton:active {
+  transform: translateY(0);
+}
+
+/* 次要链接：回到首页 */
+.secondaryLink {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 4px 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.2s ease;
+}
+
+.secondaryLink:hover {
+  color: var(--text-secondary);
+}

@@ -1,0 +1,75 @@
+/* 用户输入区样式 */
+.inputContainer {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 12px 16px;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  background: var(--bg-tertiary);
+  border-top: 1px solid var(--border);
+}
+
+/* 输入框容器 */
+.inputWrapper {
+  flex: 1;
+  background: var(--bg-tertiary);
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  transition: border-color 0.2s ease;
+  overflow: hidden;
+}
+
+.inputWrapper:focus-within {
+  border-color: var(--accent-primary);
+}
+
+/* 文本域 */
+.textarea {
+  width: 100%;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 15px;
+  line-height: 1.5;
+  padding: 10px 16px;
+  resize: none;
+  max-height: 120px;
+  overflow-y: auto;
+  display: block;
+}
+
+.textarea::placeholder {
+  color: var(--text-muted);
+}
+
+/* 操作按钮区 */
+.actions {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+/* 发送按钮 */
+.sendButton {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+/* 有内容时激活 */
+.sendButton.active {
+  background: var(--accent-primary);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+.sendButton.active:hover {
+  background: #1D4ED8;
+  transform: scale(1.05);
+}

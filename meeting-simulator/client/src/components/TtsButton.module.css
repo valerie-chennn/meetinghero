@@ -1,0 +1,61 @@
+/* TTS 播放按钮样式 */
+.ttsButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-muted);
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.ttsButton:hover {
+  background: var(--bg-elevated);
+  color: var(--accent-primary);
+}
+
+/* 播放中状态 */
+.ttsButton.playing {
+  color: var(--accent-teal);
+  background: #F0FDFA;
+}
+
+/* 声波动画容器 */
+.soundwave {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 14px;
+}
+
+/* 声波柱 */
+.bar {
+  display: block;
+  width: 2px;
+  background: currentColor;
+  border-radius: 1px;
+  animation: soundwave 0.8s ease-in-out infinite;
+}
+
+.bar:nth-child(1) {
+  height: 4px;
+  animation-delay: 0s;
+}
+
+.bar:nth-child(2) {
+  height: 10px;
+  animation-delay: 0.15s;
+}
+
+.bar:nth-child(3) {
+  height: 8px;
+  animation-delay: 0.3s;
+}
+
+.bar:nth-child(4) {
+  height: 5px;
+  animation-delay: 0.45s;
+}

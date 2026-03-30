@@ -1,0 +1,152 @@
+/* 参考说法折叠面板样式 */
+.reference {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+/* 折叠触发按钮 */
+.toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 0.2s ease;
+}
+
+.toggle:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.toggle.open {
+  color: var(--accent-purple);
+  background: #F5F3FF;
+}
+
+.toggleIcon {
+  color: var(--accent-purple);
+  display: flex;
+  align-items: center;
+}
+
+.toggleText {
+  flex: 1;
+  text-align: left;
+}
+
+.toggleArrow {
+  color: var(--text-muted);
+}
+
+/* 折叠面板：高度从 0 过渡到 auto（用 max-height 模拟）*/
+.panel {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+
+.panel.panelOpen {
+  max-height: 400px;
+}
+
+.panelInner {
+  padding: 14px;
+  background: var(--bg-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-top: 1px solid var(--border);
+}
+
+/* 简单文本参考 */
+.simpleItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+/* 文字块：英文 + 可选中文翻译 */
+.textBlock {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.referenceText {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-primary);
+}
+
+/* 中文翻译：12px 灰色，显示在英文下方 */
+.referenceTranslation {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+/* 结构化参考条目 */
+.referenceItem {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.referenceItem:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+/* 句子行 */
+.sentenceRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.sentence {
+  flex: 1;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+/* 句型标签 */
+.patternTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.patternLabel {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent-purple);
+  background: #EDE9FE;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.patternText {
+  font-size: 13px;
+  color: var(--accent-purple);
+}
+
+/* 场景说明 */
+.contextText {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}

@@ -1,0 +1,532 @@
+/* ===== RandomDraw — 乱炖局翻牌页 ===== */
+
+/* ===== 整体容器：深靛蓝渐变背景 ===== */
+.container {
+  max-width: 430px;
+  margin: 0 auto;
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--page-draw-bg);
+  -webkit-tap-highlight-color: transparent;
+  /* 作为 actionArea absolute 定位的参照容器 */
+  position: relative;
+}
+
+/* ===== 顶部导航 ===== */
+.topNav {
+  height: 56px;
+  padding: 0 var(--space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  background: rgba(0, 0, 0, 0.15);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+.backBtn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.10);
+  color: rgba(255, 255, 255, 0.80);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+
+.backBtn:hover {
+  background: rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 1);
+}
+
+.navTitle {
+  font-size: var(--font-md);
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.90);
+}
+
+/* ===== 主内容区 ===== */
+.content {
+  flex: 1;
+  padding: var(--space-8) var(--space-5) 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* 全部翻完后：成就区+小卡区垂直居中，底部按钮贴底 */
+.contentAllFlipped {
+  justify-content: center;
+  padding-bottom: 120px; /* 预留底部按钮区高度，避免内容被遮挡 */
+}
+
+/* ===== 标题区 ===== */
+.titleArea {
+  text-align: center;
+  margin-bottom: var(--space-6);
+  animation: fadeInUp 0.35s var(--ease-out) both;
+}
+
+.pageTitle {
+  font-size: 28px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 1);
+  margin: 0 0 var(--space-2) 0;
+}
+
+.pageSubtitle {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.60);
+  margin: 0;
+  min-height: 20px;
+  transition: opacity 0.3s ease;
+}
+
+/* ===== 成就区域（全部翻完后显示）===== */
+.achievementArea {
+  text-align: center;
+  margin-bottom: var(--space-5);
+  animation: fadeInUp 0.4s var(--ease-out) both;
+}
+
+.starsRow {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: var(--space-2);
+}
+
+/* 三颗金色星星，依次 fadeIn */
+.star {
+  font-size: 20px;
+  color: var(--gold-text);
+  opacity: 0;
+  animation: fadeIn 0.4s ease forwards;
+}
+
+.starDelay0 { animation-delay: 0ms; }
+.starDelay1 { animation-delay: 100ms; }
+.starDelay2 { animation-delay: 200ms; }
+
+.achievementText {
+  font-size: 22px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 1);
+  margin: 0;
+}
+
+/* ===== 小卡区域：已翻完的牌并排显示 ===== */
+.smallCardsRow {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: var(--space-5);
+}
+
+/* 小卡：110×148px */
+.smallCard {
+  width: 110px;
+  height: 148px;
+  border-radius: 16px;
+  background: linear-gradient(165deg, #1e1b4b, #312e81, #3b1d8c);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  /* 小卡弹入动画 */
+  animation: springIn 0.4s var(--ease-spring) both;
+  flex-shrink: 0;
+}
+
+/* 小卡头像 32px */
+.smallCardAvatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.20);
+  color: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-bottom: 2px;
+}
+
+/* 小卡中文名 */
+.smallCardName {
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 1);
+  text-align: center;
+  line-height: 1.2;
+  word-break: break-all;
+}
+
+/* 小卡英文名（有则显示）*/
+.smallCardNameEn {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.55);
+  text-align: center;
+  line-height: 1.2;
+  word-break: break-all;
+}
+
+/* 小卡来源标签（有则显示）*/
+.smallCardSource {
+  font-size: 9px;
+  color: var(--gold-text);
+  background: rgba(255, 215, 0, 0.12);
+  border: 1px solid var(--gold-border);
+  border-radius: 9999px;
+  padding: 2px 6px;
+  text-align: center;
+  white-space: nowrap;
+  max-width: 90px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ===== 大卡：当前展示的翻牌主角 ===== */
+/* perspective 设置在外层容器上 */
+.bigCardScene {
+  perspective: 1200px;
+  cursor: pointer;
+  border-radius: 16px;
+  flex-shrink: 0;
+  margin-bottom: var(--space-5);
+  /* 初始状态无动画 */
+}
+
+/* 第 2、3 张大卡从下方滑入（不带金色边框）*/
+.bigCardSlideIn {
+  animation: bigCardEnter 0.4s ease-out both;
+}
+
+/* 等待翻开：金色发光脉冲（仅第 1 张，无滑入需求）*/
+.bigCardActive {
+  border: 2px solid rgba(255, 215, 0, 0.6);
+  animation: goldGlow 1.5s ease-in-out 0.4s infinite;
+}
+
+/* 第 2、3 张等待翻开：滑入 + 金色脉冲，animation 合并在同一 class 避免覆盖 */
+.bigCardSlideInActive {
+  border: 2px solid rgba(255, 215, 0, 0.6);
+  animation: bigCardEnter 0.4s ease-out both, goldGlow 1.5s ease-in-out 0.4s infinite;
+}
+
+/* 翻牌容器（持有 3D 翻转）*/
+.bigCardInner {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  -webkit-transform-style: preserve-3d;
+  transform-style: preserve-3d;
+  -webkit-transition: -webkit-transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+  transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+}
+
+/* 翻转状态：旋转 180° 显示正面 */
+.bigCardFlipped .bigCardInner {
+  -webkit-transform: rotateY(180deg);
+  transform: rotateY(180deg);
+}
+
+/* 正面和背面共享基础样式 */
+.bigCardBack,
+.bigCardFront {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 16px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* ===== 大卡背面：深靛蓝渐变 + 问号 ===== */
+.bigCardBack {
+  background: linear-gradient(145deg, #1a1744 0%, #2d2a7a 45%, #3d1d8c 80%, #1e1b4b 100%);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+/* 背面问号图标 40px */
+.bigCardBackIcon {
+  font-size: 40px;
+  color: rgba(255, 255, 255, 0.30);
+  text-shadow: 0 0 16px rgba(255, 215, 0, 0.25);
+  user-select: none;
+}
+
+/* ===== 大卡正面：深色渐变 + 角色信息 ===== */
+.bigCardFront {
+  background: linear-gradient(165deg, #1e1b4b 0%, #312e81 50%, #3b1d8c 100%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  -webkit-transform: rotateY(180deg);
+  transform: rotateY(180deg);
+  padding: 24px 20px 20px;
+  gap: 4px;
+}
+
+/* 正面骨架屏（加载中）*/
+.bigCardSkeleton {
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+}
+
+/* 大卡头像 56×56 */
+.bigCardAvatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.20);
+  color: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-bottom: 12px;
+}
+
+/* 大卡中文名 20px bold */
+.bigCardName {
+  font-size: 20px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 1);
+  text-align: center;
+  line-height: 1.2;
+  margin-bottom: 4px;
+  word-break: break-all;
+}
+
+/* 大卡英文名（有则显示，无则不渲染）*/
+.bigCardNameEn {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.55);
+  text-align: center;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+  word-break: break-all;
+}
+
+/* 大卡来源标签（有则显示）*/
+.bigCardSource {
+  font-size: 11px;
+  color: var(--gold-text);
+  background: rgba(255, 215, 0, 0.12);
+  border: 1px solid var(--gold-border);
+  border-radius: 9999px;
+  padding: 3px 10px;
+  text-align: center;
+  white-space: nowrap;
+  max-width: calc(100% - 24px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ===== 操作按钮区：固定在底部，全部翻完后出现 ===== */
+.actionArea {
+  width: 100%;
+  /* 脱离文档流，贴底展示，不受 justify-content 影响 */
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 20px 20px 40px;
+  background: rgba(0, 0, 0, 0.15);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  /* 按钮区滑入动画，延迟 300ms */
+  animation: slideInUp 0.3s ease-out 300ms both;
+}
+
+.confirmRow {
+  display: flex;
+  gap: var(--space-3);
+  width: 100%;
+}
+
+/* 换一批：透明背景，白色边框 */
+.refreshBtn {
+  height: 52px;
+  padding: 0 var(--space-5);
+  border-radius: var(--radius-lg);
+  font-size: var(--font-base);
+  font-weight: 600;
+  border: 1.5px solid rgba(255, 255, 255, 0.20);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.80);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.refreshBtn:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.40);
+  color: rgba(255, 255, 255, 1);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* 就这三位：绿色 CTA */
+.confirmBtn {
+  flex: 1;
+  height: 52px;
+  border-radius: var(--radius-lg);
+  font-size: var(--font-md);
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.50);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, transform 0.15s;
+}
+
+button.confirmBtn:disabled {
+  cursor: not-allowed;
+}
+
+.confirmBtnActive {
+  background: var(--color-success);
+  color: #FFFFFF;
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.28);
+}
+
+.confirmBtnActive:hover:not(:disabled) {
+  background: var(--color-success-hover);
+  transform: translateY(-1px);
+}
+
+.confirmBtnActive:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* ===== 加载三点 ===== */
+.loadingDots {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.loadingDots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  animation: dotBounce 1.2s ease infinite;
+}
+
+.loadingDots span:nth-child(2) { animation-delay: 0.2s; }
+.loadingDots span:nth-child(3) { animation-delay: 0.4s; }
+
+/* ===== 动画关键帧 ===== */
+
+/* 从下淡入（titleArea、achievementArea 使用）*/
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 淡入（star 星星使用）*/
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* 弹性出场（smallCard 使用）*/
+@keyframes springIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.88) translateY(8px);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.02) translateY(-2px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* 金色发光脉冲 */
+@keyframes goldGlow {
+  0%, 100% {
+    box-shadow:
+      0 0 12px rgba(255, 215, 0, 0.6),
+      0 0 24px rgba(255, 215, 0, 0.3),
+      0 4px 16px rgba(30, 27, 75, 0.3);
+  }
+  50% {
+    box-shadow:
+      0 0 20px rgba(255, 215, 0, 0.8),
+      0 0 40px rgba(255, 215, 0, 0.5),
+      0 0 60px rgba(255, 185, 0, 0.25),
+      0 4px 16px rgba(30, 27, 75, 0.3);
+  }
+}
+
+/* 大卡从下方滑入 */
+@keyframes bigCardEnter {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 按钮区从底部滑入 */
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 三点加载跳动 */
+@keyframes dotBounce {
+  0%, 100% { transform: translateY(0); opacity: 0.6; }
+  50% { transform: translateY(-4px); opacity: 1; }
+}

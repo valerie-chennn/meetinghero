@@ -1,26 +1,37 @@
-/* 用户输入区样式 */
+/* =====================================================
+   UserInput 底部用户输入组件
+   设计：白底输入框 + 圆形发送按钮 + 语音按钮
+   ===================================================== */
+
+/* 整体容器：flex 横向排列 */
 .inputContainer {
   display: flex;
   align-items: flex-end;
   gap: 8px;
-  padding: 12px 16px;
-  padding-bottom: calc(12px + env(safe-area-inset-bottom));
-  background: var(--bg-tertiary);
-  border-top: 1px solid var(--border);
+  padding: 10px 16px;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom));
+  background: transparent;
 }
 
-/* 输入框容器 */
+/* ===== 输入框容器 ===== */
 .inputWrapper {
   flex: 1;
-  background: var(--bg-tertiary);
-  border-radius: 20px;
+  background: #FFFFFF;
+  /* 12px 圆角 */
+  border-radius: var(--radius-md);
+  /* 标准边框 */
   border: 1px solid var(--border);
-  transition: border-color 0.2s ease;
+  transition: border-color 0.2s var(--ease-standard),
+              box-shadow 0.2s var(--ease-standard);
   overflow: hidden;
+  /* 为内部绝对定位的 transcribingIndicator 建立包含块 */
+  position: relative;
 }
 
+/* focus 态：品牌色边框 + 光晕 */
 .inputWrapper:focus-within {
-  border-color: var(--accent-primary);
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
 }
 
 /* 文本域 */
@@ -29,47 +40,138 @@
   background: transparent;
   color: var(--text-primary);
   font-size: 15px;
-  line-height: 1.5;
-  padding: 10px 16px;
+  line-height: 1.55;
+  padding: 10px 14px;
   resize: none;
   max-height: 120px;
   overflow-y: auto;
   display: block;
+  /* 重置全局 border 和 outline */
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 .textarea::placeholder {
   color: var(--text-muted);
+  font-weight: 400;
 }
 
-/* 操作按钮区 */
+/* ===== 操作按钮区 ===== */
 .actions {
   display: flex;
   align-items: flex-end;
   gap: 6px;
 }
 
-/* 发送按钮 */
+/* ===== 发送按钮：品牌色圆形 36×36 ===== */
 .sendButton {
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  /* 默认：弱化背景（无内容时） */
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s var(--ease-spring);
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+}
+
+/* 有内容时激活：品牌色 */
+.sendButton.active {
+  background: var(--color-brand);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.28);
+}
+
+.sendButton.active:hover {
+  background: var(--color-brand-dark);
+  transform: scale(1.06);
+  box-shadow: 0 6px 16px rgba(79, 70, 229, 0.35);
+}
+
+.sendButton.active:active {
+  transform: scale(0.94);
+}
+
+/* ===== 语音按钮：36×36 圆形 ===== */
+.voiceButton {
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: var(--bg-elevated);
   color: var(--text-muted);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: all 0.2s var(--ease-spring);
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+}
+
+.voiceButton:hover {
+  background: var(--color-brand-light);
+  color: var(--color-brand);
+  border-color: var(--color-brand-mid);
+}
+
+/* 录音中：红色 + 脉冲动画 */
+.voiceButton.recording {
+  background: #FEF2F2;
+  color: var(--color-error);
+  border-color: rgba(239, 68, 68, 0.3);
+  animation: recordingPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes recordingPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+  }
+}
+
+/* ===== 语音转写加载态 ===== */
+
+/* 覆盖层：绝对定位在 inputWrapper 内，居中显示 */
+.transcribingIndicator {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: var(--radius-md);
+  pointer-events: none; /* 不阻断点击穿透 */
+}
+
+/* 小圆形 spinner（16px），品牌色 */
+.transcribingSpinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(79, 70, 229, 0.2);
+  border-top-color: var(--color-brand);
+  border-radius: 50%;
+  animation: spinnerRotate 0.7s linear infinite;
   flex-shrink: 0;
 }
 
-/* 有内容时激活 */
-.sendButton.active {
-  background: var(--accent-primary);
-  color: #fff;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+@keyframes spinnerRotate {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-.sendButton.active:hover {
-  background: #1D4ED8;
-  transform: scale(1.05);
+/* 提示文字 */
+.transcribingText {
+  font-size: 13px;
+  color: var(--color-brand);
+  font-weight: 500;
+  letter-spacing: 0.01em;
 }

@@ -17,6 +17,8 @@ const onboardingRouter = require('./routes/onboarding');
 const meetingRouter = require('./routes/meeting');
 const reviewRouter = require('./routes/review');
 const speechRouter = require('./routes/speech');
+const uploadRouter = require('./routes/upload');
+const historyRouter = require('./routes/history');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -52,6 +54,8 @@ app.use('/api/onboarding', onboardingRouter);
 app.use('/api/meeting', meetingRouter);
 app.use('/api/review', reviewRouter);
 app.use('/api/speech', speechRouter);
+app.use('/api/upload', uploadRouter);
+app.use('/api/history', historyRouter);
 
 // ==================== 健康检查 ====================
 

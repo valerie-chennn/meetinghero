@@ -72,7 +72,6 @@ function ChatBubble({ speaker, title, text, textZh, showTranslation, isUser, isS
             {/* 中文翻译区域：开启翻译时显示，textZh 为空则显示兜底提示 */}
             {showTranslation && (
               <div className={styles.translationBlock}>
-                <div className={styles.translationDivider}></div>
                 <p className={styles.translationText}>
                   <span className={styles.translationTag}>译</span>
                   {textZh || <span className={styles.translationFallback}>（翻译暂不可用）</span>}

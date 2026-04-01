@@ -1,50 +1,167 @@
-/* ===== CSS 变量（全局设计 Token）===== */
+/* ===================================================
+   MeetingHero — 全局设计系统 v3.0
+   风格方向：AI-Native UI + Soft UI Evolution
+   参考：Linear + Notion + ChatGPT 的高端简洁感
+   目标用户：中国职场人，鼓励感但不幼稚
+   =================================================== */
+
+/* ===== 字体：使用系统字体栈，保证最佳渲染效果 ===== */
+
+/* ===================================================
+   设计 Token — CSS 变量
+   =================================================== */
 :root {
-  /* 主背景色系 — 温暖浅灰，参考 Apple / Linear 浅色模式 */
-  --bg-primary: #F5F5F7;
-  --bg-secondary: #EEEEF0;
-  --bg-tertiary: #FFFFFF;
-  --bg-elevated: #FFFFFF;
 
-  /* 文字色系 */
-  --text-primary: #1D1D1F;
-  --text-secondary: #6E6E73;
-  --text-muted: #AEAEB2;
+  /* ── 品牌色 ── */
+  --color-brand:       #4F46E5;   /* Indigo-600，深邃高级 */
+  --color-brand-light: #EEF2FF;   /* Indigo-50，极浅底色 */
+  --color-brand-mid:   #818CF8;   /* Indigo-400，辅助高亮 */
+  --color-brand-dark:  #4338CA;   /* Indigo-700，深色状态 */
 
-  /* 强调色 — 保持鲜艳，提升整体活力 */
-  --accent-primary: #2563EB;
-  --accent-orange: #EA580C;
-  --accent-teal: #0D9488;
-  --accent-purple: #7C3AED;
+  /* ── 功能/状态色 ── */
+  --color-success:     #10B981;   /* Emerald-500，CTA / 成功 */
+  --color-success-hover: #059669; /* Emerald-600，hover 状态 */
+  --color-warning:     #F59E0B;   /* Amber-500 */
+  --color-error:       #EF4444;   /* Red-500 */
+  --color-info:        #4F46E5;   /* 与品牌色统一 */
 
-  /* 角色颜色 */
-  --role-leader: #2563EB;
-  --role-collaborator: #0D9488;
-  --role-challenger: #EA580C;
-  --role-supporter: #7C3AED;
+  /* ── 强调色 ── */
+  --accent-orange:     #F97316;   /* Orange-500 */
+  --accent-teal:       #14B8A6;   /* Teal-500 */
+  --accent-purple:     #8B5CF6;   /* Violet-500 */
 
-  /* 用户气泡 */
-  --user-bubble: #EFF6FF;
-  --user-accent: #EA580C;
+  /* ── 角色渐变色 ── */
+  --role-leader:       linear-gradient(135deg, #3B82F6, #2563EB);
+  --role-collaborator: linear-gradient(135deg, #14B8A6, #0D9488);
+  --role-challenger:   linear-gradient(135deg, #F97316, #EA580C);
+  --role-supporter:    linear-gradient(135deg, #8B5CF6, #7C3AED);
 
-  /* 边框和阴影 — 浅色主题下阴影是层次感的关键 */
-  --border: #E5E5EA;
-  --shadow: rgba(0, 0, 0, 0.08);
-  --shadow-md: rgba(0, 0, 0, 0.12);
-  --shadow-lg: rgba(0, 0, 0, 0.16);
+  /* ── 用户气泡渐变 ── */
+  --user-bubble: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%);
 
-  /* 圆角 */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
+  /* ── 背景三层 ── */
+  --bg-base:     #FAFBFE;   /* 比纯白稍暖的极浅靛蓝，全局底色 */
+  --bg-surface:  #FFFFFF;   /* 卡片、面板表面 */
+  --bg-elevated: #F8FAFC;   /* Slate-50，略微提升的层级 */
 
-  /* 字体 */
-  --font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
+  /* ── 文字三层 ── */
+  --text-primary:   #1E1B4B;   /* Indigo-950，接近黑但带靛蓝调 */
+  --text-secondary: #64748B;   /* Slate-500，次要信息 */
+  --text-muted:     #94A3B8;   /* Slate-400，弱化信息 */
+
+  /* ── 边框 ── */
+  --border:         #E2E8F0;   /* Slate-200，标准边框 */
+  --border-subtle:  rgba(226, 232, 240, 0.6); /* 更轻的分割线 */
+
+  /* ── 阴影系统（多层精致阴影）── */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06),
+               0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06),
+               0 1px 3px  rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.08),
+               0 2px 6px  rgba(0, 0, 0, 0.04);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.10),
+               0 4px 12px rgba(0, 0, 0, 0.04);
+  /* 品牌色光晕 */
+  --shadow-brand:   0 4px 16px rgba(79, 70, 229, 0.20);
+  /* 成功色光晕 */
+  --shadow-success: 0 4px 16px rgba(16, 185, 129, 0.20);
+
+  /* ── 圆角 ── */
+  --radius-sm:   8px;
+  --radius-md:   12px;
+  --radius-lg:   16px;
+  --radius-xl:   20px;
+  --radius-full: 9999px;
+
+  /* ── 字体族 ── */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Display',
+               'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+
+  /* ── 字号系统（更精细的 8 级阶梯）── */
+  --font-xs:   0.75rem;     /* 12px */
+  --font-sm:   0.8125rem;   /* 13px */
+  --font-base: 0.9375rem;   /* 15px，移动端正文基础 */
+  --font-md:   1rem;        /* 16px */
+  --font-lg:   1.125rem;    /* 18px */
+  --font-xl:   1.375rem;    /* 22px */
+  --font-2xl:  1.75rem;     /* 28px */
+  --font-3xl:  2.25rem;     /* 36px */
+
+  /* ── 间距（8px 基准网格）── */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ── 动效曲线 ── */
+  --ease-out:      cubic-bezier(0.33, 1, 0.68, 1);      /* 快速减速，自然出场 */
+  --ease-spring:   cubic-bezier(0.34, 1.56, 0.64, 1);   /* 弹性感，有活力 */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);        /* Material 标准曲线 */
+  --ease-gentle:   cubic-bezier(0.25, 0.1, 0.25, 1);    /* 平滑通用 */
+
+  /* ── 动效时长 ── */
+  --duration-fast:   150ms;
+  --duration-normal: 250ms;
+  --duration-slow:   400ms;
+
+  /* ===================================================
+     向后兼容映射 — 旧变量名保留，指向新 Token
+     确保现有页面组件无需修改即可正确渲染
+     =================================================== */
+
+  /* 旧背景变量 */
+  --bg-primary:   var(--bg-base);
+  --bg-secondary: var(--bg-base);
+  --bg-tertiary:  var(--bg-surface);
+
+  /* 旧品牌色 */
+  --accent-primary:  var(--color-brand);
+  --color-brand-mid: #818CF8;
+
+  /* 旧字体变量 */
+  --font-family: var(--font-sans);
+
+  /* 旧字号变量（以 --text-* 开头的旧命名方式）*/
+  --text-xs:   var(--font-xs);
+  --text-sm:   var(--font-sm);
+  --text-base: var(--font-base);
+  --text-lg:   var(--font-lg);
+  --text-xl:   var(--font-xl);
+  --text-2xl:  var(--font-2xl);
+  --text-3xl:  var(--font-3xl);
+
+  /* 旧阴影变量（兼容旧值形式）*/
+  --shadow: rgba(0, 0, 0, 0.06);
 }
 
-/* ===== 全局重置 ===== */
-*, *::before, *::after {
+/* ===================================================
+   无障碍 — 减少动效（尊重用户系统偏好）
+   =================================================== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ===================================================
+   全局重置
+   =================================================== */
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -53,20 +170,40 @@
 html {
   font-size: 16px;
   -webkit-text-size-adjust: 100%;
+  /* 平滑锚点滚动 */
+  scroll-behavior: smooth;
 }
 
 body {
-  font-family: var(--font-family);
-  background-color: var(--bg-primary);
+  font-family: var(--font-sans);
+  font-size: var(--font-base);
+  font-weight: 400;
+  line-height: 1.6;
+  background: var(--bg-base);
   color: var(--text-primary);
   min-height: 100vh;
   min-height: 100dvh;
   overflow-x: hidden;
+  /* 字体渲染优化 */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
-/* ===== 应用容器 ===== */
+/* ── 文字选中高亮（品牌色）── */
+::selection {
+  background-color: var(--color-brand-light);
+  color: var(--color-brand);
+}
+
+::-moz-selection {
+  background-color: var(--color-brand-light);
+  color: var(--color-brand);
+}
+
+/* ===================================================
+   应用根容器
+   =================================================== */
 #root {
   min-height: 100vh;
   min-height: 100dvh;
@@ -74,7 +211,9 @@ body {
   flex-direction: column;
 }
 
-/* ===== 页面容器（移动端优先，最大宽度 430px）===== */
+/* ===================================================
+   页面容器 — 移动端优先，最大宽度 430px 居中
+   =================================================== */
 .page-container {
   max-width: 430px;
   margin: 0 auto;
@@ -84,58 +223,108 @@ body {
   display: flex;
   flex-direction: column;
   position: relative;
+  /* 防止超宽屏时两侧过于空旷 */
+  background: var(--bg-surface);
 }
 
-/* ===== 通用工具类 ===== */
-.text-primary { color: var(--text-primary); }
-.text-secondary { color: var(--text-secondary); }
-.text-muted { color: var(--text-muted); }
-.text-accent { color: var(--accent-primary); }
-.text-teal { color: var(--accent-teal); }
-.text-orange { color: var(--accent-orange); }
-.text-purple { color: var(--accent-purple); }
+/* ===================================================
+   通用卡片
+   =================================================== */
+.card {
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-4);
+}
 
-/* ===== 按钮基础样式 ===== */
+/* ===================================================
+   工具类 — 文字颜色
+   =================================================== */
+.text-primary   { color: var(--text-primary); }
+.text-secondary { color: var(--text-secondary); }
+.text-muted     { color: var(--text-muted); }
+.text-accent    { color: var(--color-brand); }
+.text-teal      { color: var(--accent-teal); }
+.text-orange    { color: var(--accent-orange); }
+.text-purple    { color: var(--accent-purple); }
+.text-success   { color: var(--color-success); }
+.text-error     { color: var(--color-error); }
+
+/* ===================================================
+   按钮基础样式 — 全局 reset，具体样式由各组件定义
+   =================================================== */
 button {
-  font-family: var(--font-family);
-  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
   border: none;
-  outline: none;
-  transition: all 0.2s ease;
+  cursor: pointer;
+  /* 使用 ease-out 让点击反馈更自然 */
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+button:active {
+  transform: scale(0.97);
 }
 
 button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  /* 禁用态不触发 transform */
+  transform: none;
 }
 
-/* ===== 输入框基础样式 ===== */
-input, textarea {
-  font-family: var(--font-family);
+/* ===================================================
+   输入框基础样式
+   =================================================== */
+input,
+textarea {
+  font-family: var(--font-sans);
+  font-size: var(--font-base);
   outline: none;
   border: 1px solid var(--border);
+  transition: border-color var(--duration-fast) var(--ease-standard),
+              box-shadow var(--duration-fast) var(--ease-standard);
 }
 
-/* ===== 滚动条样式 ===== */
+input:focus,
+textarea:focus {
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+}
+
+/* ===================================================
+   滚动条样式（WebKit）
+   =================================================== */
 ::-webkit-scrollbar {
   width: 4px;
+  height: 4px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg-primary);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--bg-elevated);
-  border-radius: 2px;
+  background: var(--border);
+  border-radius: var(--radius-full);
+  transition: background var(--duration-fast);
 }
 
-/* ===== 全局动画 ===== */
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* ===================================================
+   全局动画关键帧
+   =================================================== */
+
+/* 淡入 */
 @keyframes fadeIn {
   from { opacity: 0; }
-  to { opacity: 1; }
+  to   { opacity: 1; }
 }
 
+/* 从下淡入（卡片、列表项出场）*/
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -147,6 +336,7 @@ input, textarea {
   }
 }
 
+/* 从上淡入（Toast、下拉等）*/
 @keyframes fadeInDown {
   from {
     opacity: 0;
@@ -158,24 +348,19 @@ input, textarea {
   }
 }
 
+/* 从右滑入（页面切换）*/
 @keyframes slideInRight {
-  from {
-    transform: translateX(100%);
-  }
-  to {
-    transform: translateX(0);
-  }
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
 }
 
+/* 向右滑出（页面切换）*/
 @keyframes slideOutRight {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(100%);
-  }
+  from { transform: translateX(0); }
+  to   { transform: translateX(100%); }
 }
 
+/* 脉冲（状态指示、徽标）*/
 @keyframes pulse {
   0%, 100% {
     transform: scale(1);
@@ -187,6 +372,7 @@ input, textarea {
   }
 }
 
+/* 呼吸（加载态、录音指示）*/
 @keyframes breathe {
   0%, 100% {
     transform: scale(0.8);
@@ -198,11 +384,13 @@ input, textarea {
   }
 }
 
+/* 旋转（加载 Spinner）*/
 @keyframes spin {
   from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  to   { transform: rotate(360deg); }
 }
 
+/* 涟漪（点击水波纹）*/
 @keyframes ripple {
   0% {
     transform: scale(1);
@@ -214,21 +402,37 @@ input, textarea {
   }
 }
 
+/* 声波（TTS 播放状态）*/
 @keyframes soundwave {
   0%, 100% { transform: scaleY(0.4); }
-  50% { transform: scaleY(1); }
+  50%       { transform: scaleY(1); }
 }
 
-/* ===== 通用卡片样式 ===== */
-.card {
-  background: var(--bg-tertiary);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border);
-  padding: 16px;
-  box-shadow: 0 1px 4px var(--shadow);
+/* 弹性出场（元素入场弹跳）*/
+@keyframes springIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.88) translateY(8px);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.02) translateY(-2px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
-/* ===== Toast 提示 ===== */
+/* 光晕脉冲（品牌 CTA 吸引注意）*/
+@keyframes glowPulse {
+  0%, 100% { box-shadow: var(--shadow-brand); }
+  50%       { box-shadow: 0 4px 24px rgba(79, 70, 229, 0.35); }
+}
+
+/* ===================================================
+   Toast 提示系统
+   =================================================== */
 .toast-container {
   position: fixed;
   top: 24px;
@@ -237,26 +441,36 @@ input, textarea {
   z-index: 9999;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
   pointer-events: none;
 }
 
 .toast {
-  background: var(--bg-elevated);
+  background: var(--bg-surface);
   color: var(--text-primary);
-  padding: 12px 20px;
+  padding: var(--space-3) var(--space-5);
   border-radius: var(--radius-md);
-  font-size: 14px;
-  animation: fadeInDown 0.3s ease;
-  box-shadow: 0 4px 16px var(--shadow-md), 0 1px 4px var(--shadow);
-  border: 1px solid var(--border);
+  font-size: var(--font-sm);
+  font-weight: 500;
+  animation: fadeInDown var(--duration-normal) var(--ease-out);
+  box-shadow: var(--shadow-lg);
   white-space: nowrap;
+  /* 细微边框增强层次感 */
+  border: 1px solid var(--border-subtle);
 }
 
 .toast.error {
-  border-left: 3px solid var(--accent-orange);
+  border-left: 3px solid var(--color-error);
 }
 
 .toast.success {
-  border-left: 3px solid var(--accent-teal);
+  border-left: 3px solid var(--color-success);
+}
+
+.toast.warning {
+  border-left: 3px solid var(--color-warning);
+}
+
+.toast.info {
+  border-left: 3px solid var(--color-brand);
 }

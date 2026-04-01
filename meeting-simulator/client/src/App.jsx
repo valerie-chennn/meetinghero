@@ -11,6 +11,7 @@ import Meeting from './pages/Meeting.jsx';
 import Review from './pages/Review.jsx';
 import ReviewNodes from './pages/ReviewNodes.jsx';
 import Complete from './pages/Complete.jsx';
+import History from './pages/History.jsx';
 
 // 重置页面：清除所有数据并跳转到首页
 function ResetPage() {
@@ -47,6 +48,8 @@ function App() {
             <Route path="/review/nodes" element={<ReviewNodes />} />
             {/* 完成页：难度反馈 + 再来一场 */}
             <Route path="/complete" element={<Complete />} />
+            {/* 历史记录：展示用户过去的练习记录 */}
+            <Route path="/history" element={<History />} />
             {/* 重置路由：清除所有数据，恢复新用户 */}
             <Route path="/reset" element={<ResetPage />} />
             {/* 兜底重定向到首页 */}

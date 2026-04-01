@@ -1,4 +1,9 @@
-/* 完成页样式 */
+/* ===================================================
+   Complete 完成页样式
+   设计风格：庆祝感 + 克制优雅，三区域依次入场
+   =================================================== */
+
+/* ── 整体容器：垂直居中，三区弹性分布 ── */
 .container {
   max-width: 430px;
   margin: 0 auto;
@@ -8,141 +13,214 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  padding: 60px 32px 48px;
-  background: var(--bg-primary);
-  animation: fadeIn 0.4s ease;
+  justify-content: center;
+  gap: var(--space-12);
+  padding: var(--space-12) var(--space-8);
+  background: var(--bg-base);
 }
 
 /* ===== 完成图标区 ===== */
+
+/* 图标 + 文案整体，弹性出场动画 */
 .iconSection {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: var(--space-4);
   text-align: center;
-  animation: fadeInUp 0.5s ease 0.1s both;
+  /* springIn 弹性入场，delay 100ms */
+  animation: springIn var(--duration-slow) var(--ease-spring) 100ms both;
 }
 
-/* 图标包装层（带光晕动效） */
+/* 翡翠绿圆形背景，64x64 */
 .iconWrapper {
-  animation: fadeInUp 0.5s ease both;
+  position: relative;
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-full);
+  background: var(--color-success);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* 成功色光晕 */
+  box-shadow: var(--shadow-success),
+              0 0 0 8px rgba(16, 185, 129, 0.10);
+  /* 微弱光晕脉冲，持续呼吸感 */
+  animation: successPulse 2.4s var(--ease-standard) 700ms infinite;
 }
 
-/* 干得好！大标题 */
+/* 白色对勾 SVG */
+.iconWrapper svg {
+  flex-shrink: 0;
+}
+
+/* 成功图标光晕脉冲关键帧 */
+@keyframes successPulse {
+  0%, 100% {
+    box-shadow: var(--shadow-success),
+                0 0 0 8px rgba(16, 185, 129, 0.10);
+  }
+  50% {
+    box-shadow: 0 4px 20px rgba(16, 185, 129, 0.30),
+                0 0 0 12px rgba(16, 185, 129, 0.06);
+  }
+}
+
+/* "练习完成！" 标题，22px 700 */
 .doneTitle {
-  font-size: 32px;
-  font-weight: 800;
+  font-size: var(--font-xl);   /* 22px */
+  font-weight: 700;
   color: var(--text-primary);
-  letter-spacing: -0.5px;
+  letter-spacing: -0.3px;
+  line-height: 1.3;
 }
 
-/* 副标题描述 */
+/* 副标题：鼓励性文案，15px 次要色 */
 .doneDesc {
-  font-size: 15px;
+  font-size: var(--font-base);  /* 15px */
   color: var(--text-secondary);
-  line-height: 1.6;
-  max-width: 260px;
+  line-height: 1.65;
+  max-width: 240px;
 }
 
 /* ===== 难度反馈区 ===== */
+
+/* 整体入场，fadeInUp delay 300ms */
 .feedbackSection {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: var(--space-4);
   width: 100%;
-  animation: fadeInUp 0.5s ease 0.2s both;
+  animation: fadeInUp var(--duration-slow) var(--ease-out) 300ms both;
 }
 
-/* 问题文字 */
+/* "这次会议对你来说..." 问题标签，15px */
 .feedbackQuestion {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-primary);
+  font-size: var(--font-base);  /* 15px */
+  color: var(--text-secondary);
+  font-weight: 500;
 }
 
 /* 三个选项横排 */
 .difficultyRow {
   display: flex;
-  gap: 10px;
+  gap: var(--space-3);
   width: 100%;
 }
 
-/* 难度选项按钮 */
+/* 难度选项按钮：默认白底 + 轻阴影 */
 .difficultyButton {
   flex: 1;
   padding: 12px 8px;
-  border-radius: var(--radius-md);
-  background: var(--bg-tertiary);
-  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);        /* 12px */
+  background: var(--bg-surface);
+  border: 1.5px solid transparent;
+  box-shadow: var(--shadow-xs);
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: var(--font-sm);              /* 13px */
   font-weight: 500;
-  transition: all 0.2s ease;
   text-align: center;
+  /* 平滑过渡：颜色、阴影、位移 */
+  transition:
+    box-shadow var(--duration-normal) var(--ease-out),
+    border-color var(--duration-normal) var(--ease-out),
+    background var(--duration-normal) var(--ease-out),
+    color var(--duration-normal) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
 }
 
+/* hover：微上浮 + 阴影加深 */
 .difficultyButton:hover {
-  border-color: var(--accent-primary);
-  color: var(--accent-primary);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+  color: var(--text-primary);
 }
 
-/* 选中态 */
+/* active 点击压下 */
+.difficultyButton:active {
+  transform: translateY(0) scale(0.97);
+}
+
+/* 选中态：品牌色描边 2px + 极浅品牌底 */
 .difficultyButtonActive {
-  background: #EFF6FF;
-  border-color: var(--accent-primary);
-  color: var(--accent-primary);
-  font-weight: 700;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  border-color: var(--color-brand);
+  background: var(--color-brand-light);   /* #EEF2FF */
+  color: var(--color-brand);
+  font-weight: 600;
+  box-shadow: var(--shadow-xs);
+}
+
+/* 选中后 hover 不再上浮，保持稳定 */
+.difficultyButtonActive:hover {
+  transform: none;
 }
 
 /* ===== CTA 区域 ===== */
+
+/* 整体入场，fadeInUp delay 400ms */
 .ctaSection {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 14px;
+  gap: var(--space-3);
   width: 100%;
-  animation: fadeInUp 0.5s ease 0.3s both;
+  animation: fadeInUp var(--duration-slow) var(--ease-out) 400ms both;
 }
 
-/* 主按钮：再来一场 */
+/* 主按钮：翡翠绿实心，圆角 12px */
 .primaryButton {
   width: 100%;
-  padding: 16px;
-  border-radius: var(--radius-lg);
-  background: var(--accent-primary);
-  color: #fff;
-  font-size: 17px;
+  padding: 16px var(--space-6);
+  border-radius: var(--radius-md);         /* 12px */
+  background: var(--color-success);        /* #10B981 */
+  color: #ffffff;
+  font-size: var(--font-md);              /* 16px */
   font-weight: 700;
-  transition: all 0.2s ease;
-  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.28);
+  letter-spacing: 0.1px;
+  /* 成功色光晕 */
+  box-shadow: var(--shadow-success);
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
 }
 
+/* hover：加深 + 微上浮 */
 .primaryButton:hover {
-  background: #1D4ED8;
+  background: var(--color-success-hover);  /* #059669 */
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.30);
   transform: translateY(-1px);
-  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.35);
 }
 
+/* active：压下缩放（全局 button:active 已定义，这里可覆盖加强） */
 .primaryButton:active {
-  transform: translateY(0);
+  transform: translateY(0) scale(0.98);
+  box-shadow: var(--shadow-success);
 }
 
-/* 次要链接：回到首页 */
+/* 次要按钮：文字链接风格，无背景无边框 */
 .secondaryLink {
   background: none;
   border: none;
-  color: var(--text-muted);
-  font-size: 14px;
+  color: var(--text-muted);               /* #94A3B8 */
+  font-size: var(--font-sm);             /* 13px */
   font-weight: 500;
-  padding: 4px 0;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  transition: color 0.2s ease;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  transition:
+    color var(--duration-fast) var(--ease-out),
+    background var(--duration-fast) var(--ease-out);
 }
 
+/* hover：品牌色文字 */
 .secondaryLink:hover {
-  color: var(--text-secondary);
+  color: var(--color-brand);
+  background: var(--color-brand-light);
+}
+
+/* active 恢复（覆盖全局 scale，链接按钮不需要压缩感） */
+.secondaryLink:active {
+  transform: none;
+  opacity: 0.75;
 }

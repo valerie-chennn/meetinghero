@@ -1,6 +1,9 @@
-/* ===== 首页高质感样式 ===== */
+/* ===================================================
+   首页样式 — Linear/Notion 高端简洁风格
+   设计原则：重视留白和呼吸感，不过度装饰
+   =================================================== */
 
-/* 整体容器：移动端一屏，三区分布 */
+/* ===== 整体容器 ===== */
 .container {
   max-width: 430px;
   margin: 0 auto;
@@ -9,225 +12,292 @@
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
-  background: var(--bg-primary);
-  animation: fadeIn 0.4s ease;
+  background: var(--bg-base);
+  /* 抑制系统默认 tap 高亮 */
+  -webkit-tap-highlight-color: transparent;
 }
 
-/* ===== 品牌区 ===== */
-.brandSection {
-  padding-top: 56px;
+/* ===== 顶部品牌区 ===== */
+.header {
+  padding-top: 52px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  animation: fadeInUp 0.5s ease 0.05s both;
+  gap: 6px;
+  /* 入场动画：从下方 12px 淡入，400ms ease-out */
+  animation: enterUp 0.4s ease-out both;
 }
 
-/* 渐变品牌名：蓝→紫 */
+/* 品牌名：Plus Jakarta Sans 700，靛蓝色 #4F46E5 */
 .brandName {
+  font-family: 'Plus Jakarta Sans', 'PingFang SC', system-ui, sans-serif;
   font-size: 32px;
-  font-weight: 800;
-  background: linear-gradient(135deg, #2563EB 0%, #7C3AED 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  font-weight: 700;
+  color: #4F46E5;
   letter-spacing: -0.5px;
   line-height: 1.1;
+  margin: 0;
+  /* 关闭渐变文字，直接用纯色，更简洁克制 */
 }
 
-/* Slogan 副标题 */
+/* 副标题：轻字重 + 次要文字色 */
 .slogan {
   font-size: 14px;
   font-weight: 400;
   color: var(--text-secondary);
-  text-align: center;
-  letter-spacing: 0.2px;
+  letter-spacing: 3px;
+  margin: 0;
 }
 
-/* ===== 预览区：沉浸式渐变背景 ===== */
-.previewSection {
+/* ===== 手机壳视觉区 ===== */
+.phoneFrame {
+  margin: 28px 24px 0;
+  /* 深靛蓝渐变背景，替换原来的纯深色 */
+  background: linear-gradient(135deg, #1E1B4B 0%, #312E81 100%);
+  border-radius: 20px;
+  padding: 16px 16px 20px;
+  /* 精致阴影：主阴影 + 内侧高光边 */
+  box-shadow:
+    0 16px 48px rgba(30, 27, 75, 0.3),
+    0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+  position: relative;
+  overflow: hidden;
+  /* 入场动画：delay 100ms，从下方 12px 淡入 */
+  animation: enterUp 0.4s ease-out 0.1s both;
+}
+
+/* 顶部 notch 装饰条：模拟手机状态栏 */
+.phoneNotch {
+  width: 60px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 2px;
+  margin: 0 auto 16px;
+}
+
+/* 手机内部内容区 */
+.phoneContent {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  /* 顶部白色 → 浅蓝 → 浅紫，营造沉浸感 */
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(239, 246, 255, 0.6) 45%,
-    rgba(237, 233, 254, 0.45) 100%
-  );
-  border-radius: 24px;
-  padding: 24px 20px;
-  margin: 32px 16px 0;
-  animation: fadeInUp 0.5s ease 0.15s both;
+  gap: 10px;
 }
 
-/* 气泡行：头像 + 内容横排 */
-.bubbleRow {
+/* 气泡行：头像 + 消息内容横排 */
+.phoneBubbleRow {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
+  gap: 10px;
 }
 
-/* 渐变头像圆形，带微阴影 */
-.avatar {
-  width: 36px;
-  height: 36px;
+/* 角色头像：靛蓝渐变圆形 */
+.phoneAvatar {
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
+  /* 与手机壳品牌色保持一致的靛蓝系 */
+  background: linear-gradient(135deg, #6366F1, #4F46E5);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 700;
   color: #fff;
   flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  /* 微光边框增加精致感 */
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.15);
 }
 
-/* Daniel：蓝色渐变 */
-.avatarD {
-  background: linear-gradient(135deg, #3B82F6, #2563EB);
-}
-
-/* Sarah：青绿渐变 */
-.avatarS {
-  background: linear-gradient(135deg, #14B8A6, #0D9488);
-}
-
-/* 气泡容器（发言者信息 + 文字气泡） */
-.bubbleWrapper {
+/* 气泡容器（发言者名 + 文字气泡） */
+.phoneBubbleBlock {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
   flex: 1;
   min-width: 0;
 }
 
-/* 发言者信息行 */
-.speakerLine {
-  display: flex;
-  align-items: center;
-  gap: 4px;
+/* 发言者标识：极弱对比度，退到背景 */
+.phoneSpeaker {
+  font-size: 10px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.35);
   padding-left: 2px;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
 }
 
-.speakerName {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.speakerDot {
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-.speakerRole {
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-/* 精致文字气泡：白底 + 微边框 + 精致阴影，左下角小圆角模拟对话尖角 */
-.previewBubble {
-  background: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  border-radius: 16px 16px 16px 4px;
-  padding: 12px 16px;
-  font-size: 14px;
-  color: var(--text-primary);
-  line-height: 1.6;
-  box-shadow:
-    0 2px 8px rgba(0, 0, 0, 0.05),
-    0 0 0 1px rgba(0, 0, 0, 0.02);
-}
-
-/* 内心独白：淡紫背景 + 左竖线 */
-.narratorBox {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 4px;
-  padding: 10px 14px;
-  background: rgba(243, 240, 255, 0.9);
-  border-left: 3px solid #9B8FD4;
-  border-radius: 0 10px 10px 0;
-}
-
-.narratorIcon {
-  font-size: 14px;
-  flex-shrink: 0;
-}
-
-.narratorText {
+/* 对话气泡：更精致的半透明白底 */
+.phoneBubble {
+  background: rgba(255, 255, 255, 0.09);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px 10px 10px 3px;
+  padding: 10px 13px;
+  color: rgba(255, 255, 255, 0.88);
   font-size: 13px;
+  line-height: 1.55;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* 内心独白：紫色调，左竖线强调，更克制的透明度 */
+.phoneNarrator {
+  background: rgba(139, 92, 246, 0.12);
+  border-left: 2px solid rgba(139, 92, 246, 0.45);
+  border-radius: 0 8px 8px 0;
+  padding: 8px 12px;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 12px;
   font-style: italic;
-  color: #5C5080;
   line-height: 1.5;
 }
 
-/* Your Turn 分隔线：橙色 + 两侧渐变线条 */
-.yourTurnLine {
+/* 模拟输入框（纯展示，不可交互） */
+.phoneInput {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 20px;
+  padding: 9px 14px;
   display: flex;
   align-items: center;
-  gap: 12px;
-  color: var(--accent-orange);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  margin-top: 2px;
+  justify-content: space-between;
+  margin-top: 6px;
 }
 
-.yourTurnLine::before,
-.yourTurnLine::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: linear-gradient(
-    to right,
-    transparent,
-    var(--accent-orange),
-    transparent
-  );
+.phoneInputPlaceholder {
+  color: rgba(255, 255, 255, 0.25);
+  font-size: 12px;
 }
 
-/* ===== CTA 区域 ===== */
+/* 麦克风 SVG 图标 */
+.phoneInputMic {
+  color: rgba(255, 255, 255, 0.3);
+  display: flex;
+  align-items: center;
+}
+
+/* ===== 价值传递区：微卡片列表 ===== */
+.valueSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px 24px 0;
+  margin-top: 20px;
+}
+
+/* 每个价值点是一个微卡片 */
+.valueItem {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--bg-surface, #F9FAFB);
+  border: 1px solid var(--border-subtle, #F0F0F0);
+  border-radius: 12px;
+  padding: 12px 14px;
+  /* hover 上浮效果 */
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.valueItem:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(79, 70, 229, 0.08);
+}
+
+/* 价值点 1：入场 delay 200ms */
+.valueItem1 {
+  animation: enterUp 0.4s ease-out 0.2s both;
+}
+
+/* 价值点 2：入场 delay 300ms */
+.valueItem2 {
+  animation: enterUp 0.4s ease-out 0.3s both;
+}
+
+/* 价值点 3：入场 delay 400ms */
+.valueItem3 {
+  animation: enterUp 0.4s ease-out 0.4s both;
+}
+
+/* 图标区：纯色圆形背景 + 白色 SVG 图标 */
+.valueIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  /* 靛蓝品牌色背景 */
+  background: #4F46E5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  /* 微投影增加立体感 */
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.25);
+}
+
+/* 文字内容区：标题 + 描述两层 */
+.valueBody {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* 价值点标题：15px 600 */
+.valueTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+/* 价值点描述：13px 400 次要色 */
+.valueDesc {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* ===== CTA 区：贴底，翡翠绿主按钮 ===== */
 .ctaSection {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  padding: 24px 20px;
-  padding-bottom: max(24px, env(safe-area-inset-bottom, 24px));
+  gap: 8px;
+  padding: 20px 24px;
+  padding-bottom: max(20px, env(safe-area-inset-bottom, 20px));
+  /* 确保 CTA 始终贴底 */
   margin-top: auto;
-  animation: fadeInUp 0.5s ease 0.25s both;
+  /* 入场动画：delay 500ms，最后登场 */
+  animation: enterUp 0.4s ease-out 0.5s both;
 }
 
-/* 渐变主按钮：蓝→靛蓝，大圆角，hover 微上浮 */
+/* 翡翠绿主 CTA 按钮：避免与靛蓝品牌色混淆 */
 .ctaButton {
   width: 100%;
   padding: 16px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #2563EB 0%, #4F46E5 100%);
+  border-radius: 12px;
+  background: #10B981;
   color: #ffffff;
-  font-size: 17px;
-  font-weight: 700;
+  font-size: 16px;
+  font-weight: 600;
   letter-spacing: 0.2px;
-  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.3);
-  transition: all 0.2s ease;
+  /* 翡翠绿投影 */
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
+  transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
   border: none;
   cursor: pointer;
 }
 
+/* hover：颜色加深 + 上浮 + 加深阴影 */
 .ctaButton:hover {
+  background: #059669;
   transform: translateY(-2px);
-  box-shadow: 0 12px 32px rgba(37, 99, 235, 0.4);
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.35);
 }
 
+/* 点击态：微缩 */
 .ctaButton:active {
-  transform: translateY(0);
-  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.25);
+  transform: scale(0.98);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
 }
 
 /* 按钮下方提示文字 */
@@ -235,16 +305,62 @@
   font-size: 12px;
   color: var(--text-muted);
   text-align: center;
-  letter-spacing: 0.2px;
+  letter-spacing: 0.3px;
+  margin: 0;
 }
 
+/* 老用户"查看练习记录"次要按钮：有轮廓，区别于纯文字链接 */
+.historyLink {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  padding: 6px 14px;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.historyLink:hover {
+  color: var(--color-brand);
+  border-color: var(--color-brand);
+  background: var(--color-brand-light);
+}
+
+/* 老用户"修改我的信息"链接按钮 */
 .editLink {
   font-size: 13px;
-  color: var(--accent-primary);
+  color: var(--text-secondary);
   background: none;
   border: none;
   cursor: pointer;
   padding: 4px 0;
+  /* 下划线用虚线更轻盈 */
   text-decoration: underline;
-  text-underline-offset: 2px;
+  text-decoration-style: dashed;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--border-default, #D1D5DB);
+  transition: color 0.15s ease;
+}
+
+.editLink:hover {
+  color: #4F46E5;
+  text-decoration-style: solid;
+  text-decoration-color: #4F46E5;
+}
+
+/* ===== 入场动画：从下方 12px 淡入，ease-out ===== */
+@keyframes enterUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

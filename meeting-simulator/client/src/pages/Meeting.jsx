@@ -3,116 +3,87 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 import { respondToNode, completeMeeting } from '../api/index.js';
-import ChatBubble from '../components/ChatBubble.jsx';
 import UserInput from '../components/UserInput.jsx';
 import Reference from '../components/Reference.jsx';
 import BriefingCard from '../components/BriefingCard.jsx';
+import TtsButton from '../components/TtsButton.jsx';
 import styles from './Meeting.module.css';
 
-/**
- * 前端硬裁剪：两个 keyNode（或开头到第一个 keyNode）之间，NPC 消息最多保留 3 条
- * 超过的直接丢弃，避免对话过长
- * @param {Array} dialogue - 原始 dialogue 数组
- * @returns {Array} 裁剪后的 dialogue 数组
- */
-function trimDialogue(dialogue) {
-  const result = [];
-  // 自上次 keyNode 后的连续 NPC 消息数
-  let npcSinceLastKey = 0;
+// 导入 chatscope 样式和组件
+import '@chatscope/chat-ui-kit-styles/dist/default/styles.min.css';
+import {
+  MainContainer,
+  ChatContainer,
+  MessageList,
+  Message,
+  MessageSeparator,
+  TypingIndicator,
+} from '@chatscope/chat-ui-kit-react';
 
-  for (const msg of dialogue) {
-    if (msg.isKeyNode || msg.speaker === 'narrator') {
-      // keyNode 和 narrator 不计入 NPC 计数，直接保留
-      npcSinceLastKey = 0;
+/**
+ * 第一层：processDialogue — 纯裁剪函数
+ *
+ * 职责：只做一件事——裁剪多余的 NPC 对话
+ * 规则：两个 keyNode 之间，AI 对话（非 narrator、非 keyNode）最多保留 3 条
+ * 不做：narrator 注入、位置校验、keyNode prompt 修正
+ *
+ * @param {Array} dialogue - 后端原始对话数组
+ * @returns {Array} 裁剪后的对话数组
+ */
+function processDialogue(dialogue) {
+  if (!dialogue || dialogue.length === 0) return [];
+
+  const result = [];
+  // 当前段（两个 keyNode 之间）已累计的 NPC 对话数
+  let npcInSegment = 0;
+
+  for (let i = 0; i < dialogue.length; i++) {
+    const msg = dialogue[i];
+
+    if (msg.isKeyNode) {
+      // keyNode 是段分隔符：重置计数，保留
+      npcInSegment = 0;
       result.push(msg);
-    } else {
-      npcSinceLastKey++;
-      // 超过 3 条的 NPC 消息直接丢弃
-      if (npcSinceLastKey <= 3) {
-        result.push(msg);
-      }
+      continue;
     }
+
+    if (msg.speaker === 'narrator') {
+      // 后端自带的 narrator：保留，不校验位置（由运行时控制器处理）
+      result.push(msg);
+      continue;
+    }
+
+    // 普通 NPC 对话：超过 3 条上限则丢弃
+    if (npcInSegment >= 3) continue;
+    npcInSegment++;
+    result.push(msg);
   }
+
   return result;
 }
 
 /**
- * 前端硬逻辑：在第 2 条 NPC 消息之后（不是第 1 条后）插入 narrator 内心独白
- * narrator 内容评论的是已经出现的消息，不预测未来
- * @param {Array} dialogue - 原始 dialogue 数组
- * @returns {Array} 注入 narrator 后的 dialogue 数组
+ * 辅助函数：从消息数组末尾向前找最近 count 个不同 NPC 名字
+ * 跳过 narrator、用户消息、系统消息和 keyNode
+ *
+ * @param {Array} messages - 已显示的消息数组
+ * @param {number} count - 要找的名字数量
+ * @returns {Array<string>} 最近的 NPC 名字数组（按时间顺序，最新的在后）
  */
-function injectNarrators(dialogue, roles) {
-  if (!dialogue || dialogue.length === 0) return [];
-
-  // 先做 NPC 消息数量裁剪
-  const trimmed = trimDialogue(dialogue);
-
-  const result = [];
-  // 自上次 narrator/keyNode 后的连续 NPC 消息数
-  let npcCount = 0;
-
-  for (let i = 0; i < trimmed.length; i++) {
-    const msg = trimmed[i];
-
-    // AI 生成的 narrator 保留，重置计数
-    if (msg.speaker === 'narrator') {
-      result.push(msg);
-      npcCount = 0;
-      continue;
-    }
-
-    // keyNode 重置计数
-    if (msg.isKeyNode) {
-      npcCount = 0;
-      result.push(msg);
-      continue;
-    }
-
-    // 普通 NPC 消息
-    npcCount++;
-    result.push(msg);
-
-    // 恰好第 2 条 NPC 消息之后，且后面还有非 keyNode 的消息时，插入 narrator
-    if (npcCount === 2) {
-      const next = trimmed[i + 1];
-      if (next && !next.isKeyNode && next.speaker !== 'narrator') {
-        // 从已显示的消息中取最近两个说话人，narrator 评论已发生的内容
-        const prevSpeakers = [];
-        for (let j = result.length - 1; j >= 0 && prevSpeakers.length < 2; j--) {
-          if (result[j].speaker && result[j].speaker !== 'narrator' && !result[j].isKeyNode) {
-            const name = result[j].speaker.split(' ')[0];
-            if (!prevSpeakers.includes(name)) prevSpeakers.push(name);
-          }
-        }
-
-        const name1 = prevSpeakers[0] || '他';
-        const name2 = prevSpeakers[1] || '';
-
-        // 候选文案：评论已经说过的内容
-        const narratorTexts = name2 ? [
-          `${name1} 和 ${name2} 在对线了…`,
-          `${name2} 刚才的话有点意思…`,
-          `感觉 ${name1} 不太同意 ${name2}`,
-        ] : [
-          `${name1} 说完了，看看接下来怎么发展`,
-          `嗯，${name1} 的意思大概懂了`,
-          `${name1} 这话有点意思…`,
-        ];
-
-        result.push({
-          speaker: 'narrator',
-          text: narratorTexts[Math.floor(Math.random() * narratorTexts.length)],
-          textZh: '',
-          isKeyNode: false,
-          _injected: true, // 标记为前端注入，便于调试
-        });
-        npcCount = 0;
+function findRecentNpcNames(messages, count) {
+  const names = [];
+  for (let i = messages.length - 1; i >= 0 && names.length < count; i--) {
+    const m = messages[i];
+    // 只取 NPC 消息（有 speaker、非 narrator、非用户、非系统、非 keyNode）
+    if (m.speaker && m.speaker !== 'narrator' && !m.isKeyNode && !m.isUser && !m.isSystem) {
+      const firstName = m.speaker.split(' ')[0];
+      // 去重：同一个名字只记录一次
+      if (!names.includes(firstName)) {
+        names.unshift(firstName); // unshift 保证时间顺序（最旧在前）
       }
     }
   }
-
-  return result;
+  return names;
 }
 
 // 角色颜色映射
@@ -147,6 +118,78 @@ function getRoleTitle(speaker, roles) {
   return role?.title;
 }
 
+// stance（立场）标签映射
+const STANCE_LABELS = {
+  ally: { text: '盟友', color: '#16A34A', bg: 'rgba(22, 163, 74, 0.10)' },
+  neutral: { text: '中立', color: '#64748B', bg: 'rgba(100, 116, 139, 0.10)' },
+  pressure: { text: '施压者', color: '#EA580C', bg: 'rgba(234, 88, 12, 0.10)' },
+};
+
+// type（角色类型）标签映射
+const TYPE_LABELS = {
+  leader: { text: '主导者', color: '#4F46E5', bg: 'rgba(79, 70, 229, 0.10)' },
+  collaborator: { text: '协作者', color: '#0284C7', bg: 'rgba(2, 132, 199, 0.10)' },
+  challenger: { text: '挑战者', color: '#DC2626', bg: 'rgba(220, 38, 38, 0.10)' },
+  supporter: { text: '支持者', color: '#059669', bg: 'rgba(5, 150, 105, 0.10)' },
+};
+
+/**
+ * 角色信息 Popover 气泡
+ * 点击 NPC 角色名后在屏幕中央弹出小卡片，信息精简为 3 行：
+ *   行1：名字 · 职位
+ *   行2：立场 + 类型标签胶囊
+ *   行3：briefNote 简短描述
+ */
+function RoleInfoCard({ role, onClose }) {
+  if (!role) return null;
+  const stanceInfo = STANCE_LABELS[role.stance];
+  const typeInfo = TYPE_LABELS[role.type] || TYPE_LABELS[role.roleType];
+
+  return (
+    /* 半透明遮罩：点击关闭，比之前更淡 */
+    <div className={styles.rolePopoverOverlay} onClick={onClose}>
+      {/* 气泡卡片：阻止冒泡，防止点击内容区意外关闭 */}
+      <div className={styles.rolePopover} onClick={e => e.stopPropagation()}>
+
+        {/* 行1：名字 · 职位 */}
+        <div className={styles.rolePopoverName}>
+          {role.name}
+          {role.title && (
+            <span className={styles.rolePopoverTitle}> · {role.title}</span>
+          )}
+        </div>
+
+        {/* 行2：立场 + 类型标签胶囊 */}
+        {(stanceInfo || typeInfo) && (
+          <div className={styles.rolePopoverTags}>
+            {stanceInfo && (
+              <span
+                className={styles.rolePopoverTag}
+                style={{ color: stanceInfo.color, background: stanceInfo.bg }}
+              >
+                {stanceInfo.text}
+              </span>
+            )}
+            {typeInfo && (
+              <span
+                className={styles.rolePopoverTag}
+                style={{ color: typeInfo.color, background: typeInfo.bg }}
+              >
+                {typeInfo.text}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* 行3：简短描述，斜体引号包裹 */}
+        {role.briefNote && (
+          <p className={styles.rolePopoverNote}>"{role.briefNote}"</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /**
  * 会中聊天流页面
  * 实现逐条播放 dialogue，遇到 isKeyNode 时暂停等待用户输入，
@@ -171,69 +214,136 @@ function Meeting() {
   const [isWaiting, setIsWaiting] = useState(false);
   // Briefing 抽屉开关
   const [showBriefing, setShowBriefing] = useState(false);
+  // 当前展示的角色信息卡（null 表示关闭）
+  const [activeRoleCard, setActiveRoleCard] = useState(null);
   // 是否显示中文翻译（默认开启）
   const [showTranslation, setShowTranslation] = useState(true);
   // 已完成的节点索引集合
   const [completedNodes, setCompletedNodes] = useState(new Set());
+  // 已失败的节点索引集合（invalid 第 2 次后标记失败）
+  const [failedNodes, setFailedNodes] = useState(new Set());
+  // 会议结束后是否显示"查看复盘"按钮
+  const [showEndButton, setShowEndButton] = useState(false);
   // 是否已触发会议结束流程（防止重复触发）
   const meetingEndedRef = useRef(false);
+  // 用 ref 保存 userName，供 playDialogueFrom 闭包中读取最新值（避免闭包过时）
+  const userNameRef = useRef(state.userName);
   // 聊天流底部锚点
   const bottomRef = useRef(null);
   // 播放定时器
   const playTimerRef = useRef(null);
   // 标记是否已启动过播放（解决 StrictMode 双重 effect 问题）
   const hasStartedRef = useRef(false);
+  // 第二层控制器所需的两个段计数 ref（用户发言时归零）
+  // segmentNpcCountRef：当前段（两次用户发言之间）已播放的 NPC 消息数，上限 3
+  const segmentNpcCountRef = useRef(0);
+  // segmentHasNarratorRef：当前段是否已播放过 narrator（含后端自带 + 前端注入）
+  const segmentHasNarratorRef = useRef(false);
+  // 当前节点的重试次数（0=首次，1=第二次）；遇到新节点时重置
+  const retryCountRef = useRef(0);
+  // 是否显示"用参考说法"按钮（invalid 第 1 次后显示）
+  const [showReferenceButton, setShowReferenceButton] = useState(false);
+  // 同步标志位：keyNode 后等待用户发言期间为 true，阻止任何 NPC 消息播放
+  // 不依赖 React 异步 state，在 keyNode 分支中立即同步设置，杜绝时序问题
+  const isWaitingForUserRef = useRef(false);
+  // 同步追踪 dialogue 播放索引，供 handleSubmit 完成后恢复播放时读取
+  // 避免在 React state updater 中执行副作用（Strict Mode 下 updater 可能被双重调用）
+  const currentDialogueIndexRef = useRef(0);
+  // 用 ref 存储 failedNodes，供 handleSubmit 闭包中读取最新值（避免闭包过时）
+  const failedNodesRef = useRef(new Set());
+  failedNodesRef.current = failedNodes;
 
   /**
-   * 预处理 dialogue：注入前端 narrator，确保每 2 条 NPC 消息间有内心独白
-   * 用 useMemo 缓存，避免每次渲染重复计算
+   * 预处理 dialogue：只做裁剪（第一层）
+   * narrator 注入和 keyNode prompt 生成均在运行时由 playDialogueFrom 负责（第二层）
+   * useMemo 不再依赖 userName
    */
   const processedDialogue = useMemo(() => {
     if (!meetingData?.dialogue) return [];
-    return injectNarrators(meetingData.dialogue);
+    return processDialogue(meetingData.dialogue);
   }, [meetingData]);
 
   // 使用 ref 存储预处理后的 dialogue，供 useCallback 内部读取（避免闭包过时）
   const processedDialogueRef = useRef(null);
   processedDialogueRef.current = processedDialogue;
 
-  // 如果没有会议数据，通过 useEffect 跳转，避免渲染期直接调用 navigate
+  // 每次渲染时同步 ref，确保闭包中始终读取到最新值
+  userNameRef.current = state.userName;
+  const activeNodeIndexRef = useRef(activeNodeIndex);
+  activeNodeIndexRef.current = activeNodeIndex;
+
+  // 如果没有会议数据，延迟检查后跳转（避免 StrictMode 下首次 mount 时数据未同步导致误跳转）
+  const noDataTimerRef = useRef(null);
   useEffect(() => {
     if (!meetingData) {
-      navigate('/');
+      noDataTimerRef.current = setTimeout(() => {
+        if (!processedDialogueRef.current || processedDialogueRef.current.length === 0) {
+          navigate('/');
+        }
+      }, 500);
     }
+    return () => clearTimeout(noDataTimerRef.current);
   }, [meetingData, navigate]);
 
   /**
-   * 会议结束处理：调用 completeMeeting 后跳转复盘
-   * 使用 useCallback 避免在 playDialogueFrom 内部引用过时的函数
+   * 会议结束处理：显示"会议结束"系统消息，2 秒后展示"查看会议复盘"按钮
+   * 不再自动跳转，等待用户主动点击按钮
    */
-  const handleMeetingEnd = useCallback(async () => {
+  const handleMeetingEnd = useCallback(() => {
     setDisplayedMessages(prev => [
       ...prev,
       { type: 'system', text: '会议结束', isSystem: true, isNew: true }
     ]);
+    // 2 秒后显示复盘 CTA 按钮，给用户一点缓冲时间
+    setTimeout(() => setShowEndButton(true), 2000);
+  }, []);
 
+  /**
+   * 会议因全部节点失败而被终止
+   * 显示系统提示，2 秒后展示"查看复盘"按钮，跳转时附带 failed 标记
+   */
+  const handleMeetingFailed = useCallback(() => {
+    if (meetingEndedRef.current) return;
+    meetingEndedRef.current = true;
+    setDisplayedMessages(prev => [
+      ...prev,
+      { type: 'system', text: '会议被终止了', isSystem: true, isNew: true }
+    ]);
+    // 2 秒后显示复盘 CTA，带 failed 标记
+    setTimeout(() => setShowEndButton(true), 2000);
+  }, []);
+
+  /**
+   * 用户点击"查看会议复盘"按钮后调用
+   * 先 completeMeeting，再跳转复盘页
+   * 若会议因全部节点失败被终止，跳转时附带 ?failed=1 参数
+   */
+  const handleGoToReview = async () => {
     try {
       await completeMeeting(meetingId);
     } catch (err) {
       console.error('完成会议失败:', err);
     }
-
-    // 延迟跳转到复盘页
-    setTimeout(() => navigate('/review'), 1500);
-  }, [meetingId, navigate]);
+    // 若已失败节点数 >= 3，携带 failed 标记
+    const isFailed = failedNodesRef.current.size >= 3;
+    navigate(isFailed ? '/review?failed=1' : '/review');
+  };
 
   /**
-   * 逐条自动播放 dialogue（使用预处理后的 processedDialogue），从 startIndex 开始
-   * 每次 setTimeout 只添加 1 条消息，严格逐条递归，避免批量推送
-   * 遇到 isKeyNode === true 时停止，显示输入区
-   * 通过 processedDialogueRef 读取 dialogue，避免闭包过时
+   * 第二层：playDialogueFrom — 统一播放控制器
+   *
+   * 执行两条铁律：
+   * 铁律 1：keyNode 出现后，下一条必须是用户发言（硬停，等待输入）
+   * 铁律 2：两轮用户发言之间，NPC > 1 条时自动插入 1 条 narrator
+   *
+   * 通过 segmentNpcCountRef 和 segmentHasNarratorRef 跟踪当前段状态
+   * 用户发言时两个 ref 归零，开始新的段计数
    */
   const playDialogueFrom = useCallback((startIndex) => {
     const dialogue = processedDialogueRef.current;
+
+    // 播放完毕，触发会议结束
     if (!dialogue || startIndex >= dialogue.length) {
-      // dialogue 播放完毕，触发会议结束
       if (!meetingEndedRef.current) {
         meetingEndedRef.current = true;
         handleMeetingEnd();
@@ -243,41 +353,160 @@ function Meeting() {
 
     const msg = dialogue[startIndex];
 
+    // ——— 铁律 1：如果正在等待用户发言，任何消息都不播放 ———
+    // 使用同步 ref 而非 React 异步 state，杜绝 setTimeout 回调中的时序竞态
+    if (isWaitingForUserRef.current) return;
+
+    // ——— keyNode 处理 ———
     if (msg.isKeyNode) {
-      // 遇到关键节点：显示节点提示卡片，暂停播放，等待用户输入
       const nodeId = `node-${startIndex}`;
+
+      // 通过函数形式访问最新的 displayedMessages，动态生成 prompt
       setDisplayedMessages(prev => {
-        // 防止重复添加（StrictMode 双执行保护）
+        // 防重复：已渲染过则跳过
         if (prev.some(m => m.id === nodeId)) return prev;
-        return [...prev, { ...msg, id: nodeId, isNew: true, _displayType: 'node_prompt' }];
+
+        // 从已显示消息中向前找最近 2 个不同 NPC 名字
+        const recentNames = findRecentNpcNames(prev, 2);
+
+        // 拼装情境化 prompt
+        const actionGoal = msg.actionGoal || msg.prompt || '';
+        const currentUserName = userNameRef.current;
+        const userNamePart = currentUserName ? `，${currentUserName}` : '';
+        let dynamicPrompt;
+        if (recentNames.length >= 2) {
+          dynamicPrompt = `${recentNames[0]} 和 ${recentNames[1]} 聊完了${userNamePart}，该你了——${actionGoal}`;
+        } else if (recentNames.length === 1) {
+          dynamicPrompt = `${recentNames[0]} 说完了${userNamePart}，该你了——${actionGoal}`;
+        } else {
+          dynamicPrompt = msg.prompt || actionGoal;
+        }
+
+        return [...prev, { ...msg, id: nodeId, prompt: dynamicPrompt, isNew: true, _displayType: 'node_prompt' }];
       });
-      setCurrentDialogueIndex(startIndex + 1); // 下次从节点之后继续
+
+      // 同步设置标志位，立即阻止所有后续 setTimeout 回调中的播放
+      isWaitingForUserRef.current = true;
+      currentDialogueIndexRef.current = startIndex + 1;
+      setCurrentDialogueIndex(startIndex + 1);
       setActiveNodeIndex(msg.nodeIndex);
       setShowInput(true);
+      return; // 铁律 1：硬停
+    }
+
+    // ——— 后端 narrator 处理 ———
+    if (msg.speaker === 'narrator') {
+      // 向前扫描：找到下一条实际会播放的消息（跳过会被 NPC 上限裁掉的消息）
+      // 如果下一条实际播放的是 keyNode，跳过这条 narrator（防止紫橙紧挨）
+      let nextPlayable = null;
+      for (let j = startIndex + 1; j < dialogue.length; j++) {
+        const candidate = dialogue[j];
+        if (candidate.isKeyNode || candidate.speaker === 'narrator') {
+          nextPlayable = candidate;
+          break;
+        }
+        // 普通 NPC：如果还有配额就是下一条实际播放的
+        if (segmentNpcCountRef.current < 3) {
+          nextPlayable = candidate;
+          break;
+        }
+        // NPC 配额已满，这条会被跳过，继续找
+      }
+      if (nextPlayable && nextPlayable.isKeyNode) {
+        playDialogueFrom(startIndex + 1);
+        return;
+      }
+      // 标记当前段已有 narrator，正常播放
+      segmentHasNarratorRef.current = true;
+      const msgId = `dialogue-${startIndex}`;
+      playTimerRef.current = setTimeout(() => {
+        // 纵深防御：timer 等待期间可能已触发 keyNode 硬停
+        if (isWaitingForUserRef.current) return;
+        setDisplayedMessages(prev => {
+          if (prev.some(m => m.id === msgId)) return prev;
+          return [...prev, { ...msg, id: msgId, isNew: true }];
+        });
+        playDialogueFrom(startIndex + 1);
+      }, 1500);
       return;
     }
 
-    // 普通消息：根据当前消息类型和下一条消息类型动态设置延迟时间
-    // 使用 startIndex 作为消息唯一 id，防止 StrictMode 双重执行导致重复添加
-    const msgId = `dialogue-${startIndex}`;
-    const nextMsg = dialogue[startIndex + 1];
+    // ——— NPC 消息处理 ———
 
-    // 计算下一条消息的延迟
-    let delay = 1200; // 默认 NPC 消息间隔
-    if (msg.speaker === 'narrator') {
-      // narrator 内心小人出现稍慢，给用户注意到这是不同元素的时间
-      delay = 1500;
-    } else if (nextMsg && nextMsg.isKeyNode) {
-      // 关键节点前最后一条 NPC 消息后快速过渡到节点提示
-      delay = 800;
+    // 已达 3 条上限，跳过该消息
+    if (segmentNpcCountRef.current >= 3) {
+      playDialogueFrom(startIndex + 1);
+      return;
     }
 
+    segmentNpcCountRef.current++;
+
+    const msgId = `dialogue-${startIndex}`;
+    // keyNode 前最后一条 NPC 用较短延迟，过渡更自然
+    const nextMsg = dialogue[startIndex + 1];
+    const delay = (nextMsg && nextMsg.isKeyNode) ? 800 : 1200;
+
     playTimerRef.current = setTimeout(() => {
+      // 纵深防御：timer 等待期间可能已触发 keyNode 硬停
+      if (isWaitingForUserRef.current) return;
+
       setDisplayedMessages(prev => {
-        // 防止重复添加（StrictMode 双执行保护）
         if (prev.some(m => m.id === msgId)) return prev;
         return [...prev, { ...msg, id: msgId, isNew: true }];
       });
+
+      // ——— 铁律 2：检查是否需要注入前端 narrator ———
+      // 时机：播完第 1 条 NPC 后，若该段还有更多 NPC 可播，且当前段没有 narrator
+      // 关键：注入 narrator 后，到 keyNode 之前必须还有至少 1 条 NPC 会被播放
+      if (segmentNpcCountRef.current === 1 && !segmentHasNarratorRef.current) {
+        // 向前扫描：从下一条开始，找到接下来实际会播放的非 narrator 消息
+        let npcBeforeKeyNode = 0; // narrator 注入后到 keyNode 之前还有几条 NPC 能播
+        for (let j = startIndex + 1; j < dialogue.length; j++) {
+          const c = dialogue[j];
+          if (c.isKeyNode) break;
+          if (c.speaker === 'narrator') continue;
+          // 普通 NPC：检查是否还有配额（当前已 1 条，narrator 不占，所以还能播 2 条）
+          npcBeforeKeyNode++;
+        }
+        // 至少还有 1 条 NPC 会在 narrator 之后、keyNode 之前播放
+        const canInject = npcBeforeKeyNode >= 1;
+        // 下一条确实是 NPC（确保 narrator 夹在两条 NPC 之间）
+        const nextDialogMsg = dialogue[startIndex + 1];
+        const nextIsNpc = nextDialogMsg &&
+          !nextDialogMsg.isKeyNode &&
+          nextDialogMsg.speaker !== 'narrator';
+
+        if (nextIsNpc && canInject) {
+          // 前端注入一条兜底 narrator，用上一条 NPC 的 speaker 名字
+          segmentHasNarratorRef.current = true;
+          const speakerName = msg.speaker ? msg.speaker.split(' ')[0] : '他';
+          const narratorTexts = [
+            `${speakerName} 向来说话不留情面`,
+            `${speakerName} 每次都这样，先夸再转折`,
+            `看 ${speakerName} 的语气，接下来要追问了`,
+            `${speakerName} 这是在给谁铺垫？`,
+            `嗯，${speakerName} 话里有话`,
+            `${speakerName} 又开始施压了，老套路`,
+          ];
+          const narratorMsg = {
+            speaker: 'narrator',
+            text: narratorTexts[Math.floor(Math.random() * narratorTexts.length)],
+            isNew: true,
+            id: `narrator-inject-${startIndex}`,
+            _injected: true,
+          };
+
+          // 先展示注入的 narrator，再继续播放下一条
+          playTimerRef.current = setTimeout(() => {
+            // 纵深防御：timer 等待期间可能已触发 keyNode 硬停
+            if (isWaitingForUserRef.current) return;
+            setDisplayedMessages(prev => [...prev, narratorMsg]);
+            playDialogueFrom(startIndex + 1);
+          }, 1500);
+          return;
+        }
+      }
+
       playDialogueFrom(startIndex + 1);
     }, delay);
   }, [handleMeetingEnd]);
@@ -317,11 +546,24 @@ function Meeting() {
   const { briefing, roles } = meetingData;
 
   /**
+   * 从预处理后的 dialogue 中提取所有关键节点
+   * 用于渲染顶部进度条，每个关键节点对应一个圆点
+   */
+  const keyNodes = processedDialogue.filter(msg => msg.isKeyNode);
+
+  /**
    * 用户提交发言
    * @param {string} text - 用户输入的文字
    */
   const handleSubmit = async (text) => {
     if (isWaiting || activeNodeIndex === null) return;
+
+    // 用户已发言，解除 keyNode 等待锁（同步，立即生效）
+    isWaitingForUserRef.current = false;
+
+    // 用户发言了，重置段计数器（开始新的一段）
+    segmentNpcCountRef.current = 0;
+    segmentHasNarratorRef.current = false;
 
     // 在异步操作前先保存当前节点索引，防止 state 更新后取值错误
     const currentNodeIndex = activeNodeIndex;
@@ -339,6 +581,7 @@ function Meeting() {
     };
     setDisplayedMessages(prev => [...prev, userMessage]);
     setShowInput(false);
+    setShowReferenceButton(false);
     setIsWaiting(true);
 
     // 记录对话
@@ -348,29 +591,128 @@ function Meeting() {
       inputLanguage,
     });
 
-    try {
-      const result = await respondToNode(meetingId, currentNodeIndex, text, inputLanguage);
+    // 读取当前重试次数和已失败节点数，传入后端
+    const currentRetry = retryCountRef.current;
+    const currentFailedCount = failedNodesRef.current.size;
 
-      if (result.inputType === 'invalid' && result.retryPrompt) {
-        // 输入无效：显示重试提示，允许用户重新输入
-        const retryMsg = {
-          type: 'system',
-          text: result.retryPrompt,
-          isSystem: true,
-          isNew: true,
-        };
-        setDisplayedMessages(prev => [...prev, retryMsg]);
-        setIsWaiting(false);
-        setActiveNodeIndex(currentNodeIndex);
-        setShowInput(true);
+    try {
+      const result = await respondToNode(
+        meetingId,
+        currentNodeIndex,
+        text,
+        inputLanguage,
+        currentRetry,
+        currentFailedCount
+      );
+
+      if (result.inputType === 'invalid') {
+        if (currentRetry === 0) {
+          // --- 第 1 次 invalid：显示 NPC 角色化补救对话，允许重试 ---
+          retryCountRef.current = 1;
+
+          // retryPrompt 为对象 { text, textZh }，以 NPC 气泡形式展示
+          if (result.retryPrompt) {
+            const retryMsg = {
+              // 找最近的 NPC 发言者作为说话者（兜底用空字符串）
+              speaker: (() => {
+                // 从已显示消息中向前找最近一条 NPC 消息
+                const msgs = [...(displayedMessages || [])];
+                for (let i = msgs.length - 1; i >= 0; i--) {
+                  if (msgs[i].speaker && msgs[i].speaker !== 'narrator' && !msgs[i].isUser && !msgs[i].isSystem) {
+                    return msgs[i].speaker;
+                  }
+                }
+                return '';
+              })(),
+              text: result.retryPrompt.text || result.retryPrompt,
+              textZh: result.retryPrompt.textZh || '',
+              isNew: true,
+            };
+            setDisplayedMessages(prev => [...prev, retryMsg]);
+          }
+
+          // 显示"用参考说法"按钮，允许重新输入
+          setShowReferenceButton(true);
+          setIsWaiting(false);
+          setActiveNodeIndex(currentNodeIndex);
+          setShowInput(true);
+        } else {
+          // --- 第 2 次 invalid：节点失败，NPC 收场，强制推进 ---
+          retryCountRef.current = 0;
+
+          // 更新失败节点集合
+          const newFailedNodes = new Set([...failedNodesRef.current, currentNodeIndex]);
+          setFailedNodes(newFailedNodes);
+
+          // 显示 NPC 收场对话
+          if (result.failureResponse) {
+            const failureMsg = {
+              speaker: (() => {
+                const msgs = [...(displayedMessages || [])];
+                for (let i = msgs.length - 1; i >= 0; i--) {
+                  if (msgs[i].speaker && msgs[i].speaker !== 'narrator' && !msgs[i].isUser && !msgs[i].isSystem) {
+                    return msgs[i].speaker;
+                  }
+                }
+                return '';
+              })(),
+              text: result.failureResponse.text || result.failureResponse,
+              textZh: result.failureResponse.textZh || '',
+              isNew: true,
+            };
+            setDisplayedMessages(prev => [...prev, failureMsg]);
+          }
+
+          // 标记节点已完成（以失败方式完成）
+          setCompletedNodes(prev => new Set([...prev, currentNodeIndex]));
+          setActiveNodeIndex(null);
+
+          // 检查是否所有节点都失败（达到 3 个则终止会议）
+          if (newFailedNodes.size >= 3) {
+            setTimeout(() => {
+              setIsWaiting(false);
+              handleMeetingFailed();
+            }, 1500);
+          } else {
+            // 继续播放后续 dialogue（invalid 第 2 次后节点强制推进）
+            const responseDialogue = result.responseDialogue || [];
+            const appendDelay = 800;
+
+            const appendAndContinue = () => {
+              let idx = 0;
+              const appendNext = () => {
+                // 受 segmentNpcCountRef 约束：每段最多 3 条 NPC
+                if (idx < responseDialogue.length && segmentNpcCountRef.current < 3) {
+                  const rMsg = responseDialogue[idx];
+                  segmentNpcCountRef.current++;
+                  setDisplayedMessages(prev => [...prev, { ...rMsg, isNew: true }]);
+                  idx++;
+                  playTimerRef.current = setTimeout(appendNext, 800);
+                } else {
+                  // 从同步 ref 读取索引，避免在 state updater 中执行副作用
+                  // （React Strict Mode 下 updater 可能被双重调用，导致 playDialogueFrom 被触发两次）
+                  setIsWaiting(false);
+                  const nextIndex = currentDialogueIndexRef.current;
+                  playDialogueFrom(nextIndex);
+                }
+              };
+              playTimerRef.current = setTimeout(appendNext, appendDelay);
+            };
+
+            appendAndContinue();
+          }
+        }
         return;
       }
 
-      // 输入有效（valid 或 weak）：标记节点完成
+      // --- 输入有效（valid 或 weak）：标记节点完成，重置重试计数 ---
+      retryCountRef.current = 0;
+      setShowReferenceButton(false);
       setCompletedNodes(prev => new Set([...prev, currentNodeIndex]));
       setActiveNodeIndex(null);
 
-      // 将后端返回的 responseDialogue 逐条追加到聊天流
+      // 将后端返回的 responseDialogue 逐条追加
+      // 受 segmentNpcCountRef 约束：每段最多 3 条 NPC（与 processedDialogue 共享段计数器）
       const responseDialogue = result.responseDialogue || [];
       const appendDelay = 400;
 
@@ -378,19 +720,19 @@ function Meeting() {
         let idx = 0;
 
         const appendNext = () => {
-          if (idx < responseDialogue.length) {
+          // 段 NPC 计数未满 3 且还有消息时继续追加
+          if (idx < responseDialogue.length && segmentNpcCountRef.current < 3) {
             const rMsg = responseDialogue[idx];
+            segmentNpcCountRef.current++;
             setDisplayedMessages(prev => [...prev, { ...rMsg, isNew: true }]);
             idx++;
             playTimerRef.current = setTimeout(appendNext, 800);
           } else {
-            // responseDialogue 全部追加完毕，继续播放 dialogue 剩余内容
+            // 追加完毕或已达段上限，继续播放 processedDialogue 剩余内容
+            // 从同步 ref 读取索引，避免在 state updater 中执行副作用
             setIsWaiting(false);
-            // currentDialogueIndex 已在遇到 keyNode 时更新为 keyNode 之后的索引
-            setCurrentDialogueIndex(prev => {
-              playDialogueFrom(prev);
-              return prev;
-            });
+            const nextIndex = currentDialogueIndexRef.current;
+            playDialogueFrom(nextIndex);
           }
         };
 
@@ -408,6 +750,30 @@ function Meeting() {
     }
   };
 
+  /**
+   * 用户点击"用参考说法"按钮
+   * 找到当前节点对应的参考说法英文内容，自动填入并提交
+   */
+  const handleUseReference = () => {
+    if (!meetingData?.references || activeNodeIndex === null) return;
+    const ref = meetingData.references.find(r => r.nodeIndex === activeNodeIndex);
+    if (!ref) return;
+
+    // 优先取 phrases 数组第一条的英文，或 example 字段
+    let refText = '';
+    if (ref.phrases && ref.phrases.length > 0) {
+      refText = ref.phrases[0].en || ref.phrases[0].text || '';
+    } else if (ref.example) {
+      refText = ref.example;
+    } else if (typeof ref === 'string') {
+      refText = ref;
+    }
+
+    if (refText) {
+      handleSubmit(refText);
+    }
+  };
+
   return (
     <div className={styles.container}>
       {/* 顶部导航栏 */}
@@ -418,6 +784,63 @@ function Meeting() {
             {briefing?.topic || 'Weekly Sync'}
           </span>
         </div>
+        {/* 顶栏中间：关键节点进度条（仅有 keyNode 时渲染） */}
+        {keyNodes.length > 0 && (
+          <div className={styles.progressDots}>
+            {keyNodes.map((node, i) => {
+              const isCompleted = completedNodes.has(node.nodeIndex);
+              const isFailed = failedNodes.has(node.nodeIndex);
+              const isActive = activeNodeIndex === node.nodeIndex;
+              // 计算圆点状态类名：失败优先于完成
+              let dotClass = styles.dotPending;
+              if (isFailed) dotClass = styles.dotFailed;
+              else if (isCompleted) dotClass = styles.dotCompleted;
+              else if (isActive) dotClass = styles.dotActive;
+
+              return (
+                <React.Fragment key={node.nodeIndex}>
+                  {/* 圆点之间的连接线（第一个圆点前不加） */}
+                  {i > 0 && (
+                    <div
+                      className={`${styles.progressLine} ${
+                        // 前一个节点已完成（含失败）时，连接线也变色
+                        completedNodes.has(keyNodes[i - 1].nodeIndex)
+                          ? styles.progressLineDone
+                          : ''
+                      }`}
+                    />
+                  )}
+                  {/* 关键节点圆点 */}
+                  <div
+                    className={`${styles.progressDot} ${dotClass}`}
+                    title={`节点 ${i + 1}${isFailed ? '（失败）' : isCompleted ? '（已完成）' : isActive ? '（进行中）' : '（未到达）'}`}
+                  >
+                    {/* 已失败：显示 × */}
+                    {isFailed && (
+                      <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M18 6L6 18" stroke="#fff" strokeWidth="3" strokeLinecap="round" />
+                        <path d="M6 6L18 18" stroke="#fff" strokeWidth="3" strokeLinecap="round" />
+                      </svg>
+                    )}
+                    {/* 已完成（非失败）：显示缩小的打勾 */}
+                    {isCompleted && !isFailed && (
+                      <svg viewBox="0 0 24 24" fill="none">
+                        <path
+                          d="M20 6L9 17L4 12"
+                          stroke="#fff"
+                          strokeWidth="3"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    )}
+                  </div>
+                </React.Fragment>
+              );
+            })}
+          </div>
+        )}
+
         {/* 顶栏右侧：翻译切换 + Briefing 按钮 */}
         <div className={styles.topBarRight}>
           {/* 中/英翻译切换按钮 */}
@@ -442,92 +865,153 @@ function Meeting() {
         </div>
       </div>
 
-      {/* 聊天流 */}
-      <div className={styles.chatScroll}>
-        <div className={styles.chatContent}>
-          {/* 会议开始标记 */}
-          <div className={styles.meetingStart}>
-            <div className={styles.meetingStartLine}></div>
-            <span className={styles.meetingStartText}>会议开始</span>
-            <div className={styles.meetingStartLine}></div>
-          </div>
+      {/* 聊天流：使用 chatscope MessageList 渲染消息 */}
+      <div className={styles.chatScrollWrapper}>
+        <MainContainer className={styles.csMainContainer}>
+          <ChatContainer className={styles.csChatContainer}>
+            <MessageList
+              className={styles.csMessageList}
+              typingIndicator={isWaiting ? <TypingIndicator content="" /> : null}
+            >
+              {/* 会议开始分隔符 */}
+              <MessageSeparator content="会议开始" />
 
-          {/* 消息列表 */}
-          {displayedMessages.map((msg, idx) => {
-            // 系统提示消息
-            if (msg.isSystem || msg.type === 'system') {
-              return (
-                <ChatBubble
-                  key={idx}
-                  isSystem
-                  text={msg.text}
-                />
-              );
-            }
+              {/* 遍历消息列表，按类型渲染不同组件 */}
+              {displayedMessages.map((msg, idx) => {
+                // 系统提示消息（如无效输入重试提示）
+                if (msg.isSystem || msg.type === 'system') {
+                  return (
+                    <MessageSeparator key={idx} content={msg.text} />
+                  );
+                }
 
-            // 关键节点提示卡片（isKeyNode 为 true 的 dialogue 条目）
-            if (msg.isKeyNode || msg._displayType === 'node_prompt') {
-              return (
-                <NodePromptCard
-                  key={idx}
-                  nodeIndex={msg.nodeIndex}
-                  prompt={msg.prompt}
-                  keyData={msg.keyData}
-                  isActive={activeNodeIndex === msg.nodeIndex}
-                  isCompleted={completedNodes.has(msg.nodeIndex)}
-                />
-              );
-            }
+                // 关键节点提示卡片：不使用 chatscope，通过 Message.CustomContent 嵌入
+                if (msg.isKeyNode || msg._displayType === 'node_prompt') {
+                  return (
+                    <Message key={idx} model={{ type: 'custom', direction: 'incoming', position: 'single' }}>
+                      <Message.CustomContent>
+                        <NodePromptCard
+                          nodeIndex={msg.nodeIndex}
+                          prompt={msg.prompt}
+                          keyData={msg.keyData}
+                          isActive={activeNodeIndex === msg.nodeIndex}
+                          isCompleted={completedNodes.has(msg.nodeIndex)}
+                        />
+                      </Message.CustomContent>
+                    </Message>
+                  );
+                }
 
-            // 内心独白（narrator）消息：专属气泡，居中渲染
-            if (msg.speaker === 'narrator') {
-              return (
-                <div key={idx} className={styles.narratorBubble}>
-                  <span className={styles.narratorPrefix}>💭</span>
-                  <span className={styles.narratorText}>{msg.text}</span>
-                </div>
-              );
-            }
+                // 内心独白（narrator）：用户内心 OS，右对齐（从用户方向发出）
+                if (msg.speaker === 'narrator') {
+                  return (
+                    <Message key={idx} model={{ type: 'custom', direction: 'outgoing', position: 'single' }}>
+                      <Message.CustomContent>
+                        <div className={`${styles.narratorBubble} narrator-bubble ${msg.isNew ? styles.newMessage : ''}`}>
+                          <span className={styles.narratorPrefix}>💭</span>
+                          <span className={styles.narratorText}>{msg.text}</span>
+                        </div>
+                      </Message.CustomContent>
+                    </Message>
+                  );
+                }
 
-            // 用户消息
-            if (msg.isUser || msg.type === 'user') {
-              return (
-                <div key={idx} className={msg.isNew ? styles.newMessage : ''}>
-                  <ChatBubble isUser text={msg.text} />
-                </div>
-              );
-            }
+                // 用户消息：右对齐 outgoing，使用 CustomContent 展示头像和名字
+                if (msg.isUser || msg.type === 'user') {
+                  const currentUserName = state.userName || 'You';
+                  const userInitial = currentUserName.charAt(0).toUpperCase();
+                  return (
+                    <Message
+                      key={idx}
+                      model={{ type: 'custom', direction: 'outgoing', position: 'single' }}
+                      className={msg.isNew ? styles.newMessage : ''}
+                    >
+                      <Message.CustomContent>
+                        {/* 用户名字（右对齐） */}
+                        <div className={styles.userSpeakerLabel}>{currentUserName}</div>
+                        {/* 消息气泡行：气泡 + 头像横向排列，user-message-row 用于全局 CSS :has() 选择器 */}
+                        <div className={`${styles.userMessageRow} user-message-row`}>
+                          <div className={styles.userBubble}>{msg.text}</div>
+                          {/* 24px 圆形头像，品牌色背景，白字首字母 */}
+                          <div className={styles.userAvatarSmall}>{userInitial}</div>
+                        </div>
+                      </Message.CustomContent>
+                    </Message>
+                  );
+                }
 
-            // NPC 角色消息
-            const roleColor = getRoleColor(msg.speaker, roles);
-            const roleTitle = getRoleTitle(msg.speaker, roles);
-            return (
-              <div key={idx} className={msg.isNew ? styles.newMessage : ''}>
-                <ChatBubble
-                  speaker={msg.speaker}
-                  title={roleTitle}
-                  text={msg.text}
-                  textZh={msg.textZh}
-                  showTranslation={showTranslation}
-                  roleColor={roleColor}
-                />
-              </div>
-            );
-          })}
+                // NPC 角色消息：左对齐 incoming，带头像和翻译
+                const roleColor = getRoleColor(msg.speaker, roles);
+                const roleTitle = getRoleTitle(msg.speaker, roles);
+                const firstName = msg.speaker ? msg.speaker.split(' ')[0] : '?';
+                const headerLabel = roleTitle ? `${firstName} · ${roleTitle}` : firstName;
 
-          {/* 等待指示器 */}
-          {isWaiting && (
-            <div className={styles.typingIndicator}>
-              <div className={styles.typingDot}></div>
-              <div className={styles.typingDot}></div>
-              <div className={styles.typingDot}></div>
-            </div>
-          )}
+                return (
+                  <Message
+                    key={idx}
+                    model={{
+                      type: 'custom',
+                      direction: 'incoming',
+                      position: 'single',
+                    }}
+                    className={msg.isNew ? styles.newMessage : ''}
+                  >
+                    <Message.CustomContent>
+                      {/* 可点击的角色名头部：点击弹出角色信息卡 */}
+                      <button
+                        className={styles.npcSpeakerBtn}
+                        onClick={() => {
+                          const role = roles?.find(r => r.name === msg.speaker);
+                          if (role) setActiveRoleCard(role);
+                        }}
+                      >
+                        {/* 小尺寸头像 */}
+                        <div
+                          className={styles.npcSpeakerAvatar}
+                          style={{ background: roleColor }}
+                        >
+                          {firstName.charAt(0)}
+                        </div>
+                        {/* 角色名 · 职位 */}
+                        <span className={styles.npcSpeakerLabel}>{headerLabel}</span>
+                      </button>
+                      {/* 消息内容 */}
+                      <div className={styles.npcMessageContent}>
+                        <p className={styles.npcMessageText}>{msg.text}</p>
+                        {/* 中文翻译区域：开启翻译且有 textZh 时显示 */}
+                        {showTranslation && msg.textZh && (
+                          <div className={styles.translationBlock}>
+                            <p className={styles.translationText}>
+                              <span className={styles.translationTag}>译</span>
+                              {msg.textZh}
+                            </p>
+                          </div>
+                        )}
+                        {/* TTS 按钮 */}
+                        <div className={styles.ttsRow}>
+                          <TtsButton text={msg.text} language="en" />
+                        </div>
+                      </div>
+                    </Message.CustomContent>
+                  </Message>
+                );
+              })}
 
-          {/* 滚动锚点 */}
-          <div ref={bottomRef} style={{ height: 8 }}></div>
-        </div>
+              {/* 滚动锚点 */}
+              <div ref={bottomRef} style={{ height: 8 }}></div>
+            </MessageList>
+          </ChatContainer>
+        </MainContainer>
       </div>
+
+      {/* 会议结束后的复盘 CTA 按钮：用户主动点击后才跳转 */}
+      {showEndButton && (
+        <div className={styles.endButtonArea}>
+          <button className={styles.endButton} onClick={handleGoToReview}>
+            查看会议复盘 →
+          </button>
+        </div>
+      )}
 
       {/* 用户输入区（关键节点时显示）*/}
       {showInput && (
@@ -544,6 +1028,19 @@ function Meeting() {
               </div>
             ) : null;
           })()}
+
+          {/* invalid 第 1 次后显示"用参考说法"按钮，点击自动填入参考英文并提交 */}
+          {showReferenceButton && (
+            <div className={styles.useReferenceRow}>
+              <button
+                className={styles.useReferenceButton}
+                onClick={handleUseReference}
+                disabled={isWaiting}
+              >
+                用参考说法
+              </button>
+            </div>
+          )}
 
           <UserInput
             placeholder="输入你的发言（支持中英文）"
@@ -579,6 +1076,14 @@ function Meeting() {
           <BriefingCard briefing={briefing} showTranslation={showTranslation} />
         </div>
       </div>
+
+      {/* 角色信息 Popover 气泡：点击角色名后弹出 */}
+      {activeRoleCard && (
+        <RoleInfoCard
+          role={activeRoleCard}
+          onClose={() => setActiveRoleCard(null)}
+        />
+      )}
     </div>
   );
 }
@@ -589,7 +1094,7 @@ function Meeting() {
  */
 function NodePromptCard({ nodeIndex, prompt, keyData, isActive, isCompleted }) {
   return (
-    <div className={`${styles.nodeCard} ${isActive ? styles.nodeCardActive : ''} ${isCompleted ? styles.nodeCardCompleted : ''}`}>
+    <div className={`${styles.nodeCard} node-card ${isActive ? styles.nodeCardActive : ''} ${isCompleted ? styles.nodeCardCompleted : ''}`}>
       <div className={styles.nodeCardHeader}>
         <div className={styles.nodeIcon}>
           {isCompleted ? (

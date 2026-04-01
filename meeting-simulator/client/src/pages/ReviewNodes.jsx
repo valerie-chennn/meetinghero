@@ -326,7 +326,20 @@ function ReviewNodes() {
         {/* ===== Step 2：更地道的说法（翻开后） ===== */}
         {visibleSteps.includes('flipped') && (
           <div className={styles.stepBlock}>
-            <p className={styles.flippedLabel}>更地道的说法</p>
+            {/* 意图分析：先告诉用户 AI 理解了他想表达什么 */}
+            {node.betterWay?.intentAnalysis && (
+              <p className={styles.intentAnalysis}>
+                💬 你想表达的是：{node.betterWay.intentAnalysis}
+              </p>
+            )}
+            {/* 用户说得不错时先单独展示肯定语 */}
+            {node.betterWay?.type === 'alternative' && (
+              <p className={styles.userDidGood}>✅ 说得不错！</p>
+            )}
+            {/* 标签文案根据 type 变化：better → 更好的说法，alternative → 解锁新表达 */}
+            <p className={styles.flippedLabel}>
+              {node.betterWay?.type === 'alternative' ? '解锁新表达 🔓' : '更好的说法'}
+            </p>
             <div className={styles.betterWayCard}>
               {/* 高亮展示推荐句 */}
               <p className={styles.betterSentence}>
@@ -343,9 +356,26 @@ function ReviewNodes() {
                 </div>
               )}
 
+              {/* 词块解释：在高亮句子下方、中文翻译上方 */}
+              {node.betterWay?.collocationExplain &&
+                Object.keys(node.betterWay.collocationExplain).length > 0 && (
+                  <div className={styles.collocationList}>
+                    {Object.entries(node.betterWay.collocationExplain).map(([word, explain]) => (
+                      <p key={word} className={styles.collocationItem}>
+                        📖 {word} = {explain}
+                      </p>
+                    ))}
+                  </div>
+                )}
+
               {/* 中文翻译 */}
               {node.betterWay?.sentenceZh && (
                 <p className={styles.betterZh}>{node.betterWay.sentenceZh}</p>
+              )}
+
+              {/* 一句话说明这种表达好在哪里 */}
+              {node.betterWay?.whyBetter && (
+                <p className={styles.whyBetter}>💡 {node.betterWay.whyBetter}</p>
               )}
 
               {/* TTS 听一听 */}

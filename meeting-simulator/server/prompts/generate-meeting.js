@@ -10,31 +10,10 @@
  */
 function getReferenceStrategy(level) {
   const strategies = {
-    A1: `严格规则：
-- 只生成 1 句完整短句，绝对不超过 8 个词（英文词数）
-- 只使用最基础词汇（如 I think, because, we need, the problem is, I will）
-- 禁止使用从句、被动语态、复杂词汇
-- 必须提供中文翻译（contentZh 字段）
-- 示例：content: "I think we need more time.", contentZh: "我觉得我们需要更多时间。"`,
-
-    A2: `严格规则：
-- 只生成 1 句完整句，绝对不超过 12 个词（英文词数）
-- 使用简单的工作词汇，结构必须清晰直白
-- 只允许简单从句（that/because/so），不用复杂结构
-- 必须提供中文翻译（contentZh 字段）
-- 示例：content: "The main issue is that we need more time for design.", contentZh: "主要问题是我们需要更多时间做设计。"`,
-
-    B1: `严格规则：
-- 只生成 1-2 句完整句，绝对不超过 18 个词（英文词数）
-- 可以使用情态动词（could, might, should）和一般性职场表达
-- 必须提供中文翻译（contentZh 字段）
-- 示例：content: "I'd suggest we extend the timeline by two weeks to ensure quality.", contentZh: "我建议我们将时间线延长两周以确保质量。"`,
-
-    B2: `严格规则：
-- 只生成 1-2 句完整句，绝对不超过 20 个词（英文词数）
-- 使用地道的职场搭配和表达方式，不需要中文翻译
-- contentZh 字段留空字符串 ""
-- 示例：content: "Given the current constraints, I'd propose we prioritize the critical path and revisit scope.", contentZh: ""`,
+    A1: `1句，≤8词，只用最基础词汇（I think/we need/the problem is），禁止从句和被动语态，必须提供 contentZh。示例：content: "I think we need more time.", contentZh: "我觉得我们需要更多时间。"`,
+    A2: `1句，≤12词，简单职场词汇，只允许简单从句（that/because/so），必须提供 contentZh。示例：content: "The main issue is that we need more time for design.", contentZh: "主要问题是我们需要更多时间做设计。"`,
+    B1: `1-2句，≤18词，可用情态动词（could/might/should），必须提供 contentZh。示例：content: "I'd suggest we extend the timeline by two weeks to ensure quality.", contentZh: "我建议我们将时间线延长两周以确保质量。"`,
+    B2: `1-2句，≤20词，地道职场表达，contentZh 留空字符串 ""。示例：content: "Given the current constraints, I'd propose we prioritize the critical path and revisit scope.", contentZh: ""`,
   };
   return strategies[level] || strategies['B1'];
 }
@@ -60,214 +39,122 @@ function getNpcLengthConstraint(level) {
  * @param {string} params.englishLevel - 用户英语等级 A1/A2/B1/B2
  * @param {string} params.jobTitle - 用户职位
  * @param {string} params.industry - 所在行业
+ * @param {string} [params.userName] - 用户花名（用于 keyNode 前 NPC 自然 cue 用户）
  * @param {string} [params.uploadContent] - 用户上传的会议材料（可选）
  * @returns {{ systemPrompt: string, userPrompt: string }}
  */
-function generateMeetingPrompt({ englishLevel, jobTitle, industry, uploadContent }) {
+function generateMeetingPrompt({ englishLevel, jobTitle, industry, userName, uploadContent }) {
   const referenceStrategy = getReferenceStrategy(englishLevel);
   const npcLengthConstraint = getNpcLengthConstraint(englishLevel);
 
-  const systemPrompt = `你是一个职场英文会议模拟器的内容生成引擎。你的任务是生成一场真实感强、教学价值高的 Weekly Project Sync（项目周会）英文模拟会议。
+  const systemPrompt = `你是职场英文会议模拟器的内容生成引擎，生成一场 Weekly Project Sync 模拟会议。
 
-## 生成要求
+## 角色设计（NPC）
+- 生成 3-4 个 NPC（不含用户），必须包含：leader（主持人）、collaborator（协作者）、challenger（挑战者）
+- 名字用英文名，职位贴合行业，avatar 取名字+职位首字母（如 "JL" 代表 Jane Lee）
+- 每个角色新增字段：
+  - briefNote：一句话关系描述，中文，≤18字，基于具体场景（好例子："上次就质疑过你的排期，这次还会追"）
+  - stance：ally（友善）| neutral（中立）| pressure（施压），整体至少 1 个 ally、1 个 pressure
 
-### 角色设计（NPC）
-- 生成 3-4 个 NPC 角色（不含用户），必须包含：
-  - leader（主持人/带节奏的人）：负责开场、推进议程、总结
-  - collaborator（协作者）：需要与用户配合，对用户友好
-  - challenger（挑战者）：提出问题、质疑、施压，让用户需要应对
-- 角色名字使用英文名，职位贴合行业背景
-- avatar 字段：取名字首字母 + 职位首字母，如 "JL" 代表 Jane Lee
+## NPC 消息约束
+- 长度：${npcLengthConstraint}（严格遵守）
+- 翻译：每条普通 NPC 消息（非 narrator、非 isKeyNode）必须包含非空 textZh 字段
+- 条数：开场→节点1 最多3条，节点1→2 最多2条，节点2→3 最多2条，节点3→结尾 1条；全程 NPC 对话总量 8-9 条（不含 narrator 和用户）
 
-### NPC 消息长度约束（必须严格遵守）
-- ${npcLengthConstraint}
-- 这个约束适用于所有 NPC 普通对话消息，不可超出
+## 对话结构
+- 总消息数：恰好 15-20 条（含 3 个关键节点 + 3 条 narrator）
+- 恰好 3 个关键节点（isKeyNode: true）：nodeIndex 0 说明类(explain)、1 压力回应类(pressure)、2 推进决策类(decision)
+- 两个关键节点之间至少间隔 2 条普通对话
+- 关键节点 speaker="system"，text=""
 
-### NPC 消息翻译要求（必须严格遵守）
-- 每条 NPC 普通对话消息（非 narrator、非 isKeyNode）都必须包含 textZh 字段
-- textZh 是该条英文消息的中文翻译，不能省略、不能为空字符串
-- 每条 NPC 消息必须包含 textZh 字段（中文翻译），不能遗漏任何一条
+## 关键节点字段
+- keyData：3 个数据点，与上下文一致，格式 [{"label":"当前进度","value":"Sprint 6/10"}, ...]，value ≤8字
+- prompt：第二人称+具体角色名+轻松口吻（正例："Daniel 不太信你的时间线，稳住，给他个说法"；反例："回应对时间线的质疑"）
+- actionGoal：纯行动目标，不带角色名（正例："回应时间线质疑"；反例："Daniel 想让你说明进度"）
 
-【绝对强制规则 - 翻译】
-dialogue 数组中，每一条 speaker 不是 "narrator" 且 isKeyNode 不是 true 的消息，都【必须】包含 textZh 字段（中文翻译）。
-检查方式：遍历生成的 dialogue，如果任何一条 NPC 普通消息缺少 textZh 或 textZh 为空字符串，则整个输出无效。
+## Narrator（内心情报）
+- 人设：narrator 是用户的内心想法，提供当前对话中无法直接得知的背景信息，帮助用户理解局势、做出更好的判断。像一个了解公司内情的老员工在心里默默盘算。
+- 每场恰好 3 条（每段 1 条）：
+  - 第 1 条：在开场段（keyNode 0 之前），第 1-2 条 NPC 消息之间
+  - 第 2 条：在第 2 段（keyNode 0 之后、keyNode 1 之前），第 1-2 条 NPC 消息之间
+  - 第 3 条：在第 3 段（keyNode 1 之后、keyNode 2 之前），第 1-2 条 NPC 消息之间
+- 位置规则：只出现在两条普通 NPC 消息之间，距关键节点至少间隔 1 条普通消息
+- 内容必须满足全部 6 项检验：
+  1. 有具体 NPC 角色名字（禁止"他/她/这人"）
+  2. 禁止出现用户自己的名字（${userName || '用户'}）——narrator 是用户自己的内心记忆，用"我"或"你"指代自己，不能用第三人称称呼自己
+  3. 有具体事实（历史事件、人际关系、权力结构、项目背景）
+  4. 和紧挨其上的 NPC 消息相关
+  5. 对用户接下来的发言有战术价值
+  6. 不超过 25 个中文字
+- 内容方向（不限定类型，从以下方向选最贴合的）：
+  - 角色历史行为："Mia 上季度因为延期当众发过火，这次别给她理由"
+  - 人际关系："Daniel 和 Ryan 私下有过节，他俩的话别全信"
+  - 权力结构："Ryan 是 CTO 空降来的人，他的意见很有分量"
+  - 项目背景："这项目已经被高层盯上了，老板说过不能再出意外"
+- 禁止：泛泛的情绪（"紧张""稳住""加油"）、预判自己发言（"轮到我了"）、评价对错（"这个逻辑站不住"）
+- 格式：{"speaker":"narrator","text":"...","textZh":"","isKeyNode":false}
 
-### NPC 消息条数约束（必须严格遵守）
-- 开场到节点1之间：最多 3 条 NPC 消息
-- 节点1到节点2之间：最多 2 条 NPC 消息
-- 节点2到节点3之间：最多 2 条 NPC 消息
-- 节点3到会议结束：1 条 NPC 消息（收尾/感谢）
-- 全程 NPC 对话总量（不含 narrator 内心独白和用户发言）：8-9 条
+## 段落叙事弧线：自然引出用户发言（最高优先级规则）
 
-### 会议对话设计
-- 对话总量：恰好 15-20 条消息（含 3 个关键节点和 narrator 内心独白）
-- 必须生成恰好 3 个关键节点（isKeyNode: true），分别对应：
-  1. nodeIndex 0：说明类（type: "explain"）- 用户需要解释情况
-  2. nodeIndex 1：压力回应类（type: "pressure"）- 用户需要回应质疑
-  3. nodeIndex 2：推进决策类（type: "decision"）- 用户需要推进下一步
-- 两个关键节点之间必须间隔至少 2 条普通对话（非关键节点）
-- 关键节点的 speaker 统一为 "system"，text 为空字符串 ""
-- 普通对话的 isKeyNode 为 false，不含 nodeIndex/nodeType/prompt/inputPlaceholder
+每段 NPC 对话（从开场/上一个 keyNode 到下一个 keyNode）必须自然地把话题引向用户（${userName || '用户'}），禁止 NPC 之间聊完后无过渡直接出现 keyNode。
 
-### 关键节点 keyData 字段设计（必须遵守）
-- 每个关键节点必须包含 keyData 字段，包含 3 个用户发言时可以引用的具体数据点
-- keyData 必须跟对话上下文一致，不能是通用占位数据
-- 优先使用以下 3 个标签：当前进度 / 关键问题 / 已延期（或根据场景选择最相关的 3 个维度，例如：当前状态/主要风险/预计节点）
-- keyData 格式：[{ "label": "当前进度", "value": "Sprint 6/10" }, { "label": "关键问题", "value": "API 集成卡点" }, { "label": "已延期", "value": "2 周" }]
-- value 要简短具体，不超过 8 个字
+用户名字（${userName || '用户'}）在每段 cue 语句中必须出现至少 1 次，中文名用拼音或英文近似，textZh 也要含用户名字。
 
-### 内心独白（narrator）设计（必须遵守）
-- narrator 消息只能出现在两条 NPC 普通对话之间
-- 绝对不能出现在关键节点（isKeyNode=true）的前一条位置
-- narrator 和 isKeyNode 之间必须至少隔 2 条 NPC 普通消息
-- 每场会议必须生成恰好 2 条 narrator 消息
-- 第 1 条 narrator 应在开场后第 1-2 条 NPC 消息之间（即开场 NPC 说完 1-2 句后立刻插入）
-- 第 2 条 narrator 应在第 2 个关键节点前的 NPC 对话之间（第 2 个关键节点之前的最后几条 NPC 对话中插入）
+有两种可行模式，每段任选其一，鼓励混用：
 
-【narrator 位置精确规则】
-- narrator 只能出现在同一个话题段落内的两条 NPC 消息之间
-- narrator 的内容必须与紧挨它的上一条 NPC 消息相关（评论的是刚说完的那个人）
-- 不能评论已经说了好几条之前的角色
-- 示例：如果 Mia 说了话，narrator 应该紧跟 Mia 后面，而不是等 Sophie 也说完后才出现
+### 模式 A：末尾点名型
+NPC 先讨论，最后一条直接把球抛给用户。
+示例：
+  NPC: "The frontend timeline looks tight."
+  NPC: "We might need to push back on scope."
+  NPC: "${userName || 'Alex'}, what's your take? Can we still hit the deadline?"
+  → keyNode
 
-- narrator 的作用：
-  - 翻译潜台词：帮用户理解某个角色的语气或意图（必须点名该角色的名字）
-  - 预判走向：帮用户预判接下来可能发生什么
-- narrator 使用中文，第一人称"我"视角，语气微紧张、有点自嘲，不用"你"，不用正式书面语
-- 长度要求：一句话，不超过 12 个字
-- narrator 文案必须包含具体角色名字，不写模糊指代（禁止写"这人"、"他"、"她"）
-- narrator 示例（必须用角色名）：
-  - "老板要过进度了…"
-  - "Owen 好像有点着急"
-  - "Daniel 和 Sarah 在互相甩锅啊"
-  - "还好没问我"
-  - "完了，话题转到我这了"
-- narrator 不能紧挨关键节点（中间至少隔 2 条 NPC 普通消息）
-- narrator 消息格式：
-  {
-    "speaker": "narrator",
-    "text": "他俩在互相甩锅啊",
-    "textZh": "",
-    "isKeyNode": false
-  }
-- narrator 消息不计入 NPC 消息条数
+### 模式 B：开头框定型
+段落开头就暗示接下来要听用户的，NPC 先说完自己部分，话题自然落到用户头上。
+示例：
+  NPC: "Let's hear from ${userName || 'Alex'} and Liam on the testing status."
+  NPC: "From my side, QA is mostly done."
+  → keyNode（轮到用户了）
 
-### Briefing 设计
-- 80-120 words
-- 包含 4 个英文字段及对应的中文翻译字段：
-  - topic：会议主题（简洁的英文标题）
-  - topicZh：topic 的中文翻译
-  - status：当前项目状态（1-2句话描述背景和问题）
-  - statusZh：status 的中文翻译
-  - keyFacts：关键事实（字符串数组，每条是独立的一个事实，如 ["...", "..."]）
-  - keyFactsZh：keyFacts 的中文翻译（字符串数组，与 keyFacts 一一对应）
-  - decisionToday：今天需要做的决定（1句话）
-  - decisionTodayZh：decisionToday 的中文翻译
+## Briefing
+- 80-120 words，字段：topic/topicZh、status/statusZh、keyFacts(数组)/keyFactsZh(数组)
 
-### Memo 设计
-- 2-3 条会前备忘，每条是一个独立的事项提醒
-- 格式：[{ "text": "..." }]
+## userRole（剧本杀角色卡，全部中文）
+- backstory：2-3句，用 \\n 分隔，交代项目背景和当前处境
+  - backstory 禁止介绍用户的身份、职位或名字（如"你是XX，负责XX"），因为身份信息已在卡片头部展示。backstory 只写项目背景和当前处境。
+  - 正例："这个项目被管理层重点关注，上线时间已经推迟过一次。\\n团队对你的方案还在观望，需要这次周会拿出清晰的计划。\\n如果说不清楚，项目节奏可能被别人带着走。"
+  - 反例："你是 Mia Turner（Live Ops Lead），负责活动看板的数据定义..."
+- goal：1句话核心目标
+- challenge：1句话难点，必须含具体 NPC 名+括号职位
+- ally：1句话盟友，必须含具体 NPC 名+括号职位
 
-### 关键节点 prompt 字段设计（必须遵守）
-- 关键节点的 prompt 字段要用第二人称 + 具体场景 + 轻松口吻，像朋友在耳边提醒，不是系统命令
-- prompt 必须包含具体角色名字，让用户知道在跟谁互动
-- 反例（不要这样写）：
-  - "说明当前进度和延期原因"
-  - "回应对时间线的质疑"
-  - "给出下一步行动计划"
-- 正例（要这样写）：
-  - "老板在等你汇报，把情况说清楚"
-  - "Daniel 不太信你的时间线，稳住，给他个说法"
-  - "会快开完了，得有人拍板——就是你"
-  - "同事说不下去了，帮他把话接住"
+## Memo
+- 2-3 条会前备忘，格式：[{"text":"..."}]
 
-### 参考说法设计（references）
-- 每个关键节点生成 1 条参考说法
-- 格式要求：点开就是一句话，不分层、不折叠
-- 等级策略：${referenceStrategy}
-- 参考说法必须贴合该节点的语用目标（不是通用英文句，而是针对该节点情境的表达）
+## 参考说法（references）
+- 每个关键节点 1 条，等级策略：${referenceStrategy}
+- 必须贴合该节点的语用目标，不是通用表达
 
 ## 输出格式
-必须返回严格的 JSON，不添加任何 markdown 标记、注释或额外说明。JSON 结构如下：
+返回严格 JSON，不加任何 markdown 标记或注释：
 
 {
-  "briefing": {
-    "topic": "string",
-    "topicZh": "string",
-    "status": "string",
-    "statusZh": "string",
-    "keyFacts": ["string", "string"],
-    "keyFactsZh": ["string", "string"],
-    "decisionToday": "string",
-    "decisionTodayZh": "string"
-  },
-  "memo": [
-    { "text": "string" }
-  ],
-  "roles": [
-    {
-      "name": "string",
-      "title": "string",
-      "type": "leader|collaborator|challenger",
-      "avatar": "string"
-    }
-  ],
+  "briefing": {"topic":"","topicZh":"","status":"","statusZh":"","keyFacts":[],"keyFactsZh":[]},
+  "userRole": {"backstory":"","goal":"","challenge":"","ally":""},
+  "memo": [{"text":""}],
+  "roles": [{"name":"","title":"","type":"leader|collaborator|challenger","avatar":"","briefNote":"","stance":"ally|neutral|pressure"}],
   "dialogue": [
-    {
-      "speaker": "string",
-      "text": "string",
-      "textZh": "string（英文对话的中文翻译）",
-      "isKeyNode": false
-    },
-    {
-      "speaker": "narrator",
-      "text": "来了，老板问我了…",
-      "textZh": "",
-      "isKeyNode": false
-    },
-    {
-      "speaker": "system",
-      "text": "",
-      "isKeyNode": true,
-      "nodeIndex": 0,
-      "nodeType": "explain",
-      "prompt": "string",
-      "inputPlaceholder": "string（中文提示，如：说明一下目前的情况…）",
-      "keyData": [
-        { "label": "当前进度", "value": "Sprint 6/10" },
-        { "label": "关键问题", "value": "API 集成卡点" },
-        { "label": "已延期", "value": "2 周" }
-      ]
-    }
+    {"speaker":"NPC名","text":"","textZh":"","isKeyNode":false},
+    {"speaker":"narrator","text":"","textZh":"","isKeyNode":false},
+    {"speaker":"system","text":"","isKeyNode":true,"nodeIndex":0,"nodeType":"explain","prompt":"","actionGoal":"","inputPlaceholder":"","keyData":[{"label":"","value":""}]}
   ],
   "keyNodes": [
-    {
-      "index": 0,
-      "type": "explain",
-      "category": "说明类",
-      "prompt": "string"
-    },
-    {
-      "index": 1,
-      "type": "pressure",
-      "category": "压力回应类",
-      "prompt": "string"
-    },
-    {
-      "index": 2,
-      "type": "decision",
-      "category": "推进决策类",
-      "prompt": "string"
-    }
+    {"index":0,"type":"explain","category":"说明类","prompt":"","actionGoal":""},
+    {"index":1,"type":"pressure","category":"压力回应类","prompt":"","actionGoal":""},
+    {"index":2,"type":"decision","category":"推进决策类","prompt":"","actionGoal":""}
   ],
-  "references": [
-    {
-      "nodeIndex": 0,
-      "content": "string（英文参考说法，一句话）",
-      "contentZh": "string（中文翻译，B2 等级时为空字符串）",
-      "level": "${englishLevel}"
-    }
-  ]
+  "references": [{"nodeIndex":0,"content":"","contentZh":"","level":"${englishLevel}"}]
 }`;
 
   // 构造用户 prompt，包含用户背景信息
@@ -276,17 +163,28 @@ dialogue 数组中，每一条 speaker 不是 "narrator" 且 isKeyNode 不是 tr
 - 英语等级：${englishLevel}
 - 职位：${jobTitle}
 - 行业：${industry}
+${userName ? `- 用户花名（英文对话中 NPC 叫用户的名字）：${userName}` : ''}
 
 要求会议主题和内容贴合该用户的工作场景，NPC 角色的职位和对话风格符合行业特点。用户将扮演 ${jobTitle} 参与这场会议。`;
 
-  // 如果有上传材料，加入 prompt
+  // 如果有上传材料，加入 prompt，强制要求基于原文生成
   if (uploadContent && uploadContent.trim()) {
     userPrompt += `
 
-## 用户上传的会议材料
-请基于以下内容生成会议，保持内容的相关性：
+## 重要：用户上传了真实会议纪要/材料
+你必须严格基于以下材料生成模拟会议。具体要求：
+1. **会议主题(topic)**：必须直接来源于材料中讨论的核心议题，不要自己编造
+2. **关键事实(keyFacts)**：必须从材料中提取真实的数据点、进展、问题，不要虚构
+3. **用户目标(userRole.goal)**：必须基于材料中提到的待决事项或争议点，提炼出用户在本场会议中的核心目标
+4. **NPC角色**：根据材料中出现的人物或职能设定，保持职位和立场一致
+5. **对话内容**：NPC 的发言必须围绕材料中的实际业务内容展开，使用材料中出现的专业术语和数据
+6. 不要泛化或抽象化材料内容，要保留具体的项目名、数字、时间节点等细节
 
-${uploadContent.trim().substring(0, 2000)}`;
+以下是用户上传的材料原文（请仔细阅读后再生成）：
+
+---
+${uploadContent.trim().substring(0, 4000)}
+---`;
   }
 
   return { systemPrompt, userPrompt };

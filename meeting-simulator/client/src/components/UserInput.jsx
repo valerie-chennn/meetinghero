@@ -9,6 +9,8 @@ import styles from './UserInput.module.css';
 function UserInput({ placeholder = '输入你要说的话...', onSubmit, onVoiceResult, disabled }) {
   const [text, setText] = useState('');
   const [isVoiceMode, setIsVoiceMode] = useState(false);
+  // 语音转写加载态：录音结束后等待 Whisper 返回结果期间为 true
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const textareaRef = useRef(null);
 
   // 提交文字
@@ -44,6 +46,7 @@ function UserInput({ placeholder = '输入你要说的话...', onSubmit, onVoice
   const handleVoiceResult = (result) => {
     setText(result.text || '');
     setIsVoiceMode(false);
+    setIsTranscribing(false);
     // 自动聚焦输入框，方便用户确认
     setTimeout(() => textareaRef.current?.focus(), 100);
     onVoiceResult?.(result);
@@ -53,6 +56,7 @@ function UserInput({ placeholder = '输入你要说的话...', onSubmit, onVoice
   const handleVoiceError = (errorMsg) => {
     console.error('语音识别错误:', errorMsg);
     setIsVoiceMode(false);
+    setIsTranscribing(false);
   };
 
   return (
@@ -66,9 +70,16 @@ function UserInput({ placeholder = '输入你要说的话...', onSubmit, onVoice
           onChange={handleTextChange}
           onKeyDown={handleKeyDown}
           placeholder={disabled ? '请等待...' : placeholder}
-          disabled={disabled}
+          disabled={disabled || isTranscribing}
           rows={1}
         />
+        {/* 语音转写加载态：覆盖在输入框上方，显示 spinner + 提示文字 */}
+        {isTranscribing && (
+          <div className={styles.transcribingIndicator}>
+            <span className={styles.transcribingSpinner} aria-hidden="true" />
+            <span className={styles.transcribingText}>语音识别中...</span>
+          </div>
+        )}
       </div>
 
       {/* 操作按钮区 */}
@@ -77,6 +88,7 @@ function UserInput({ placeholder = '输入你要说的话...', onSubmit, onVoice
         <VoiceRecorder
           onResult={handleVoiceResult}
           onError={handleVoiceError}
+          onTranscribing={setIsTranscribing}
         />
 
         {/* 发送按钮 */}

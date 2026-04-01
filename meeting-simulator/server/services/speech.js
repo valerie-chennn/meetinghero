@@ -95,35 +95,87 @@ async function textToSpeech(text, language = 'en-US', voice) {
 }
 
 /**
+ * 检查 Azure Whisper 服务是否已配置
+ * @returns {boolean}
+ */
+function isWhisperConfigured() {
+  return !!(
+    process.env.AZURE_WHISPER_API_KEY &&
+    process.env.AZURE_WHISPER_ENDPOINT &&
+    process.env.AZURE_WHISPER_DEPLOYMENT &&
+    process.env.AZURE_WHISPER_API_VERSION
+  );
+}
+
+/**
  * 语音转文字（STT）
- * 调用 Azure Speech REST API 识别音频内容
+ * 调用 Azure Whisper API（OpenAI 兼容接口）识别音频内容
+ * 支持 webm / mp4 / wav 等多种格式，无需转换
  * @param {Buffer} audioBuffer - 音频数据
  * @param {string} language - 识别语言，如 "en-US" 或 "zh-CN"
  * @returns {Promise<{text: string, language: string}>}
  */
 async function speechToText(audioBuffer, language = 'en-US') {
-  if (!isSpeechConfigured()) {
-    const err = new Error('Azure Speech 服务未配置');
-    err.code = 'SPEECH_NOT_CONFIGURED';
+  if (!isWhisperConfigured()) {
+    const err = new Error('Azure Whisper 服务未配置，请检查 AZURE_WHISPER_* 环境变量');
+    err.code = 'WHISPER_NOT_CONFIGURED';
     throw err;
   }
 
   const https = require('https');
 
-  const speechKey = process.env.AZURE_SPEECH_KEY;
-  const speechRegion = process.env.AZURE_SPEECH_REGION;
+  const apiKey = process.env.AZURE_WHISPER_API_KEY;
+  const endpoint = process.env.AZURE_WHISPER_ENDPOINT;
+  const deployment = process.env.AZURE_WHISPER_DEPLOYMENT;
+  const apiVersion = process.env.AZURE_WHISPER_API_VERSION;
+
+  // 解析 endpoint，提取 hostname 和 basePath
+  const endpointUrl = new URL(endpoint);
+  const hostname = endpointUrl.hostname;
+  const basePath = endpointUrl.pathname.replace(/\/$/, ''); // 去掉末尾斜杠
+
+  // 构造请求路径
+  const path = `${basePath}/openai/deployments/${deployment}/audio/transcriptions?api-version=${apiVersion}`;
+
+  // Whisper 只需要 language 的主语言部分（如 "en"，而非 "en-US"）
+  const whisperLang = language.split('-')[0];
+
+  // 手动构建 multipart/form-data body
+  // 包含 file（音频 buffer）和 language 字段
+  const boundary = `----FormBoundary${Date.now().toString(16)}`;
+
+  // 判断音频格式，用于设置 Content-Disposition 的文件名
+  // Whisper 根据文件扩展名自动识别格式
+  const filename = 'audio.webm';
+
+  const preamble = Buffer.from(
+    `--${boundary}\r\n` +
+    `Content-Disposition: form-data; name="file"; filename="${filename}"\r\n` +
+    `Content-Type: audio/webm\r\n` +
+    `\r\n`
+  );
+
+  const langPart = Buffer.from(
+    `\r\n--${boundary}\r\n` +
+    `Content-Disposition: form-data; name="language"\r\n` +
+    `\r\n` +
+    `${whisperLang}\r\n` +
+    `--${boundary}--\r\n`
+  );
+
+  // 拼接完整 body：前导部分 + 音频 buffer + 语言字段 + 结尾
+  const bodyBuffer = Buffer.concat([preamble, audioBuffer, langPart]);
 
   return new Promise((resolve, reject) => {
     const options = {
-      hostname: `${speechRegion}.stt.speech.microsoft.com`,
+      hostname,
       port: 443,
-      path: `/speech/recognition/conversation/cognitiveservices/v1?language=${language}&format=detailed`,
+      path,
       method: 'POST',
       headers: {
-        'Ocp-Apim-Subscription-Key': speechKey,
-        'Content-Type': 'audio/wav; codecs=audio/pcm; samplerate=16000',
-        'Accept': 'application/json',
-        'Content-Length': audioBuffer.length,
+        'api-key': apiKey,
+        'Content-Type': `multipart/form-data; boundary=${boundary}`,
+        'Content-Length': bodyBuffer.length,
       },
     };
 
@@ -137,14 +189,15 @@ async function speechToText(audioBuffer, language = 'en-US') {
       res.on('end', () => {
         try {
           if (res.statusCode >= 400) {
-            reject(new Error(`Azure STT 错误 (${res.statusCode}): ${data}`));
+            reject(new Error(`Azure Whisper STT 错误 (${res.statusCode}): ${data}`));
             return;
           }
 
           const parsed = JSON.parse(data);
-          const recognizedText = parsed.DisplayText || parsed.NBest?.[0]?.Display || '';
+          // Whisper API 返回 { text: "..." }
+          const recognizedText = parsed.text || '';
 
-          // 根据请求的语言推断结果语言标识
+          // 根据请求语言推断结果语言标识
           const langCode = language.startsWith('zh') ? 'zh' : 'en';
 
           resolve({
@@ -152,21 +205,22 @@ async function speechToText(audioBuffer, language = 'en-US') {
             language: langCode,
           });
         } catch (err) {
-          reject(new Error(`解析 Azure STT 响应失败: ${err.message}`));
+          reject(new Error(`解析 Azure Whisper 响应失败: ${err.message}，原始响应: ${data}`));
         }
       });
     });
 
     req.on('error', (err) => {
-      reject(new Error(`Azure STT 请求失败: ${err.message}`));
+      reject(new Error(`Azure Whisper STT 请求失败: ${err.message}`));
     });
 
-    req.setTimeout(30000, () => {
+    req.setTimeout(60000, () => {
+      // Whisper 处理较慢，超时设为 60 秒
       req.destroy();
-      reject(new Error('Azure STT 请求超时'));
+      reject(new Error('Azure Whisper STT 请求超时'));
     });
 
-    req.write(audioBuffer);
+    req.write(bodyBuffer);
     req.end();
   });
 }
@@ -187,6 +241,7 @@ function escapeXml(text) {
 
 module.exports = {
   isSpeechConfigured,
+  isWhisperConfigured,
   textToSpeech,
   speechToText,
 };

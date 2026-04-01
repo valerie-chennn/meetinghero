@@ -21,21 +21,27 @@ function Complete() {
 
   return (
     <div className={styles.container}>
-      {/* 完成图标区 */}
+      {/* 完成图标区：翡翠绿实心圆 + 白色对勾，带光晕脉冲 */}
       <div className={styles.iconSection}>
         <div className={styles.iconWrapper}>
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="12" r="10" fill="rgba(13, 148, 136, 0.12)" stroke="var(--accent-teal)" strokeWidth="2" />
-            <path d="M8 12L11 15L16 9" stroke="var(--accent-teal)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+          {/* 纯白对勾，尺寸与 64px 容器协调 */}
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path
+              d="M5 12L10 17L19 7"
+              stroke="#ffffff"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
         </div>
-        <h1 className={styles.doneTitle}>干得好！</h1>
-        <p className={styles.doneDesc}>你完成了这场模拟会议的全部复盘</p>
+        <h1 className={styles.doneTitle}>练习完成！</h1>
+        <p className={styles.doneDesc}>很棒，每次模拟都是真实成长的一步</p>
       </div>
 
       {/* 难度反馈收集区 */}
       <div className={styles.feedbackSection}>
-        <p className={styles.feedbackQuestion}>这场会对你来说：</p>
+        <p className={styles.feedbackQuestion}>这次会议对你来说...</p>
         <div className={styles.difficultyRow}>
           {DIFFICULTY_OPTIONS.map(opt => (
             <button

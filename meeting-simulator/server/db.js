@@ -38,6 +38,13 @@ function initSchema() {
     )
   `);
 
+  // 为 sessions 表添加 user_name 列（如果不存在）
+  try {
+    db.exec(`ALTER TABLE sessions ADD COLUMN user_name TEXT`);
+  } catch (e) {
+    // 列已存在则忽略
+  }
+
   // 会议表：存储完整会议数据（JSON 序列化存储）
   db.exec(`
     CREATE TABLE IF NOT EXISTS meetings (
@@ -55,6 +62,13 @@ function initSchema() {
       FOREIGN KEY (session_id) REFERENCES sessions(id)
     )
   `);
+
+  // 为 meetings 表添加 user_role 列（如果不存在）
+  try {
+    db.exec(`ALTER TABLE meetings ADD COLUMN user_role TEXT`);
+  } catch (e) {
+    // 列已存在则忽略
+  }
 
   // 会话对话记录表：存储用户在关键节点的发言记录
   db.exec(`

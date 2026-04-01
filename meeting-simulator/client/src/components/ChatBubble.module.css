@@ -1,12 +1,16 @@
-/* 聊天气泡样式 */
+/* =====================================================
+   ChatBubble 聊天气泡组件样式
+   注：当前页面主要通过 chatscope + Meeting.module.css 渲染
+   此文件保留备用，供非 chatscope 场景使用
+   ===================================================== */
 
 /* 气泡基础容器 */
 .bubble {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  padding: 6px 16px;
-  animation: fadeInUp 0.3s ease;
+  padding: 4px 16px;
+  animation: fadeInUp 0.3s var(--ease-spring);
 }
 
 /* ===== 角色消息（左对齐）===== */
@@ -14,7 +18,7 @@
   justify-content: flex-start;
 }
 
-/* 头像 */
+/* 头像圆圈（渐变色由 JSX inline style 设置）*/
 .avatar {
   width: 32px;
   height: 32px;
@@ -23,10 +27,11 @@
   align-items: center;
   justify-content: center;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   color: #fff;
   flex-shrink: 0;
   margin-top: 2px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
 }
 
 /* 角色消息内容区 */
@@ -45,9 +50,9 @@
 }
 
 .speakerName {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--text-secondary);
 }
 
 .speakerTitle {
@@ -62,14 +67,13 @@
   gap: 6px;
 }
 
-/* 角色气泡体 */
+/* 角色气泡体：白底 + 左下圆角4px模拟尖角 */
 .roleBubbleBody {
-  background: var(--bg-tertiary);
+  background: #FFFFFF;
   border-radius: 4px 16px 16px 16px;
   padding: 10px 14px;
-  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
   flex: 1;
-  box-shadow: 0 1px 4px var(--shadow);
 }
 
 /* ===== 用户消息（右对齐）===== */
@@ -81,42 +85,42 @@
   max-width: 80%;
 }
 
+/* 用户气泡体：品牌浅色渐变 + 右下圆角4px */
 .userBubbleBody {
-  background: var(--user-bubble);
+  background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%);
   border-radius: 16px 4px 16px 16px;
   padding: 10px 14px;
-  border: 1px solid rgba(37, 99, 235, 0.18);
-  box-shadow: 0 1px 4px var(--shadow);
+  box-shadow: var(--shadow-xs);
 }
 
 /* ===== 气泡文字 ===== */
 .bubbleText {
   font-size: 15px;
-  line-height: 1.5;
+  line-height: 1.65;
   color: var(--text-primary);
   word-break: break-word;
+  margin: 0;
 }
 
-/* ===== 气泡内中文翻译区域 ===== */
+/* ===== 气泡内翻译区域 ===== */
+/* 左侧品牌色竖线 + 浅灰背景 */
 .translationBlock {
-  margin-top: 6px;
-}
-
-.translationDivider {
-  height: 1px;
-  background: var(--border);
-  margin-bottom: 6px;
-  opacity: 0.6;
+  margin-top: 8px;
+  padding: 7px 10px;
+  background: #F8FAFC;
+  border-left: 2px solid var(--color-brand);
+  border-radius: 0 6px 6px 0;
 }
 
 .translationText {
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-secondary);
   word-break: break-word;
   display: flex;
   align-items: flex-start;
   gap: 5px;
+  margin: 0;
 }
 
 /* "译" 标签小胶囊 */
@@ -125,18 +129,18 @@
   align-items: center;
   justify-content: center;
   font-size: 10px;
-  font-weight: 600;
-  color: var(--accent-blue, #2563eb);
-  background: rgba(37, 99, 235, 0.08);
+  font-weight: 700;
+  color: var(--color-brand);
+  background: var(--color-brand-light);
   border-radius: 3px;
-  padding: 0 4px;
+  padding: 1px 4px;
   height: 16px;
   flex-shrink: 0;
-  margin-top: 1px;
-  letter-spacing: 0;
+  margin-top: 2px;
+  letter-spacing: 0.2px;
 }
 
-/* ===== 系统消息（居中）===== */
+/* ===== 系统消息（居中分隔线）===== */
 .systemMessage {
   display: flex;
   align-items: center;
@@ -148,13 +152,14 @@
 .systemLine {
   flex: 1;
   height: 1px;
-  background: var(--border);
+  background: var(--border-subtle);
 }
 
 .systemText {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-muted);
   white-space: nowrap;
+  letter-spacing: 0.3px;
 }
 
 /* 翻译兜底提示：textZh 为空时显示灰色小字 */
@@ -162,5 +167,6 @@
   font-size: 12px;
   color: var(--text-muted);
   font-style: italic;
-  opacity: 0.7;
+  opacity: 0.6;
+  margin: 0;
 }

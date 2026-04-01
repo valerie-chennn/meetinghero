@@ -76,21 +76,21 @@ function Onboarding() {
 
   return (
     <div className={styles.container}>
-      {/* 进度条：4 个点 */}
+      {/* 进度条：4 段线段，完成/当前/未完成三态 */}
       <div className={styles.progressBar}>
-        {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
-          <div
-            key={i}
-            className={`${styles.progressDot} ${i <= step ? styles.progressDotActive : ''}`}
-          ></div>
-        ))}
+        {Array.from({ length: TOTAL_STEPS }).map((_, i) => {
+          let segClass = styles.progressSegment;
+          if (i < step)        segClass += ` ${styles.progressSegmentDone}`;
+          else if (i === step) segClass += ` ${styles.progressSegmentCurrent}`;
+          return <div key={i} className={segClass}></div>;
+        })}
       </div>
 
       {/* 步骤内容区 */}
       <div className={styles.stepsWrapper}>
 
         {/* 步骤 0：用户名字 */}
-        <div className={styles.step} style={{ display: step === 0 ? 'flex' : 'none' }}>
+        <div className={`${styles.step} ${step === 0 ? styles.stepEnter : ''}`} style={{ display: step === 0 ? 'flex' : 'none' }}>
           <div className={styles.stepContent}>
             <div className={styles.stepHeader}>
               <span className={styles.stepLabel}>{stepLabel}</span>
@@ -134,7 +134,7 @@ function Onboarding() {
         </div>
 
         {/* 步骤 1：英文水平 */}
-        <div className={styles.step} style={{ display: step === 1 ? 'flex' : 'none' }}>
+        <div className={`${styles.step} ${step === 1 ? styles.stepEnter : ''}`} style={{ display: step === 1 ? 'flex' : 'none' }}>
           <div className={styles.stepContent}>
             <div className={styles.stepHeader}>
               <span className={styles.stepLabel}>{stepLabel}</span>
@@ -166,7 +166,7 @@ function Onboarding() {
         </div>
 
         {/* 步骤 2：职位 */}
-        <div className={styles.step} style={{ display: step === 2 ? 'flex' : 'none' }}>
+        <div className={`${styles.step} ${step === 2 ? styles.stepEnter : ''}`} style={{ display: step === 2 ? 'flex' : 'none' }}>
           <div className={styles.stepContent}>
             <div className={styles.stepHeader}>
               <span className={styles.stepLabel}>{stepLabel}</span>
@@ -209,7 +209,7 @@ function Onboarding() {
         </div>
 
         {/* 步骤 3：行业 */}
-        <div className={styles.step} style={{ display: step === 3 ? 'flex' : 'none' }}>
+        <div className={`${styles.step} ${step === 3 ? styles.stepEnter : ''}`} style={{ display: step === 3 ? 'flex' : 'none' }}>
           <div className={styles.stepContent}>
             <div className={styles.stepHeader}>
               <span className={styles.stepLabel}>{stepLabel}</span>

@@ -1,15 +1,24 @@
-/* 会后总结页样式（重写版） */
+/* =====================================================
+   Review — 会后总结页样式
+   设计风格：庆祝感 + 私信温度，有弹性有人情味
+   ===================================================== */
+
+/* ── 页面容器 ── */
 .container {
   max-width: 430px;
   margin: 0 auto;
   width: 100%;
   min-height: 100vh;
   min-height: 100dvh;
-  background: var(--bg-primary);
+  background: var(--bg-base);
   position: relative;
 }
 
-/* 加载状态 */
+/* =====================================================
+   加载状态 — 与 Loading 页保持风格一致
+   ===================================================== */
+
+/* ── 加载容器：垂直居中，充足留白 ── */
 .loadingContainer {
   max-width: 430px;
   margin: 0 auto;
@@ -20,92 +29,127 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 32px;
-  padding: 48px 32px;
-  background: var(--bg-primary);
+  gap: var(--space-10);
+  padding: var(--space-10) var(--space-8);
+  background: var(--bg-base);
+  animation: fadeIn 0.5s var(--ease-out) both;
 }
 
-/* 标题组 */
+/* ── 标题组：图标 + 文字 ── */
 .loadingTitleGroup {
+  text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: var(--space-3);
+  animation: fadeInUp 0.45s var(--ease-out) 0.1s both;
 }
 
+/* spinner：品牌色描边旋转圈 */
 .loadingCircle {
-  width: 40px;
-  height: 40px;
-  border: 3px solid var(--bg-elevated);
-  border-top-color: var(--accent-primary);
+  width: 44px;
+  height: 44px;
+  border: 3px solid var(--color-brand-light);
+  border-top-color: var(--color-brand);
   border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+  animation: spin 0.9s linear infinite;
 }
 
+/* 主加载文字：18px 600，主色 */
 .loadingText {
-  font-size: 18px;
+  font-size: var(--font-lg);   /* 18px */
   font-weight: 600;
   color: var(--text-primary);
+  letter-spacing: -0.2px;
 }
 
-/* 进度条区域 */
+/* ── 进度条整体区域 ── */
 .loadingProgressSection {
   width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-3);
+  animation: fadeInUp 0.45s var(--ease-out) 0.2s both;
 }
 
+/* ── 百分比大数字：与 Loading 页一致，28px 700 品牌色 ── */
+.loadingProgressLabel {
+  font-size: var(--font-2xl);  /* 28px */
+  font-weight: 700;
+  color: var(--color-brand);
+  line-height: 1;
+  letter-spacing: -0.5px;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+/* ── 进度条轨道：4px 圆角 ── */
 .loadingProgressTrack {
   width: 100%;
   height: 4px;
-  border-radius: 2px;
-  background: var(--border);
+  border-radius: var(--radius-full);
+  background: #E2E8F0;
   overflow: hidden;
 }
 
+/* ── 进度条填充：品牌色 → 中品牌渐变，带顶部高光 ── */
 .loadingProgressFill {
   height: 100%;
-  border-radius: 2px;
-  background: linear-gradient(90deg, #2563EB 0%, #3B82F6 100%);
-  transition: width 0.3s ease;
+  border-radius: var(--radius-full);
+  background: linear-gradient(90deg, #4F46E5, #818CF8);
+  /* 0.5s ease-out 过渡，比 tick 间隔稍长，视觉更流畅 */
+  transition: width 0.5s var(--ease-out);
+  position: relative;
 }
 
-.loadingProgressLabel {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--accent-primary);
-  letter-spacing: 0.3px;
+/* 进度条顶部高光线，增加立体感 */
+.loadingProgressFill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: var(--radius-full);
 }
 
+/* 时间提示：15px 次要色 */
 .loadingTimeHint {
-  font-size: 12px;
-  color: var(--text-muted);
+  font-size: var(--font-base);
+  color: var(--text-secondary);
   text-align: center;
+  line-height: 1.5;
 }
 
-/* Tips 轮播 */
+/* ── Tips 轮播容器：固定最小高度，防止文字切换抖动 ── */
 .loadingTipContainer {
-  min-height: 48px;
+  min-height: 56px;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 0 var(--space-2);
+  animation: fadeInUp 0.45s var(--ease-out) 0.3s both;
 }
 
+/* ── 单条 Tip：13px 斜体，居中 ── */
 .loadingTip {
-  font-size: 14px;
+  font-size: var(--font-sm);   /* 13px */
+  font-style: italic;
   color: var(--text-secondary);
   text-align: center;
-  line-height: 1.6;
-  transition: opacity 0.4s ease;
-  max-width: 280px;
+  line-height: 1.7;
+  max-width: 300px;
+  transition: opacity 0.4s var(--ease-out);
 }
 
+/* Tip 可见 / 隐藏态（淡入淡出切换） */
 .loadingTipVisible { opacity: 1; }
-.loadingTipHidden { opacity: 0; }
+.loadingTipHidden  { opacity: 0; }
 
-/* 错误状态 */
+/* =====================================================
+   错误态
+   ===================================================== */
 .errorContainer {
   max-width: 430px;
   margin: 0 auto;
@@ -116,205 +160,401 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 16px;
-  padding: 24px;
+  gap: var(--space-4);
+  padding: var(--space-6);
 }
 
 .errorText {
-  font-size: 16px;
+  font-size: var(--font-md);
   color: var(--text-secondary);
 }
 
 .retryButton {
-  padding: 12px 24px;
+  padding: var(--space-3) var(--space-6);
   background: var(--bg-elevated);
   color: var(--text-primary);
   border-radius: var(--radius-md);
-  font-size: 15px;
+  font-size: var(--font-base);
+  box-shadow: var(--shadow-sm);
 }
 
-/* 内容区：自然流式布局，底部留出 fixed footer 的空间 */
+.retryButton:hover {
+  background: var(--border);
+}
+
+/* =====================================================
+   内容区 — 主体内容滚动区
+   ===================================================== */
+
+/* 底部留出 fixed footer 高度，防止内容被遮挡 */
 .scrollArea {
-  padding: 40px 24px 100px;
+  padding: var(--space-12) var(--space-6) 100px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-8);
 }
 
-/* ===== 称号区 ===== */
+/* =====================================================
+   称号区 — springIn 弹性入场，居中庆祝感
+   ===================================================== */
 .titleSection {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-3);
   text-align: center;
+  /* 弹性出场，比 fadeIn 更有惊喜感 */
+  animation: springIn 0.6s var(--ease-spring) both;
 }
 
-/* 称号徽章：emoji + 大字并排 */
+/* 徽章行：emoji + 称号文字并排 */
 .titleBadge {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
+/* 大 emoji：居中展示 */
 .titleEmoji {
-  font-size: 32px;
+  font-size: 36px;
   line-height: 1;
+  /* 轻微上下浮动，增加活力感 */
+  animation: titleEmojiFloat 3s var(--ease-gentle) 0.8s infinite;
 }
 
+@keyframes titleEmojiFloat {
+  0%, 100% { transform: translateY(0);   }
+  50%       { transform: translateY(-4px); }
+}
+
+/* 称号文字：28px 800，主色 */
 .titleText {
-  font-size: 32px;
+  font-size: var(--font-2xl);  /* 28px */
   font-weight: 800;
   color: var(--text-primary);
   letter-spacing: -0.5px;
+  line-height: 1.2;
 }
 
+/* 副文案：15px，次要色 */
 .titleSubtext {
-  font-size: 16px;
+  font-size: var(--font-base);  /* 15px */
   color: var(--text-secondary);
   line-height: 1.5;
 }
 
-/* ===== 角色私信（聊天气泡型动效） ===== */
-.dmSection {
-  margin: 4px 0;
+/* =====================================================
+   会议统计条 — 横排三列等宽，bg-elevated 背景
+   ===================================================== */
+.statsBar {
+  display: flex;
+  align-items: center;
+  background: var(--bg-elevated);
+  border-radius: 12px;
+  padding: var(--space-4) 0;
+  /* 入场动效：稍晚于称号区 */
+  animation: fadeInUp 0.45s var(--ease-out) 0.2s both;
 }
 
-/* 标题文字 */
-.dmLabel {
-  font-size: 13px;
+/* 每列数据：flex 1 等宽，居中 */
+.statItem {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+/* 大数字：24px bold 品牌色 */
+.statNumber {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-brand);
+  line-height: 1;
+  letter-spacing: -0.5px;
+}
+
+/* 标签：12px 次要色 */
+.statLabel {
+  font-size: 12px;
   color: var(--text-secondary);
-  margin-bottom: 10px;
+  line-height: 1;
+}
+
+/* 列间竖线分隔 */
+.statDivider {
+  width: 1px;
+  height: 32px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+/* =====================================================
+   策略亮点 / 可改进对比卡区
+   ===================================================== */
+.strategySection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  animation: fadeInUp 0.45s var(--ease-out) 0.3s both;
+}
+
+/* 亮点卡：绿色左边框 3px */
+.highlightCard {
+  background: var(--bg-surface);
+  border-radius: var(--radius-md);
+  border-left: 3px solid #10B981;
+  padding: var(--space-4) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  box-shadow: var(--shadow-sm);
+}
+
+/* 可改进卡：橙色左边框 3px */
+.lowlightCard {
+  background: var(--bg-surface);
+  border-radius: var(--radius-md);
+  border-left: 3px solid #F59E0B;
+  padding: var(--space-4) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  box-shadow: var(--shadow-sm);
+}
+
+/* "全部有效"占位卡：虚线绿色边框，轻量提示 */
+.allEffectiveCard {
+  background: var(--bg-surface);
+  border-radius: var(--radius-md);
+  border-left: 3px solid #10B981;
+  padding: var(--space-4) var(--space-4);
+  box-shadow: var(--shadow-sm);
+}
+
+.allEffectiveText {
+  font-size: var(--font-sm);
+  color: #10B981;
+  font-weight: 600;
+}
+
+/* 标签行："🟢 亮点 · 节点名称" */
+.strategyCardLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* 描述文字：用户做了什么 */
+.strategyCardWhat {
+  font-size: var(--font-base);
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
+/* 策略要点：加粗品牌色 */
+.strategyCardTakeaway {
+  font-size: var(--font-sm);
+  font-weight: 600;
+  color: var(--color-brand);
+  line-height: 1.5;
+}
+
+/* =====================================================
+   角色私信区 — 聊天气泡风格
+   ===================================================== */
+.dmSection {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* 标签行：小圆点 + 发言人名字 */
+.dmLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--font-sm);   /* 13px */
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
-/* Typing 指示器：三点跳动气泡 */
+/* 角色颜色小圆点：6px，颜色由 JS inline style 注入 */
+.dmRoleDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  /* 背景色由 style 传入，默认品牌色兜底 */
+  background: var(--color-brand);
+}
+
+/* ── Typing 指示器：三点跳动气泡 ── */
 .typingIndicator {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border);
+  gap: 5px;
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-md);
   padding: 12px 16px;
-  border-radius: 18px 18px 18px 4px; /* 左下角锐角，模拟对方消息气泡 */
-  box-shadow: 0 1px 3px var(--shadow);
+  /* 左下角小尖角（与气泡一致） */
+  border-radius: 16px 16px 16px 4px;
+  animation: fadeInLeft 0.25s var(--ease-out) both;
 }
 
+/* 三点各自延迟，形成波浪感 */
 .typingDot {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: var(--text-muted);
-  animation: typingBounce 1.2s ease-in-out infinite;
+  animation: typingBounce 1.2s var(--ease-standard) infinite;
 }
 
-.typingDot:nth-child(2) { animation-delay: 0.15s; }
-.typingDot:nth-child(3) { animation-delay: 0.30s; }
+.typingDot:nth-child(2) { animation-delay: 0.16s; }
+.typingDot:nth-child(3) { animation-delay: 0.32s; }
 
 @keyframes typingBounce {
   0%, 60%, 100% {
     transform: translateY(0);
-    opacity: 0.4;
+    opacity: 0.35;
   }
   30% {
-    transform: translateY(-5px);
+    transform: translateY(-6px);
     opacity: 1;
   }
 }
 
-/* 气泡弹入容器 */
+/* ── 气泡弹入容器：头像 + 内容并排 ── */
 .dmBubble {
   display: flex;
   gap: 10px;
   align-items: flex-start;
-  animation: bubblePopIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation: bubbleSlideIn 0.4s var(--ease-spring) both;
 }
 
-@keyframes bubblePopIn {
+/* 气泡从左侧滑入 + 弹性 */
+@keyframes bubbleSlideIn {
   0% {
     opacity: 0;
-    transform: scale(0.85) translateY(8px);
-    transform-origin: bottom left;
+    transform: translateX(-16px) scale(0.92);
   }
   60% {
-    transform: scale(1.03) translateY(-2px);
+    opacity: 1;
+    transform: translateX(2px) scale(1.01);
   }
   100% {
     opacity: 1;
-    transform: scale(1) translateY(0);
+    transform: translateX(0) scale(1);
   }
 }
 
-/* 角色头像 */
+/* 角色头像：圆形，角色渐变色 */
 .dmAvatar {
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   color: #fff;
   flex-shrink: 0;
-  margin-top: 2px; /* 与气泡顶部对齐 */
+  margin-top: 2px;
+  box-shadow: var(--shadow-sm);
 }
 
-/* 气泡内容区 */
+/* ── 气泡内容区：白底，圆角 16px，左下角尖角，shadow-sm ── */
 .dmContent {
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border);
-  border-radius: 18px 18px 18px 4px; /* 左下角锐角 */
-  padding: 12px 16px;
-  box-shadow: 0 1px 3px var(--shadow);
+  background: var(--bg-surface);
+  border-radius: 16px 16px 16px 4px;
+  padding: 14px 16px;
+  box-shadow: var(--shadow-md);
+  max-width: calc(100% - 48px);
 }
 
-/* 英文原文（斜体） */
+/* 英文原文：15px 斜体，主色 */
 .dmEnglish {
-  font-size: 15px;
+  font-size: var(--font-base);  /* 15px */
   font-style: italic;
   color: var(--text-primary);
-  line-height: 1.5;
+  line-height: 1.6;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
-/* 中文翻译（延迟淡入） */
+/* 中文翻译：13px，次要色，延迟淡入 */
 .dmChinese {
-  font-size: 12px;
+  font-size: var(--font-sm);   /* 13px */
   color: var(--text-secondary);
-  margin-top: 6px;
+  margin-top: 8px;
   line-height: 1.5;
-  animation: fadeIn 0.3s ease 0.2s both;
+  /* 稍后出现，营造「等翻译加载」的感觉 */
+  animation: fadeIn 0.4s var(--ease-standard) 0.25s both;
 }
 
-/* ===== 固定底部 ===== */
+/* =====================================================
+   固定底部 CTA 区
+   ===================================================== */
 .footer {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  padding: 12px 24px;
-  padding-bottom: max(12px, env(safe-area-inset-bottom));
-  background: linear-gradient(to top, var(--bg-primary) 85%, transparent);
+  padding: var(--space-4) var(--space-6);
+  padding-bottom: max(var(--space-4), env(safe-area-inset-bottom));
+  /* 渐变遮罩，让内容自然过渡到底部 */
+  background: linear-gradient(to top, var(--bg-base) 75%, transparent);
   z-index: 10;
   max-width: 430px;
   margin: 0 auto;
 }
 
-/* 主 CTA 按钮 */
+/* ── 主 CTA 按钮：翡翠绿，"来复盘你的 N 次发言 →" ── */
 .ctaButton {
   width: 100%;
-  padding: 16px;
+  padding: var(--space-4) var(--space-5);
   border-radius: var(--radius-lg);
-  background: var(--accent-primary);
+  /* 翡翠绿，成功感，鼓励用户继续 */
+  background: var(--color-success);
   color: #fff;
-  font-size: 16px;
+  font-size: var(--font-md);   /* 16px */
   font-weight: 700;
-  transition: all 0.2s ease;
-  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.25);
+  letter-spacing: 0.2px;
+  /* 成功色光晕 */
+  box-shadow: var(--shadow-success), 0 4px 12px rgba(16, 185, 129, 0.25);
+  /* 光晕脉冲，吸引注意力 */
+  animation: successGlowPulse 2.5s var(--ease-gentle) 1s infinite;
+  transition: all 0.2s var(--ease-spring);
 }
 
 .ctaButton:hover {
-  background: #1D4ED8;
-  transform: translateY(-1px);
-  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.32);
+  background: var(--color-success-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.35);
+  animation: none;
+}
+
+.ctaButton:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* 绿色光晕脉冲动画 */
+@keyframes successGlowPulse {
+  0%, 100% { box-shadow: var(--shadow-success), 0 4px 12px rgba(16, 185, 129, 0.25); }
+  50%       { box-shadow: 0 4px 24px rgba(16, 185, 129, 0.40), 0 8px 20px rgba(16, 185, 129, 0.15); }
+}
+
+/* ── 从左侧淡入（补充动画） ── */
+@keyframes fadeInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }

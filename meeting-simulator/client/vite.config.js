@@ -6,6 +6,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
+    allowedHosts: ['.ngrok-free.dev', '.ngrok.io', '.trycloudflare.com', '.loca.lt'],
     proxy: {
       // 将 /api 路径代理到后端服务
       '/api': 'http://localhost:3001'

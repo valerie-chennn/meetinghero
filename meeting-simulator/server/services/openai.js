@@ -122,10 +122,10 @@ async function callOpenAI(messages, options = {}) {
       reject(new Error(`Azure OpenAI 请求失败: ${err.message}`));
     });
 
-    // 设置 60 秒超时
-    req.setTimeout(60000, () => {
+    // 设置 120 秒超时（prompt 较大时生成需要更长时间）
+    req.setTimeout(120000, () => {
       req.destroy();
-      reject(new Error('Azure OpenAI 请求超时（60秒）'));
+      reject(new Error('Azure OpenAI 请求超时（120秒）'));
     });
 
     req.write(requestBody);

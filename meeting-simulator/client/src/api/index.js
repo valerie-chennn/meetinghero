@@ -54,12 +54,14 @@ export async function generateMeeting(sessionId, source, uploadContent) {
  * @param {number} nodeIndex - 节点索引
  * @param {string} userInput - 用户输入的文字
  * @param {string} inputLanguage - 输入语言：'en' | 'zh'
- * @returns {Object} { followUp: [...], nextNodeIndex }
+ * @param {number} [retryCount=0] - 当前节点已重试次数（0=首次，1=第二次）
+ * @param {number} [failedNodeCount=0] - 本场会议中已失败的节点数（0-2）
+ * @returns {Object} { systemEnglish, responseDialogue, inputType, retryPrompt?, failureResponse? }
  */
-export async function respondToNode(meetingId, nodeIndex, userInput, inputLanguage) {
+export async function respondToNode(meetingId, nodeIndex, userInput, inputLanguage, retryCount = 0, failedNodeCount = 0) {
   return request('/meeting/respond', {
     method: 'POST',
-    body: JSON.stringify({ meetingId, nodeIndex, userInput, inputLanguage }),
+    body: JSON.stringify({ meetingId, nodeIndex, userInput, inputLanguage, retryCount, failedNodeCount }),
   });
 }
 
@@ -124,6 +126,24 @@ export async function textToSpeech(text, language = 'en') {
   }
 
   return response.blob();
+}
+
+/**
+ * 获取 session 的练习历史记录列表
+ * @param {string} sessionId - 会话 ID
+ * @returns {Object} { history: Array }
+ */
+export async function getHistory(sessionId) {
+  return request(`/history/${sessionId}`);
+}
+
+/**
+ * 获取单条历史会议的完整数据（用于恢复复盘页）
+ * @param {string} meetingId - 会议 ID
+ * @returns {Object} { meetingData, reviewData }
+ */
+export async function getHistoryMeeting(meetingId) {
+  return request(`/history/meeting/${meetingId}`);
 }
 
 /**

@@ -49,13 +49,32 @@ function generateReviewPrompt({ meetingData, conversationHistory, englishLevel }
 - titleEmoji：固定为"🎖️"
 - titleSubtext：根据用户表现生成 1 句有温度的配文（中文，如"这场会，你撑过来了"），不超过15字
 
-## 角色私信（roleFeedback）
-从 challenger 类型的角色（即最有挑战性的角色）视角，写一条会后私信：
+## 策略亮点与可改进（highlight / lowlight）
+从所有节点中挑选用户表现最好和最需要改进的各一个节点：
+
+**highlight（最佳节点）**：
+- nodeIndex：对应节点的索引（0/1/2）
+- label：该节点的中文名称（如"说明进度""回应质疑""推进决策"）
+- whatYouDid：中文，1句话，策略层面描述用户实际做了什么（不是翻译用户的话）
+- strategyTakeaway：中文，1句话策略要点，教用户怎么开会
+
+**lowlight（最需改进节点）**：
+- 字段与 highlight 相同
+- 如果所有节点都表现良好，lowlight 字段可返回 null
+
+## 角色私信（roleFeedbacks）
+生成 2 条来自不同角色的会后私信，以数组形式返回：
+- 第 1 条：来自 challenger 类型角色（最有挑战性的角色）
+- 第 2 条：来自 supporter 或 leader 类型角色
+
+每条私信字段：
 - name：角色名字
 - title：角色职位/身份
-- role：固定为"challenger"
+- role：角色类型（challenger / supporter / leader）
 - text：英文，1句话，不超过15个词，只表达角色对用户表现的真实反应，不给建议
 - textZh：text 的中文翻译（直译即可）
+
+**兼容性说明**：同时保留旧的 roleFeedback 字段（单条），取 roleFeedbacks[0] 的内容即可。
 
 ## 每个节点的复盘内容
 对每个节点生成：
@@ -65,10 +84,68 @@ function generateReviewPrompt({ meetingData, conversationHistory, englishLevel }
    - english：英文版本（若原始输入为英文则同 original；若中文则为系统意译版本）
 
 2. **betterWay**（更好的表达方式）
-   - sentence：针对该节点语用目标的更地道表达（完整句子）
-   - sentenceZh：sentence 的中文翻译（直译即可，必须提供）
-   - highlightPattern：句型骨架，用 "..." 省略可变部分，标出核心结构
-   - highlightCollocation：最值得学习的 1 个搭配词组
+
+   betterWay 生成规则（必须严格遵守，分三步执行）：
+
+   **第一步：分析用户的表达意图**
+   - 用户实际想表达什么？（不是他应该说什么，而是他试图表达什么）
+   - 输出 intentAnalysis 字段（中文，1句话）
+   - 例：用户说"I don't know" → 意图是"表达不确定/没准备好"
+   - 例：用户说"We're working on it" → 意图是"表达正在进行中但没有具体进展"
+   - 例：用户说"We finished backend work, but tracking needs two more days" → 意图是"汇报进度并说明剩余工作"
+
+   **第二步：基于用户意图生成更好的表达**
+   - sentence 必须表达和用户相同的意图，只是用更地道/更有效的方式
+   - 禁止忽略用户意图给一个完全不同话题的"标准答案"
+   - 例：用户意图是"表达不确定" → 教"I'm not fully prepared on this yet, but here's what I know so far..."
+   - 例：用户意图是"正在进行中" → 教"We're making progress — specifically, X is done and Y is in progress"
+
+   **第三步：判断 type**
+   - 如果用户原话有明显问题或不够地道：type = "better"
+   - 如果用户原话已经不错：type = "alternative"
+
+   betterWay 字段说明：
+   - intentAnalysis：中文，1句话，分析用户的表达意图（第一步输出）
+   - type："better" | "alternative"
+   - sentence：基于用户意图的更好英文表达（完整句，包含值得学习的句型和词块）
+   - sentenceZh：中文翻译（直译即可，必须提供）
+   - highlightPattern：句型骨架（如 "X is blocked by Y"）
+   - highlightCollocation：最值得学习的搭配词组（如 "blocked by"）
+   - collocationExplain：每个高亮词块的意思解释，格式为对象，key 是词块，value 是中文释义
+     例：{"on track": "按计划推进", "running behind": "落后于计划"}
+   - whyBetter：中文，1句话，说明这种表达好在哪里（策略层面或语用层面）
+
+   重要：
+   - sentence 不是纠正语法错误，而是用更地道的方式表达用户相同的意图
+   - 如果 type 是 "alternative"，sentence 必须和用户原话完全不同（不同句式、不同词汇），不是微调
+   - collocationExplain 中每个词块用"= 释义"的格式，简洁明了
+
+### alternative 类型的强制差异化规则（必须严格遵守）
+
+当 type 为 "alternative" 时，sentence 必须与用户原话有本质差异，不是润色：
+
+差异化策略（至少使用其中一种）：
+1. 换句式结构：用户用 A and B 结构 → 改为 On the X front, Y 或 X is Z, which means...
+2. 换切入角度：用户先说数据再说结论 → 改为先说结论再补数据
+3. 换沟通策略：用户平铺直叙 → 改为先肯定再转折，或先给结论再解释
+4. 换表达层次：用户用基础词汇 → 改为职场高频搭配（across the board, on track, flag an issue）
+
+强制检验（AI 必须自检，不符合则重新生成）：
+- 句式检验：sentence 的主句结构必须和用户原话不同
+- 词汇检验：sentence 中 60% 以上的实义词必须和用户原话不同
+- 策略检验：sentence 必须采用和用户不同的沟通策略或切入角度
+
+禁止：
+- 只加 the/a、改时态、换同义词（positive→encouraging）等微调
+- sentence 和用户原话只有 1-2 个词不同
+
+whyBetter 字段在 type=alternative 时，必须说明"换了什么角度/策略"，而不是说"更自然/更地道"这类空话。
+
+示例：
+用户说：We are on Sprint 6, and the test result is positive.
+❌ 错误：We're now in Sprint 6, and the test results look encouraging.（只是润色）
+✅ 正确：On the testing front, we're seeing green across the board — Sprint 6 is wrapping up on schedule.
+whyBetter：从"汇报数据"换成了"先给结论再补进度"的策略，更像资深 PM 的表达方式
 
 3. **pattern**（语言模式总结）
    - mainPattern：核心句型，必须是简短可迁移的模板，用 X/Y 作为占位符（如 "X is blocking Y"、"The main issue is X"），不超过 8 个词
@@ -92,9 +169,37 @@ function generateReviewPrompt({ meetingData, conversationHistory, englishLevel }
   "title": "会议英雄",
   "titleEmoji": "🎖️",
   "titleSubtext": "string（中文，不超过15字）",
+  "highlight": {
+    "nodeIndex": 0,
+    "label": "string（节点中文名称，如"说明进度"）",
+    "whatYouDid": "string（中文，1句话，策略层面描述用户做了什么）",
+    "strategyTakeaway": "string（中文，1句话策略要点）"
+  },
+  "lowlight": {
+    "nodeIndex": 1,
+    "label": "string（节点中文名称）",
+    "whatYouDid": "string（中文，1句话）",
+    "strategyTakeaway": "string（中文，1句话策略要点）"
+  },
+  "roleFeedbacks": [
+    {
+      "name": "string（角色名字）",
+      "title": "string（角色职位）",
+      "role": "challenger",
+      "text": "string（英文，1句≤15词）",
+      "textZh": "string（中文翻译）"
+    },
+    {
+      "name": "string（角色名字）",
+      "title": "string（角色职位）",
+      "role": "supporter",
+      "text": "string（英文，1句≤15词）",
+      "textZh": "string（中文翻译）"
+    }
+  ],
   "roleFeedback": {
-    "name": "string（角色名字）",
-    "title": "string（角色职位）",
+    "name": "string（与 roleFeedbacks[0].name 相同，向后兼容）",
+    "title": "string",
     "role": "challenger",
     "text": "string（英文，1句≤15词）",
     "textZh": "string（中文翻译）"
@@ -110,10 +215,14 @@ function generateReviewPrompt({ meetingData, conversationHistory, englishLevel }
         "english": "string"
       },
       "betterWay": {
-        "sentence": "string（英文完整句）",
+        "intentAnalysis": "string（中文，1句话，分析用户的表达意图）",
+        "type": "better|alternative",
+        "sentence": "string（英文完整句，必须与用户意图一致）",
         "sentenceZh": "string（中文翻译，必须提供）",
         "highlightPattern": "string（句型骨架）",
-        "highlightCollocation": "string（搭配词组）"
+        "highlightCollocation": "string（搭配词组）",
+        "collocationExplain": {"词块1": "中文释义1", "词块2": "中文释义2"},
+        "whyBetter": "string（中文，1句话，说明这种表达好在哪里）"
       },
       "pattern": {
         "mainPattern": "string（核心句型）",

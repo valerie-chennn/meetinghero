@@ -1,4 +1,10 @@
-/* 会前 Briefing 页样式（精简版，目标一屏展示） */
+/* ===================================================
+   PreMeeting 会前准备页——全息任务卡样式
+   设计方案：方案 B「全息任务卡」
+   毛玻璃卡片 + 品牌色系背景光斑 + 渐变分隔线
+   =================================================== */
+
+/* ── 页面容器：移动端全屏，flex 竖向布局 ── */
 .container {
   max-width: 430px;
   margin: 0 auto;
@@ -7,140 +13,418 @@
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  background: var(--bg-primary);
+  background: var(--bg-base);
+  /* 开启 overflow hidden，确保绝对定位光斑不溢出 */
+  overflow: hidden;
   position: relative;
-  /* 移除 fadeIn 动画：避免页面从透明到不透明导致 Key Facts 等内容"闪烁"的视觉问题 */
 }
 
-/* 可滚动内容区，gap 加大提升呼吸感 */
+/* ===================================================
+   背景装饰光斑
+   绝对定位的大尺寸模糊圆形，为毛玻璃卡片提供色彩折射源
+   =================================================== */
+
+/* 光斑基础样式 */
+.glowOrb {
+  position: absolute;
+  border-radius: 50%;
+  /* 使用 pointer-events: none 避免遮挡交互 */
+  pointer-events: none;
+  z-index: 0;
+  /* 光斑先于卡片出现，提前铺设氛围 */
+  animation: fadeIn var(--duration-slow) var(--ease-out) both;
+}
+
+/* 左上角：品牌靛蓝光斑 */
+.glowOrb1 {
+  width: 280px;
+  height: 280px;
+  top: -60px;
+  left: -80px;
+  background: radial-gradient(circle, rgba(79, 70, 229, 0.08) 0%, transparent 70%);
+  filter: blur(80px);
+  animation-delay: 0ms;
+}
+
+/* 右中：翡翠绿光斑 */
+.glowOrb2 {
+  width: 240px;
+  height: 240px;
+  top: 40%;
+  right: -60px;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.06) 0%, transparent 70%);
+  filter: blur(90px);
+  animation-delay: 80ms;
+}
+
+/* 左下：紫色光斑 */
+.glowOrb3 {
+  width: 260px;
+  height: 260px;
+  bottom: 80px;
+  left: -40px;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.06) 0%, transparent 70%);
+  filter: blur(100px);
+  animation-delay: 160ms;
+}
+
+/* ── 可滚动内容区 ── */
 .scrollArea {
   flex: 1;
   overflow-y: auto;
-  padding: 16px 16px 0;
+  overflow-x: hidden;
+  padding: var(--space-5) var(--space-4) 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  /* 隐藏滚动条但保留滚动功能 */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  /* 内容在光斑上方 */
+  position: relative;
+  z-index: 1;
+}
+
+.scrollArea::-webkit-scrollbar {
+  display: none;
+}
+
+/* ===================================================
+   任务卡片——全息毛玻璃风格
+   =================================================== */
+
+.missionCard {
+  /* 半透明白色毛玻璃底 */
+  background: rgba(255, 255, 255, 0.72);
+  /* 毛玻璃模糊效果：模糊背后的彩色光斑，产生色晕 */
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 24px;
+  /* 玻璃高光边 */
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  /* 双层阴影：大范围漫射 + 小范围边缘 */
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.06),
+    0 2px 8px rgba(0, 0, 0, 0.04);
+  padding: 24px;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  /* 入场动画：从下淡入 */
+  animation: fadeInUp var(--duration-slow) var(--ease-out) 200ms both;
 }
 
-/* 会议类型标签（紧凑） */
-.meetingTypeBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  background: #EFF6FF;
-  color: var(--accent-primary);
-  padding: 5px 10px;
-  border-radius: 20px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.3px;
-  align-self: flex-start;
-  border: 1px solid rgba(37, 99, 235, 0.15);
+/* 无毛玻璃支持时的降级：加大背景不透明度 */
+@supports not (backdrop-filter: blur(1px)) {
+  .missionCard {
+    background: rgba(255, 255, 255, 0.95);
+  }
 }
 
-.meetingTypeIcon {
+/* ── 卡片头部：难度 badge 右对齐 ── */
+.cardHeader {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* 难度胶囊 badge */
+.difficultyBadge {
   display: flex;
   align-items: center;
-}
-
-/* 参会者区块 */
-.participantsSection {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-/* 参会者标签文字 */
-.participantsLabel {
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-}
-
-/* 参会者水平等宽分布，间距略收紧 */
-.participantsRow {
-  display: flex;
   gap: 6px;
+  background: rgba(249, 115, 22, 0.1);
+  color: #F97316;
+  border-radius: 9999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
 }
 
-/* 参会者竖向小卡片：等宽，白色背景，轻阴影，居中对齐，padding 更紧凑 */
-.participantCard {
-  flex: 1;
+/* 星星容器 */
+.difficultyStars {
+  display: inline-flex;
+  gap: 1px;
+  font-size: 12px;
+  line-height: 1;
+}
+
+/* 已点亮的星：橙色 */
+.starFilled {
+  color: #F97316;
+  /* 微弱光晕增强视觉质感 */
+  filter: drop-shadow(0 0 2px rgba(249, 115, 22, 0.4));
+}
+
+/* 未点亮的星：浅灰近乎隐入背景 */
+.starEmpty {
+  color: #E2E8F0;
+}
+
+/* ── 会议主题区块 ── */
+.topicSection {
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: 4px;
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 10px 6px 8px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
 }
 
-/* 头像圆圈（竖向卡片，放大一些） */
-.participantAvatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 15px;
+/* 英文主题：大号深色加粗 */
+.topicTitle {
+  font-size: 20px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
+  line-height: 1.3;
+  letter-spacing: -0.3px;
+  margin: 0;
+}
+
+/* 中文翻译：次要色，小字 */
+.topicSubtitle {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* ── 渐变发光分隔线 ── */
+.gradientLine {
+  height: 1px;
+  /* 品牌靛蓝渐变，两端渐隐，中间最亮 */
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(79, 70, 229, 0.3) 30%,
+    rgba(129, 140, 248, 0.2) 60%,
+    transparent 100%
+  );
+  /* 无左右 margin，依靠渐变本身自然收边 */
   flex-shrink: 0;
 }
 
-/* First name：粗体 */
-.participantName {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
-  text-align: center;
+/* ── 前情提要区块 ── */
+.backstorySection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-/* 职位标题：小字灰色 */
-.participantTitle {
-  font-size: 10px;
-  font-weight: 400;
+/* "前情提要"标签：小字全大写，静默色 */
+.sectionLabel {
+  font-size: 11px;
+  font-weight: 600;
   color: var(--text-muted);
-  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  line-height: 1;
+}
+
+/* 前情提要正文（旧格式，单段） */
+.backstoryText {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text-primary);
+  line-height: 1.7;
+  margin: 0;
+}
+
+/* 前情提要分行显示（新格式，每句一行） */
+.backstoryLines {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.backstoryLine {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text-primary);
+  line-height: 1.6;
+  margin: 0;
+  /* 每行前加小圆点 */
+  padding-left: 12px;
+  position: relative;
+}
+
+.backstoryLine::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--color-brand-mid, #818CF8);
+}
+
+/* 旧数据兼容：keyFacts 列表形式 */
+.backstoryFacts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.backstoryFactItem {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text-primary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ── 身份行：用户名 · 职位 ── */
+.roleIdentityRow {
+  /* 无需额外容器，直接显示单行文字 */
+}
+
+.roleIdentityText {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
   line-height: 1.3;
 }
 
-/* 底部固定按钮区 */
+/* 分隔符和职位：稍微降低权重 */
+.roleIdentitySep {
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+/* ── 目标/难点/盟友三行信息 ── */
+.roleInfoList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* 每行：左侧色条 + emoji + 文字，统一容器 */
+.roleInfoItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  /* 第一行入场延迟 */
+  animation: fadeInUp var(--duration-normal) var(--ease-out) both;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 目标行背景：极淡翡翠绿 */
+.roleInfoGoal {
+  background: rgba(16, 185, 129, 0.04);
+  animation-delay: 280ms;
+}
+
+/* 难点行背景：极淡橙色 */
+.roleInfoChallenge {
+  background: rgba(249, 115, 22, 0.04);
+  animation-delay: 360ms;
+}
+
+/* 盟友行背景：极淡品牌靛蓝 */
+.roleInfoAlly {
+  background: rgba(79, 70, 229, 0.04);
+  animation-delay: 440ms;
+}
+
+/* 左侧 3px 竖向色条（通过 inline style 传入具体颜色） */
+.roleInfoAccentBar {
+  width: 3px;
+  border-radius: 2px;
+  /* 使用 align-self stretch 撑满行高 */
+  align-self: stretch;
+  flex-shrink: 0;
+  min-height: 16px;
+}
+
+/* emoji 图标：固定宽度，防止被 flex 压缩 */
+.roleInfoEmoji {
+  font-size: 15px;
+  flex-shrink: 0;
+  line-height: 1.4;
+  margin-top: 1px;
+}
+
+/* 信息文字 */
+.roleInfoText {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
+/* 行内标签（目标：/ 难点：/ 盟友：），稍加粗以区分 */
+.roleInfoLabel {
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+/* ===================================================
+   底部固定 CTA 区
+   =================================================== */
+
 .footer {
   position: sticky;
   bottom: 0;
-  padding: 12px 16px;
-  padding-bottom: calc(12px + env(safe-area-inset-bottom));
-  background: linear-gradient(to top, var(--bg-primary) 80%, transparent);
+  left: 0;
+  right: 0;
+  padding: var(--space-4);
+  padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom));
+  /* 上方渐变遮罩，防止内容被截断感 */
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    var(--bg-base) 40%
+  );
+  /* 在光斑上方 */
+  position: relative;
+  z-index: 2;
+  animation: fadeInUp var(--duration-slow) var(--ease-out) 300ms both;
 }
 
+/* 进入会议按钮：翡翠绿 + 白字 + 箭头 */
 .enterButton {
   width: 100%;
-  padding: 14px;
+  padding: 15px var(--space-5);
   border-radius: var(--radius-lg);
-  background: var(--accent-primary);
+  background: var(--color-success);
   color: #fff;
-  font-size: 15px;
+  font-size: var(--font-base);
   font-weight: 600;
+  letter-spacing: 0.2px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.25);
-  transition: all 0.2s ease;
+  /* 成功色光晕阴影 */
+  box-shadow:
+    0 8px 24px rgba(16, 185, 129, 0.30),
+    0 2px 6px rgba(16, 185, 129, 0.15);
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    transform 0.2s var(--ease-spring),
+    box-shadow 0.2s var(--ease-out);
+}
+
+/* 按钮箭头图标：轻微右移动效 */
+.enterButton svg {
+  transition: transform 0.2s var(--ease-spring);
 }
 
 .enterButton:hover {
-  background: #1D4ED8;
+  background: var(--color-success-hover);
   transform: translateY(-1px);
-  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.32);
+  box-shadow:
+    0 12px 28px rgba(16, 185, 129, 0.36),
+    0 4px 8px rgba(16, 185, 129, 0.18);
+}
+
+.enterButton:hover svg {
+  transform: translateX(3px);
 }
 
 .enterButton:active {
-  transform: translateY(0);
+  transform: scale(0.97) translateY(0);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
 }

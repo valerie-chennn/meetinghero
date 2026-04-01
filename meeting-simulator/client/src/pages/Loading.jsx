@@ -69,8 +69,14 @@ function Loading() {
     return () => clearInterval(interval);
   }, []);
 
+  // 防止 StrictMode 双重执行导致重复调用
+  const hasCalledRef = useRef(false);
+
   // 调用后端生成会议
   useEffect(() => {
+    if (hasCalledRef.current) return;
+    hasCalledRef.current = true;
+
     const generate = async () => {
       // 防止 sessionId 缺失（刷新页面等情况）
       if (!state.sessionId) {
@@ -125,6 +131,9 @@ function Loading() {
 
       {/* 进度条区域 */}
       <div className={styles.progressSection}>
+        {/* 百分比大数字：28px 700，品牌色，视觉核心 */}
+        <span className={styles.progressPercent}>{displayProgress}%</span>
+
         {/* 进度条轨道 */}
         <div className={styles.progressTrack}>
           <div
@@ -132,18 +141,18 @@ function Loading() {
             style={{ width: `${displayProgress}%` }}
           ></div>
         </div>
-        {/* 百分比数字 */}
-        <span className={styles.progressLabel}>{displayProgress}%</span>
-        {/* 预估时间提示 */}
-        <p className={styles.timeHint}>
+
+        {/* 预估时间提示：超时时切换类名触发 fade 动画 */}
+        <p className={overtime ? styles.timeHintOvertime : styles.timeHint}>
           {overtime ? '还在生成中，马上就好…' : '预计需要 15-30 秒'}
         </p>
       </div>
 
-      {/* Tips 轮播 */}
+      {/* Tips 轮播：灯泡图标 + 引号包裹文字，淡入淡出切换 */}
       <div className={styles.tipContainer}>
         <p className={`${styles.tip} ${tipVisible ? styles.tipVisible : styles.tipHidden}`}>
-          {TIPS[currentTip]}
+          <span className={styles.tipIcon}>💡</span>
+          <span className={styles.tipText}>「{TIPS[currentTip]}」</span>
         </p>
       </div>
     </div>

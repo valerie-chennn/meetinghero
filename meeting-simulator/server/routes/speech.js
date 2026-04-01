@@ -6,7 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const { textToSpeech, speechToText, isSpeechConfigured } = require('../services/speech');
+const { textToSpeech, speechToText, isSpeechConfigured, isWhisperConfigured } = require('../services/speech');
 
 // 配置 multer 使用内存存储，限制文件大小 10MB
 const upload = multer({
@@ -77,12 +77,13 @@ router.post('/tts', async (req, res) => {
 /**
  * POST /api/speech/stt
  * 语音转文字，接收 multipart/form-data 音频文件
+ * 使用 Azure Whisper API
  */
 router.post('/stt', (req, res) => {
-  // 检查 Azure Speech 是否配置
-  if (!isSpeechConfigured()) {
+  // 检查 Azure Whisper 是否配置
+  if (!isWhisperConfigured()) {
     return res.status(501).json({
-      error: 'Azure Speech 服务未配置，请设置 AZURE_SPEECH_KEY 和 AZURE_SPEECH_REGION 环境变量',
+      error: 'Azure Whisper 服务未配置，请设置 AZURE_WHISPER_* 环境变量',
     });
   }
 
@@ -103,9 +104,9 @@ router.post('/stt', (req, res) => {
       // 获取语言参数，默认英文
       const language = req.body.language || 'en-US';
 
-      console.log(`[Speech/STT] 识别语音，language=${language}, fileSize=${req.file.size}`);
+      console.log(`[Speech/STT] 使用 Whisper 识别语音，language=${language}, fileSize=${req.file.size}`);
 
-      // 调用 Azure STT
+      // 调用 Azure Whisper STT
       const result = await speechToText(req.file.buffer, language);
 
       return res.status(200).json({
@@ -113,8 +114,8 @@ router.post('/stt', (req, res) => {
         language: result.language,
       });
     } catch (err) {
-      if (err.code === 'SPEECH_NOT_CONFIGURED') {
-        return res.status(501).json({ error: 'Azure Speech 服务未配置' });
+      if (err.code === 'WHISPER_NOT_CONFIGURED') {
+        return res.status(501).json({ error: 'Azure Whisper 服务未配置' });
       }
       console.error('[Speech/STT] 错误：', err.message);
       return res.status(500).json({ error: `语音识别失败: ${err.message}` });

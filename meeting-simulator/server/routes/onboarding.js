@@ -64,9 +64,9 @@ router.post('/', (req, res) => {
 
     // 写入数据库
     const stmt = db.prepare(
-      'INSERT INTO sessions (id, english_level, job_title, industry) VALUES (?, ?, ?, ?)'
+      'INSERT INTO sessions (id, english_level, job_title, industry, user_name) VALUES (?, ?, ?, ?, ?)'
     );
-    stmt.run(sessionId, englishLevel, jobTitle.trim(), industry.trim());
+    stmt.run(sessionId, englishLevel, jobTitle.trim(), industry.trim(), userName ? userName.trim() : null);
 
     console.log(`[Onboarding] 新建会话 sessionId=${sessionId}, level=${englishLevel}, jobTitle=${jobTitle}, userName=${userName || '（未提供）'}`);
 

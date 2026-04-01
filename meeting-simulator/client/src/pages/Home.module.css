@@ -1,6 +1,6 @@
 /* ===================================================
-   首页样式 — Linear/Notion 高端简洁风格
-   设计原则：重视留白和呼吸感，不过度装饰
+   首页样式 — 重设计版
+   设计：品牌区（光晕背景）+ 上下两张全宽大卡片 + 老用户区
    =================================================== */
 
 /* ===== 整体容器 ===== */
@@ -12,103 +12,241 @@
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
+  /* 内容垂直居中分布，不挤在顶部 */
+  justify-content: center;
   background: var(--bg-base);
-  /* 抑制系统默认 tap 高亮 */
   -webkit-tap-highlight-color: transparent;
+  overflow-x: hidden;
 }
 
-/* ===== 顶部品牌区 ===== */
+/* ===== 品牌区 ===== */
 .header {
-  padding-top: 52px;
+  position: relative;
+  padding: var(--space-10) var(--space-5) var(--space-8);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  /* 入场动画：从下方 12px 淡入，400ms ease-out */
-  animation: enterUp 0.4s ease-out both;
-}
-
-/* 品牌名：Plus Jakarta Sans 700，靛蓝色 #4F46E5 */
-.brandName {
-  font-family: 'Plus Jakarta Sans', 'PingFang SC', system-ui, sans-serif;
-  font-size: 32px;
-  font-weight: 700;
-  color: #4F46E5;
-  letter-spacing: -0.5px;
-  line-height: 1.1;
-  margin: 0;
-  /* 关闭渐变文字，直接用纯色，更简洁克制 */
-}
-
-/* 副标题：轻字重 + 次要文字色 */
-.slogan {
-  font-size: 14px;
-  font-weight: 400;
-  color: var(--text-secondary);
-  letter-spacing: 3px;
-  margin: 0;
-}
-
-/* ===== 手机壳视觉区 ===== */
-.phoneFrame {
-  margin: 28px 24px 0;
-  /* 深靛蓝渐变背景，替换原来的纯深色 */
-  background: linear-gradient(135deg, #1E1B4B 0%, #312E81 100%);
-  border-radius: 20px;
-  padding: 16px 16px 20px;
-  /* 精致阴影：主阴影 + 内侧高光边 */
-  box-shadow:
-    0 16px 48px rgba(30, 27, 75, 0.3),
-    0 0 0 1px rgba(255, 255, 255, 0.08) inset;
-  position: relative;
+  gap: var(--space-3);
   overflow: hidden;
-  /* 入场动画：delay 100ms，从下方 12px 淡入 */
-  animation: enterUp 0.4s ease-out 0.1s both;
+  /* stagger：品牌区第一个出场 */
+  animation: fadeInUp 0.45s var(--ease-out) 0ms both;
 }
 
-/* 顶部 notch 装饰条：模拟手机状态栏 */
-.phoneNotch {
-  width: 60px;
-  height: 3px;
-  background: rgba(255, 255, 255, 0.12);
-  border-radius: 2px;
-  margin: 0 auto 16px;
-}
-
-/* 手机内部内容区 */
-.phoneContent {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-/* 气泡行：头像 + 消息内容横排 */
-.phoneBubbleRow {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-}
-
-/* 角色头像：靛蓝渐变圆形 */
-.phoneAvatar {
-  width: 30px;
-  height: 30px;
+/* 背景光斑 1：靛蓝色，左上方 */
+.glowOrb1 {
+  position: absolute;
+  top: -60px;
+  left: -40px;
+  width: 260px;
+  height: 260px;
+  background: radial-gradient(circle, rgba(79, 70, 229, 0.18) 0%, transparent 70%);
   border-radius: 50%;
-  /* 与手机壳品牌色保持一致的靛蓝系 */
-  background: linear-gradient(135deg, #6366F1, #4F46E5);
+  pointer-events: none;
+  user-select: none;
+}
+
+/* 背景光斑 2：紫色，右下方 */
+.glowOrb2 {
+  position: absolute;
+  bottom: -30px;
+  right: -50px;
+  width: 220px;
+  height: 220px;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.14) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* 品牌名 + 小图标横排 */
+.brandLockup {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* 品牌图标容器 */
+.brandIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--color-brand) 0%, var(--color-brand-dark) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
-  font-weight: 700;
-  color: #fff;
+  color: #FFFFFF;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.30);
   flex-shrink: 0;
-  /* 微光边框增加精致感 */
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.15);
 }
 
-/* 气泡容器（发言者名 + 文字气泡） */
-.phoneBubbleBlock {
+/* 品牌名：Plus Jakarta Sans 700，靛蓝色，更大更有存在感 */
+.brandName {
+  font-family: 'Plus Jakarta Sans', 'PingFang SC', system-ui, sans-serif;
+  font-size: var(--font-3xl);
+  font-weight: 700;
+  color: var(--color-brand);
+  letter-spacing: -1px;
+  line-height: 1.1;
+  margin: 0;
+}
+
+/* 副标题 slogan */
+.slogan {
+  font-size: var(--font-base);
+  font-weight: 400;
+  color: var(--text-secondary);
+  letter-spacing: 2px;
+  margin: 0;
+  opacity: 0.85;
+}
+
+/* ===== 模式入口区：上下排列的全宽大卡片 ===== */
+.modeCards {
+  padding: 0 var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* ===== 卡片通用布局：内容区（左）+ 装饰图（右）===== */
+/* 使用 position: relative 容纳绝对定位的装饰插图 */
+
+/* ===== 正经开会卡片：白底 + 靛蓝色调 ===== */
+.formalCard {
+  position: relative;
+  background: var(--bg-surface);
+  border-radius: var(--radius-xl);
+  border: 1.5px solid rgba(79, 70, 229, 0.18);
+  box-shadow: var(--shadow-brand);
+  padding: var(--space-6) var(--space-5);
+  cursor: pointer;
+  min-height: 130px;
+  width: 100%;
+  text-align: left;
+  overflow: hidden;
+  /* stagger：第二个出场 */
+  animation: fadeInUp 0.45s var(--ease-out) 0.12s both;
+  transition:
+    transform var(--duration-normal) var(--ease-spring),
+    box-shadow var(--duration-normal) var(--ease-spring),
+    border-color var(--duration-fast) var(--ease-out);
+}
+
+.formalCard:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-brand-mid);
+}
+
+.formalCard:active {
+  transform: scale(0.98);
+}
+
+/* 正经开会卡片右侧装饰插图：淡淡公文包 */
+.formalDeco {
+  position: absolute;
+  right: -8px;
+  bottom: -8px;
+  color: var(--color-brand);
+  opacity: 0.07;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ===== 脑洞模式卡片：浅紫渐变 + 紫色调 ===== */
+.brainstormCard {
+  position: relative;
+  background: linear-gradient(145deg, #F5F3FF 0%, #EDE9FE 55%, #DDD6FE 100%);
+  border-radius: var(--radius-xl);
+  border: 1.5px solid rgba(139, 92, 246, 0.28);
+  box-shadow: var(--shadow-brainstorm);
+  padding: var(--space-6) var(--space-5);
+  cursor: pointer;
+  min-height: 130px;
+  width: 100%;
+  text-align: left;
+  overflow: hidden;
+  /* stagger：第三个出场 */
+  animation: fadeInUp 0.45s var(--ease-out) 0.24s both;
+  transition:
+    transform var(--duration-normal) var(--ease-spring),
+    box-shadow var(--duration-normal) var(--ease-spring),
+    border-color var(--duration-fast) var(--ease-out);
+}
+
+.brainstormCard:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-brainstorm-hover);
+  border-color: rgba(139, 92, 246, 0.45);
+}
+
+.brainstormCard:active {
+  transform: scale(0.98);
+}
+
+/* 脑洞卡片内部右上光晕 */
+.brainstormGlow {
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  width: 160px;
+  height: 160px;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.24) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* 脑洞模式卡片右侧装饰插图：淡淡星星 */
+.brainstormDeco {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  color: var(--accent-purple);
+  opacity: 0.12;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ===== 卡片内容行（图标 + 文字 + 箭头）===== */
+.cardContent {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  /* 右侧留出空间避免与装饰图重叠 */
+  padding-right: var(--space-8);
+  position: relative;
+  z-index: 1;
+}
+
+/* 正经开会图标容器 */
+.cardIconWrap {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  background: var(--color-brand-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-brand);
+  flex-shrink: 0;
+}
+
+/* 脑洞模式图标容器 */
+.brainstormIconWrap {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  background: rgba(139, 92, 246, 0.14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-purple);
+  flex-shrink: 0;
+}
+
+/* 文字区域 */
+.cardText {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -116,251 +254,111 @@
   min-width: 0;
 }
 
-/* 发言者标识：极弱对比度，退到背景 */
-.phoneSpeaker {
-  font-size: 10px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.35);
-  padding-left: 2px;
-  letter-spacing: 0.3px;
-  text-transform: uppercase;
-}
-
-/* 对话气泡：更精致的半透明白底 */
-.phoneBubble {
-  background: rgba(255, 255, 255, 0.09);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px 10px 10px 3px;
-  padding: 10px 13px;
-  color: rgba(255, 255, 255, 0.88);
-  font-size: 13px;
-  line-height: 1.55;
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-}
-
-/* 内心独白：紫色调，左竖线强调，更克制的透明度 */
-.phoneNarrator {
-  background: rgba(139, 92, 246, 0.12);
-  border-left: 2px solid rgba(139, 92, 246, 0.45);
-  border-radius: 0 8px 8px 0;
-  padding: 8px 12px;
-  color: rgba(255, 255, 255, 0.65);
-  font-size: 12px;
-  font-style: italic;
-  line-height: 1.5;
-}
-
-/* 模拟输入框（纯展示，不可交互） */
-.phoneInput {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 20px;
-  padding: 9px 14px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 6px;
-}
-
-.phoneInputPlaceholder {
-  color: rgba(255, 255, 255, 0.25);
-  font-size: 12px;
-}
-
-/* 麦克风 SVG 图标 */
-.phoneInputMic {
-  color: rgba(255, 255, 255, 0.3);
-  display: flex;
-  align-items: center;
-}
-
-/* ===== 价值传递区：微卡片列表 ===== */
-.valueSection {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 20px 24px 0;
-  margin-top: 20px;
-}
-
-/* 每个价值点是一个微卡片 */
-.valueItem {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  background: var(--bg-surface, #F9FAFB);
-  border: 1px solid var(--border-subtle, #F0F0F0);
-  border-radius: 12px;
-  padding: 12px 14px;
-  /* hover 上浮效果 */
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.valueItem:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(79, 70, 229, 0.08);
-}
-
-/* 价值点 1：入场 delay 200ms */
-.valueItem1 {
-  animation: enterUp 0.4s ease-out 0.2s both;
-}
-
-/* 价值点 2：入场 delay 300ms */
-.valueItem2 {
-  animation: enterUp 0.4s ease-out 0.3s both;
-}
-
-/* 价值点 3：入场 delay 400ms */
-.valueItem3 {
-  animation: enterUp 0.4s ease-out 0.4s both;
-}
-
-/* 图标区：纯色圆形背景 + 白色 SVG 图标 */
-.valueIcon {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  /* 靛蓝品牌色背景 */
-  background: #4F46E5;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  /* 微投影增加立体感 */
-  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.25);
-}
-
-/* 文字内容区：标题 + 描述两层 */
-.valueBody {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-/* 价值点标题：15px 600 */
-.valueTitle {
-  font-size: 15px;
-  font-weight: 600;
+/* 卡片标题 */
+.cardTitle {
+  font-size: var(--font-lg);
+  font-weight: 700;
   color: var(--text-primary);
-  line-height: 1.3;
+  line-height: 1.2;
+  display: block;
 }
 
-/* 价值点描述：13px 400 次要色 */
-.valueDesc {
-  font-size: 13px;
-  font-weight: 400;
+/* 正经开会副标题 */
+.cardSubtitle {
+  font-size: var(--font-sm);
   color: var(--text-secondary);
-  line-height: 1.4;
+  line-height: 1.45;
+  display: block;
 }
 
-/* ===== CTA 区：贴底，翡翠绿主按钮 ===== */
-.ctaSection {
+/* 脑洞模式副标题 */
+.brainstormSubtitle {
+  font-size: var(--font-sm);
+  color: rgba(109, 40, 217, 0.80);
+  line-height: 1.45;
+  display: block;
+}
+
+/* 正经开会箭头 */
+.cardArrow {
+  color: var(--text-muted);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  transition: transform var(--duration-fast) var(--ease-out),
+              color var(--duration-fast) var(--ease-out);
+}
+
+.formalCard:hover .cardArrow {
+  transform: translateX(3px);
+  color: var(--color-brand);
+}
+
+/* 脑洞模式箭头 */
+.cardArrowPurple {
+  color: rgba(139, 92, 246, 0.50);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  transition: transform var(--duration-fast) var(--ease-out),
+              color var(--duration-fast) var(--ease-out);
+}
+
+.brainstormCard:hover .cardArrowPurple {
+  transform: translateX(3px);
+  color: var(--accent-purple);
+}
+
+/* ===== 老用户区（紧跟卡片下方，不贴底）===== */
+.userSection {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 20px 24px;
-  padding-bottom: max(20px, env(safe-area-inset-bottom, 20px));
-  /* 确保 CTA 始终贴底 */
-  margin-top: auto;
-  /* 入场动画：delay 500ms，最后登场 */
-  animation: enterUp 0.4s ease-out 0.5s both;
+  gap: var(--space-2);
+  padding: var(--space-5) var(--space-5) var(--space-4);
+  /* stagger：最后出场 */
+  animation: fadeInUp 0.45s var(--ease-out) 0.36s both;
 }
 
-/* 翡翠绿主 CTA 按钮：避免与靛蓝品牌色混淆 */
-.ctaButton {
-  width: 100%;
-  padding: 16px;
-  border-radius: 12px;
-  background: #10B981;
-  color: #ffffff;
-  font-size: 16px;
-  font-weight: 600;
-  letter-spacing: 0.2px;
-  /* 翡翠绿投影 */
-  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
-  transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
-  border: none;
-  cursor: pointer;
-}
-
-/* hover：颜色加深 + 上浮 + 加深阴影 */
-.ctaButton:hover {
-  background: #059669;
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.35);
-}
-
-/* 点击态：微缩 */
-.ctaButton:active {
-  transform: scale(0.98);
-  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
-}
-
-/* 按钮下方提示文字 */
-.ctaHint {
-  font-size: 12px;
-  color: var(--text-muted);
-  text-align: center;
-  letter-spacing: 0.3px;
-  margin: 0;
-}
-
-/* 老用户"查看练习记录"次要按钮：有轮廓，区别于纯文字链接 */
+/* 历史记录按钮 */
 .historyLink {
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 13px;
+  font-size: var(--font-sm);
   font-weight: 500;
   color: var(--text-secondary);
   background: none;
   border: 1px solid var(--border);
   border-radius: var(--radius-full);
   cursor: pointer;
-  padding: 6px 14px;
-  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  padding: 7px 16px;
+  transition: color var(--duration-fast), border-color var(--duration-fast), background var(--duration-fast);
 }
 
 .historyLink:hover {
   color: var(--color-brand);
-  border-color: var(--color-brand);
+  border-color: var(--color-brand-mid);
   background: var(--color-brand-light);
 }
 
-/* 老用户"修改我的信息"链接按钮 */
+/* 修改信息文字链接 */
 .editLink {
-  font-size: 13px;
-  color: var(--text-secondary);
+  font-size: var(--font-xs);
+  color: var(--text-muted);
   background: none;
   border: none;
   cursor: pointer;
   padding: 4px 0;
-  /* 下划线用虚线更轻盈 */
   text-decoration: underline;
   text-decoration-style: dashed;
   text-underline-offset: 3px;
-  text-decoration-color: var(--border-default, #D1D5DB);
-  transition: color 0.15s ease;
+  text-decoration-color: var(--border);
+  transition: color var(--duration-fast);
 }
 
 .editLink:hover {
-  color: #4F46E5;
+  color: var(--text-secondary);
   text-decoration-style: solid;
-  text-decoration-color: #4F46E5;
-}
-
-/* ===== 入场动画：从下方 12px 淡入，ease-out ===== */
-@keyframes enterUp {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  text-decoration-color: var(--text-muted);
 }

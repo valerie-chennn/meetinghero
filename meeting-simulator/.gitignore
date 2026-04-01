@@ -28,3 +28,4 @@ ngrok_tunnel.py
 
 # 日志
 *.log
+*.db.backup*

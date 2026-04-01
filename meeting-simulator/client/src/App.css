@@ -112,6 +112,26 @@
   --duration-normal: 250ms;
   --duration-slow:   400ms;
 
+  /* ── RandomDraw 翻牌页专用 Token ── */
+  --page-draw-bg: linear-gradient(180deg, #0d0b2e 0%, #1a1744 50%, #2d1b69 100%);
+  --gold-text: rgba(255, 215, 0, 0.90);
+  --gold-border: rgba(255, 215, 0, 0.25);
+  --card-surface-dark: rgba(255, 255, 255, 0.08);
+
+  /* ── 脑洞模式专用 Token ── */
+  /* 紫色强调渐变（脑洞模式入口卡片） */
+  --brainstorm-gradient: linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%);
+
+  /* 翻牌卡背面渐变（RandomDraw 用） */
+  --card-back-gradient: linear-gradient(135deg, #1E1B4B 0%, #312E81 60%, #4C1D95 100%);
+
+  /* 脑洞模式卡片悬浮阴影（紫色光晕） */
+  --shadow-brainstorm: 0 4px 16px rgba(139, 92, 246, 0.22);
+  --shadow-brainstorm-hover: 0 8px 28px rgba(139, 92, 246, 0.32);
+
+  /* 角色卡选中光晕 */
+  --shadow-character-selected: 0 0 0 2px #8B5CF6, 0 4px 16px rgba(139, 92, 246, 0.20);
+
   /* ===================================================
      向后兼容映射 — 旧变量名保留，指向新 Token
      确保现有页面组件无需修改即可正确渲染

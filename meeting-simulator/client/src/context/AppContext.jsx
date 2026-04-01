@@ -36,6 +36,13 @@ function buildInitialState() {
     meetingData: null,      // 完整的会议数据（含 briefing、participants、conversations）
     reviewData: null,       // 复盘数据
     conversations: [],      // 用户在关键节点的输入记录
+    // ── 脑洞模式字段（会话级，不持久化）──
+    sceneType: null,            // 场景类型：'formal' | 'brainstorm-pick' | 'brainstorm-random'
+    brainstormWorld: null,      // 点将局：用户搜索的 IP/世界名称
+    brainstormCharacters: [],   // 已选角色对象数组（含 id/name/world/worldLabel/persona）
+    brainstormMainWorld: null,  // 确定的主场景世界 ID（ThemePreview 传给 generate）
+    themeRefreshCount: 0,       // 当前会话已换主题次数（0-3，不持久化）
+    brainstormTheme: null,      // AI 生成的主题数据
     ...persisted,           // 覆盖持久化的字段
   };
 }
@@ -90,6 +97,9 @@ export function AppProvider({ children }) {
       sessionId: null, userName: null, meetingId: null,
       englishLevel: null, jobTitle: null, industry: null,
       meetingData: null, reviewData: null, conversations: [],
+      // 脑洞模式字段同步清除
+      sceneType: null, brainstormWorld: null, brainstormCharacters: [],
+      brainstormMainWorld: null, themeRefreshCount: 0, brainstormTheme: null,
     });
   };
 

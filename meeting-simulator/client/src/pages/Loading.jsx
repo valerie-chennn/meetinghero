@@ -85,10 +85,20 @@ function Loading() {
       }
 
       try {
+        // 脑洞模式需要额外传入角色和场景参数
+        const isBrainstorm = state.sceneType && state.sceneType.startsWith('brainstorm');
+        const brainstormParams = isBrainstorm ? {
+          sceneType: state.sceneType,
+          characters: state.brainstormCharacters || [],
+          mainWorld: state.brainstormMainWorld || '',
+          brainstormTheme: state.brainstormTheme || null,
+        } : null;
+
         const meetingData = await generateMeeting(
           state.sessionId,
           state.meetingSource || 'generate',
-          state.uploadContent || null
+          state.uploadContent || null,
+          brainstormParams
         );
 
         // 标记 API 完成，进度跳到 100
@@ -108,8 +118,9 @@ function Loading() {
       } catch (err) {
         console.error('生成会议失败:', err);
         showError('会议生成失败，请重试');
-        // 延迟返回，让用户看到错误提示
-        setTimeout(() => navigate('/source'), 2000);
+        // 脑洞模式失败跳回主题预览，正经开会失败跳来源选择
+        const isBrainstorm = state.sceneType && state.sceneType.startsWith('brainstorm');
+        setTimeout(() => navigate(isBrainstorm ? '/brainstorm/theme' : '/source'), 2000);
       }
     };
 

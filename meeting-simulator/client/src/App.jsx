@@ -4,6 +4,7 @@ import { AppProvider, useApp } from './context/AppContext.jsx';
 import { ToastProvider } from './context/ToastContext.jsx';
 import Home from './pages/Home.jsx';
 import Onboarding from './pages/Onboarding.jsx';
+import WorkInfoStep from './pages/WorkInfoStep.jsx';
 import SourceSelect from './pages/SourceSelect.jsx';
 import Loading from './pages/Loading.jsx';
 import PreMeeting from './pages/PreMeeting.jsx';
@@ -12,6 +13,11 @@ import Review from './pages/Review.jsx';
 import ReviewNodes from './pages/ReviewNodes.jsx';
 import Complete from './pages/Complete.jsx';
 import History from './pages/History.jsx';
+import BrainstormEntry from './pages/BrainstormEntry.jsx';
+import CharacterSearch from './pages/CharacterSearch.jsx';
+import CharacterSelect from './pages/CharacterSelect.jsx';
+import RandomDraw from './pages/RandomDraw.jsx';
+import ThemePreview from './pages/ThemePreview.jsx';
 
 // 重置页面：清除所有数据并跳转到首页
 function ResetPage() {
@@ -30,12 +36,24 @@ function App() {
       <ToastProvider>
         <BrowserRouter>
           <Routes>
-            {/* 首页：产品介绍和入口 */}
+            {/* 首页：两个模式入口 */}
             <Route path="/" element={<Home />} />
-            {/* Onboarding 页面：收集用户信息（名字/英文水平/职位/行业） */}
+            {/* Onboarding 页面：花名 + 英语等级（2 步） */}
             <Route path="/onboarding" element={<Onboarding />} />
+            {/* 正经开会补充信息：职位 + 行业（仅缺少信息时进入）*/}
+            <Route path="/work-info" element={<WorkInfoStep />} />
             {/* 会议来源选择 */}
             <Route path="/source" element={<SourceSelect />} />
+            {/* 脑洞模式入口：点将局 / 乱炖局 */}
+            <Route path="/brainstorm" element={<BrainstormEntry />} />
+            {/* 角色搜索页（点将局）*/}
+            <Route path="/brainstorm/search" element={<CharacterSearch />} />
+            {/* 角色选择页（点将局）*/}
+            <Route path="/brainstorm/characters" element={<CharacterSelect />} />
+            {/* 随机抽签页（乱炖局）*/}
+            <Route path="/brainstorm/random" element={<RandomDraw />} />
+            {/* 主题预览页（点将局 + 乱炖局共用）*/}
+            <Route path="/brainstorm/theme" element={<ThemePreview />} />
             {/* 加载页：生成会议中 */}
             <Route path="/loading" element={<Loading />} />
             {/* 会前 Briefing */}

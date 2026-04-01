@@ -8,6 +8,7 @@ const router = express.Router();
 const db = require('../db');
 const { callOpenAI, callOpenAIJson, parseJsonFromContent } = require('../services/openai');
 const { generateMeetingPrompt } = require('../prompts/generate-meeting');
+const { generateBrainstormMeetingPrompt } = require('../prompts/generate-brainstorm');
 const { respondMeetingPrompt } = require('../prompts/respond-meeting');
 
 /**
@@ -65,7 +66,7 @@ async function ensureTranslations(dialogue) {
  */
 router.post('/generate', async (req, res) => {
   try {
-    const { sessionId, source = 'system', uploadContent } = req.body;
+    const { sessionId, source = 'system', uploadContent, sceneType, characters, mainWorld, theme } = req.body;
 
     // 校验 sessionId
     if (!sessionId) {
@@ -91,16 +92,49 @@ router.post('/generate', async (req, res) => {
       return res.status(400).json({ error: 'upload 模式下 uploadContent 不能为空' });
     }
 
-    console.log(`[Meeting/Generate] sessionId=${sessionId}, source=${source}, level=${session.english_level}`);
+    // 判断是否为脑洞模式
+    const isBrainstorm = sceneType && (sceneType === 'brainstorm-pick' || sceneType === 'brainstorm-random');
 
-    // 构造 prompt（传入 user_name，供 NPC 在 keyNode 前自然 cue 用户）
-    const { systemPrompt, userPrompt } = generateMeetingPrompt({
-      englishLevel: session.english_level,
-      jobTitle: session.job_title,
-      industry: session.industry,
-      userName: session.user_name || undefined,
-      uploadContent: normalizedSource === 'upload' ? uploadContent : undefined,
-    });
+    // 脑洞模式额外校验
+    if (isBrainstorm) {
+      if (!characters || !Array.isArray(characters) || characters.length < 1) {
+        return res.status(400).json({ error: '脑洞模式需要提供参与角色' });
+      }
+      if (!mainWorld) {
+        return res.status(400).json({ error: '脑洞模式需要提供主场景世界' });
+      }
+    } else {
+      // 正经开会模式校验 job_title 和 industry
+      if (!session.job_title || !session.industry) {
+        return res.status(400).json({ error: '正经开会模式需要先填写职位和行业信息' });
+      }
+    }
+
+    console.log(`[Meeting/Generate] sessionId=${sessionId}, source=${source}, level=${session.english_level}, sceneType=${sceneType || 'formal'}`);
+
+    // 根据 sceneType 选择对应的 prompt 函数
+    let promptResult;
+    if (isBrainstorm) {
+      // 脑洞模式：使用脑洞专属 prompt
+      promptResult = generateBrainstormMeetingPrompt({
+        englishLevel: session.english_level,
+        userName: session.user_name || undefined,
+        sceneType,
+        characters,
+        mainWorld,
+        theme: theme || undefined,
+      });
+    } else {
+      // 正经开会模式：使用原有 prompt（不变）
+      promptResult = generateMeetingPrompt({
+        englishLevel: session.english_level,
+        jobTitle: session.job_title,
+        industry: session.industry,
+        userName: session.user_name || undefined,
+        uploadContent: normalizedSource === 'upload' ? uploadContent : undefined,
+      });
+    }
+    const { systemPrompt, userPrompt } = promptResult;
 
     // 调用 Azure OpenAI 生成会议内容
     let meetingData;
@@ -232,11 +266,17 @@ router.post('/generate', async (req, res) => {
     // 生成会议 ID
     const meetingId = crypto.randomUUID();
 
-    // 将复杂对象序列化为 JSON 字符串存入数据库
+    // 将复杂对象序列化为 JSON 字符串存入数据库（含脑洞模式新增字段）
     const stmt = db.prepare(`
-      INSERT INTO meetings (id, session_id, source, briefing, memo, roles, dialogue, key_nodes, ref_phrases, user_role, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'created')
+      INSERT INTO meetings (id, session_id, source, briefing, memo, roles, dialogue, key_nodes, ref_phrases, user_role,
+        scene_type, brainstorm_world, brainstorm_characters, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'created')
     `);
+
+    // 脑洞模式数据：存储场景类型和角色信息
+    const finalSceneType = isBrainstorm ? sceneType : 'formal';
+    const brainstormWorld = isBrainstorm ? (mainWorld || null) : null;
+    const brainstormCharacters = isBrainstorm && characters ? JSON.stringify(characters.map(c => c.id || c.name)) : null;
 
     stmt.run(
       meetingId,
@@ -248,14 +288,18 @@ router.post('/generate', async (req, res) => {
       JSON.stringify(meetingData.dialogue || []),
       JSON.stringify(meetingData.keyNodes || []),
       JSON.stringify(meetingData.references || []),
-      JSON.stringify(meetingData.userRole || null)
+      JSON.stringify(meetingData.userRole || null),
+      finalSceneType,
+      brainstormWorld,
+      brainstormCharacters
     );
 
     console.log(`[Meeting/Generate] 会议生成成功 meetingId=${meetingId}`);
 
-    // 返回完整会议数据
+    // 返回完整会议数据（含 sceneType 供前端区分渲染方式）
     return res.status(201).json({
       meetingId,
+      sceneType: finalSceneType,
       briefing: meetingData.briefing,
       memo: meetingData.memo,
       roles: meetingData.roles,

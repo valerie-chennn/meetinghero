@@ -1,0 +1,301 @@
+/* ===== ThemePreview — 主题预览页 ===== */
+
+.container {
+  max-width: 430px;
+  margin: 0 auto;
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-base);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ===== 顶部导航 ===== */
+.topNav {
+  height: 56px;
+  padding: 0 var(--space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+
+.backBtn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  transition: background var(--duration-fast), color var(--duration-fast), transform var(--duration-fast);
+  flex-shrink: 0;
+}
+
+.backBtn:hover {
+  background: var(--color-brand-light);
+  color: var(--color-brand);
+  transform: translateX(-1px);
+}
+
+.navTitle {
+  font-size: var(--font-md);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* ===== 内容区 ===== */
+.content {
+  flex: 1;
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  overflow-y: auto;
+}
+
+/* ===== 主题卡片 ===== */
+.themeCard {
+  background: var(--bg-surface);
+  border-radius: var(--radius-xl);
+  border: 1.5px solid rgba(139, 92, 246, 0.20);
+  box-shadow: var(--shadow-brainstorm);
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  animation: springIn 0.45s var(--ease-spring) both;
+}
+
+/* 主题标题：信息层级最高 */
+.themeTitle {
+  font-size: var(--font-xl);
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.3;
+  margin: 0;
+}
+
+/* 场景设定：一句话，简洁 */
+.settingText {
+  font-size: var(--font-base);
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* 你的身份区块 */
+.userRoleSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* "你的身份" label 保留 */
+.userRoleLabel {
+  font-size: var(--font-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+}
+
+/* 用户身份标签 */
+.userRoleBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: rgba(79, 70, 229, 0.06);
+  border: 1px solid rgba(79, 70, 229, 0.15);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-base);
+  font-weight: 600;
+  color: var(--color-brand);
+  align-self: flex-start;
+}
+
+/* ===== 参会角色列表：每行一个 ===== */
+.characterList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* 角色行：角色名 · 适配身份 · 性格标签 */
+.characterRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: rgba(139, 92, 246, 0.04);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(139, 92, 246, 0.10);
+}
+
+.charName {
+  font-weight: 600;
+  font-size: var(--font-base);
+  color: var(--text-primary);
+  flex-shrink: 0;
+}
+
+.charAdapted {
+  font-size: var(--font-sm);
+  color: var(--accent-purple);
+  flex-shrink: 0;
+}
+
+/* 性格标签：小字 tag 样式（字段预留）*/
+.charPersonalityTag {
+  font-size: var(--font-xs);
+  color: rgba(139, 92, 246, 0.80);
+  background: rgba(139, 92, 246, 0.10);
+  border-radius: var(--radius-full);
+  padding: 1px 8px;
+  font-weight: 500;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* ===== 操作区 ===== */
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-bottom: max(var(--space-4), env(safe-area-inset-bottom, 16px));
+}
+
+/* 换主题行（按钮 + 次数）*/
+.refreshRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* 换主题按钮 */
+.refreshBtn {
+  flex: 1;
+  height: 48px;
+  border-radius: var(--radius-lg);
+  font-size: var(--font-base);
+  font-weight: 600;
+  border: 1.5px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  opacity: 0.5;
+  transition: background var(--duration-fast), border-color var(--duration-fast),
+              color var(--duration-fast), opacity var(--duration-fast), transform var(--duration-fast);
+}
+
+button.refreshBtn:disabled {
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.refreshBtnActive {
+  opacity: 1;
+  color: var(--accent-purple);
+  border-color: rgba(139, 92, 246, 0.35);
+  background: rgba(139, 92, 246, 0.04);
+}
+
+.refreshBtnActive:hover:not(:disabled) {
+  background: rgba(139, 92, 246, 0.08);
+  border-color: var(--accent-purple);
+  transform: translateY(-1px);
+}
+
+.refreshBtnActive:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* 换主题次数显示 */
+.refreshCount {
+  font-size: var(--font-sm);
+  font-weight: 600;
+  color: var(--accent-purple);
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 32px;
+  text-align: center;
+}
+
+.refreshCountDepleted {
+  color: var(--text-muted);
+}
+
+/* 进入会议按钮 */
+.enterBtn {
+  width: 100%;
+  height: 52px;
+  border-radius: var(--radius-lg);
+  font-size: var(--font-md);
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  background: var(--border);
+  color: var(--text-muted);
+  opacity: 0.5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--duration-fast), opacity var(--duration-fast),
+              transform var(--duration-fast), box-shadow var(--duration-fast);
+}
+
+button.enterBtn:disabled {
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.enterBtnActive {
+  opacity: 1;
+  background: var(--color-success);
+  color: #FFFFFF;
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.28);
+}
+
+.enterBtnActive:hover:not(:disabled) {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 12px 32px rgba(16, 185, 129, 0.36);
+}
+
+.enterBtnActive:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* ===== 加载三点 ===== */
+.loadingDots {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.loadingDots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: dotBounce 1.2s ease infinite;
+}
+
+.loadingDots span:nth-child(2) { animation-delay: 0.2s; }
+.loadingDots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes dotBounce {
+  0%, 100% { transform: translateY(0); opacity: 0.6; }
+  50%       { transform: translateY(-4px); opacity: 1; }
+}

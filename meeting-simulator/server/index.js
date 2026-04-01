@@ -19,6 +19,7 @@ const reviewRouter = require('./routes/review');
 const speechRouter = require('./routes/speech');
 const uploadRouter = require('./routes/upload');
 const historyRouter = require('./routes/history');
+const brainstormRouter = require('./routes/brainstorm');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -56,6 +57,7 @@ app.use('/api/review', reviewRouter);
 app.use('/api/speech', speechRouter);
 app.use('/api/upload', uploadRouter);
 app.use('/api/history', historyRouter);
+app.use('/api/brainstorm', brainstormRouter);
 
 // ==================== 健康检查 ====================
 

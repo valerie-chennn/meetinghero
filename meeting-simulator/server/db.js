@@ -23,27 +23,104 @@ db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
 /**
+ * 检查 sessions 表中 job_title 列是否有 NOT NULL 约束
+ * 通过 PRAGMA table_info 查询列定义
+ * @returns {boolean} true 表示需要迁移
+ */
+function needsMigration() {
+  try {
+    const columns = db.pragma('table_info(sessions)');
+    const jobTitleCol = columns.find(col => col.name === 'job_title');
+    // notnull=1 说明有 NOT NULL 约束，需要迁移
+    return jobTitleCol && jobTitleCol.notnull === 1;
+  } catch (e) {
+    // 表不存在时不需要迁移
+    return false;
+  }
+}
+
+/**
+ * 迁移 sessions 表：将 job_title 和 industry 从 NOT NULL 改为可空
+ * SQLite 不支持 ALTER COLUMN，采用建新表→迁移数据→重命名的方式
+ * 整个迁移包裹在事务中，失败时自动回滚
+ */
+function migrateSessionsTable() {
+  console.log('[DB] 检测到 sessions 表需要迁移（job_title/industry NOT NULL → 可空）...');
+
+  // 迁移前备份数据库文件
+  const backupPath = DB_PATH + '.backup.' + Date.now();
+  try {
+    fs.copyFileSync(DB_PATH, backupPath);
+    console.log(`[DB] 已备份数据库到：${backupPath}`);
+  } catch (e) {
+    console.warn('[DB] 备份失败（可能是新数据库），继续迁移：', e.message);
+  }
+
+  // SQLite PRAGMA 必须在事务外执行，先关闭外键约束
+  db.pragma('foreign_keys = OFF');
+
+  // 使用事务确保迁移操作的原子性
+  const migrate = db.transaction(() => {
+    // 1. 创建新表（job_title 和 industry 改为可空）
+    db.exec(`
+      CREATE TABLE sessions_new (
+        id TEXT PRIMARY KEY,
+        english_level TEXT NOT NULL,
+        job_title TEXT DEFAULT NULL,
+        industry TEXT DEFAULT NULL,
+        user_name TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // 2. 迁移旧数据
+    db.exec(`
+      INSERT INTO sessions_new (id, english_level, job_title, industry, user_name, created_at)
+      SELECT id, english_level, job_title, industry, user_name, created_at
+      FROM sessions
+    `);
+
+    // 3. 删除旧表
+    db.exec('DROP TABLE sessions');
+
+    // 4. 重命名新表
+    db.exec('ALTER TABLE sessions_new RENAME TO sessions');
+
+    console.log('[DB] sessions 表迁移成功');
+  });
+
+  try {
+    migrate();
+  } catch (e) {
+    console.error('[DB] sessions 表迁移失败，已回滚：', e.message);
+    throw e;
+  } finally {
+    // 迁移完成后恢复外键约束
+    db.pragma('foreign_keys = ON');
+  }
+}
+
+/**
  * 初始化数据库表结构
  * 如果表已存在则跳过（IF NOT EXISTS）
  */
 function initSchema() {
-  // 用户会话表：存储 onboarding 信息
+  // 如果 sessions 表已存在且有 NOT NULL 约束，先迁移
+  if (needsMigration()) {
+    migrateSessionsTable();
+  }
+
+  // 用户会话表：存储 onboarding 信息（job_title 和 industry 为可选）
   db.exec(`
     CREATE TABLE IF NOT EXISTS sessions (
       id TEXT PRIMARY KEY,
       english_level TEXT NOT NULL,
-      job_title TEXT NOT NULL,
-      industry TEXT NOT NULL,
+      job_title TEXT DEFAULT NULL,
+      industry TEXT DEFAULT NULL,
+      user_name TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
-
-  // 为 sessions 表添加 user_name 列（如果不存在）
-  try {
-    db.exec(`ALTER TABLE sessions ADD COLUMN user_name TEXT`);
-  } catch (e) {
-    // 列已存在则忽略
-  }
 
   // 会议表：存储完整会议数据（JSON 序列化存储）
   db.exec(`
@@ -69,6 +146,20 @@ function initSchema() {
   } catch (e) {
     // 列已存在则忽略
   }
+
+  // 为 meetings 表添加脑洞模式相关列（如果不存在）
+  const meetingNewCols = [
+    `ALTER TABLE meetings ADD COLUMN scene_type TEXT DEFAULT 'formal'`,
+    `ALTER TABLE meetings ADD COLUMN brainstorm_world TEXT`,
+    `ALTER TABLE meetings ADD COLUMN brainstorm_characters TEXT`,
+  ];
+  meetingNewCols.forEach(sql => {
+    try {
+      db.exec(sql);
+    } catch (e) {
+      // 列已存在则忽略
+    }
+  });
 
   // 会话对话记录表：存储用户在关键节点的发言记录
   db.exec(`

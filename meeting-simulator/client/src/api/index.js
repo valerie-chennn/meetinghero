@@ -39,12 +39,60 @@ export async function createSession(data) {
  * @param {string} sessionId - 会话 ID
  * @param {string} source - 来源类型：'generate' | 'upload'
  * @param {string} [uploadContent] - 上传的会议资料内容（source 为 upload 时使用）
+ * @param {Object} [brainstormParams] - 脑洞模式参数 { sceneType, characters, mainWorld }
  * @returns {Object} 完整的会议数据
  */
-export async function generateMeeting(sessionId, source, uploadContent) {
+export async function generateMeeting(sessionId, source, uploadContent, brainstormParams) {
   return request('/meeting/generate', {
     method: 'POST',
-    body: JSON.stringify({ sessionId, source, uploadContent }),
+    body: JSON.stringify({ sessionId, source, uploadContent, ...brainstormParams }),
+  });
+}
+
+/**
+ * 搜索角色（脑洞模式·点将局）
+ * @param {string} query - 搜索关键词（角色名、作品名等）
+ * @param {string} sessionId - 会话 ID
+ * @returns {Object} { world, worldLabel, characters, source } 或 { tooFew: true, message }
+ */
+export async function searchCharacters(query, sessionId) {
+  return request('/brainstorm/search-characters', {
+    method: 'POST',
+    body: JSON.stringify({ query, sessionId }),
+  });
+}
+
+/**
+ * 随机抽取角色（脑洞模式·乱炖局）
+ * @returns {Object} { characters: Array } 来自 3 个不同世界的随机角色
+ */
+export async function getRandomCharacters() {
+  return request('/brainstorm/random-characters', {
+    method: 'GET',
+  });
+}
+
+/**
+ * 生成会议主题预览（脑洞模式）
+ * @param {Object} params - { sessionId, sceneType, characters, mainWorld }
+ * @returns {Object} { theme: { title, settingZh, userRole, characters } }
+ */
+export async function generateBrainstormTheme(params) {
+  return request('/brainstorm/generate-theme', {
+    method: 'POST',
+    body: JSON.stringify(params),
+  });
+}
+
+/**
+ * 更新用户工作信息（正经开会补充信息步骤）
+ * @param {Object} data - { sessionId, jobTitle, industry }
+ * @returns {Object} { success: true }
+ */
+export async function updateWorkInfo(data) {
+  return request('/onboarding/update-work-info', {
+    method: 'POST',
+    body: JSON.stringify(data),
   });
 }
 

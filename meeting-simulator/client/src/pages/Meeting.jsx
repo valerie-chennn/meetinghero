@@ -903,7 +903,11 @@ function Meeting() {
                 }
 
                 // 内心独白（narrator）：用户内心 OS，右对齐（从用户方向发出）
+                // 脑洞模式下不渲染 narrator（保留 IP 角色的沉浸感，不要内心 OS 打断）
                 if (msg.speaker === 'narrator') {
+                  if (state.sceneType && state.sceneType.startsWith('brainstorm')) {
+                    return null;
+                  }
                   return (
                     <Message key={idx} model={{ type: 'custom', direction: 'outgoing', position: 'single' }}>
                       <Message.CustomContent>

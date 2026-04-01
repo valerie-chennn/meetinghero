@@ -44,13 +44,30 @@ router.post('/generate', async (req, res) => {
       references: JSON.parse(meeting.ref_phrases || '[]'),
     };
 
-    console.log(`[Review/Generate] meetingId=${meetingId}, 对话记录数=${conversations.length}`);
+    // 获取脑洞模式相关信息（用于私信风格约束）
+    const sceneType = meeting.scene_type || 'formal';
+    const isBrainstorm = sceneType === 'brainstorm-pick' || sceneType === 'brainstorm-random';
 
-    // 构造 prompt
+    // 脑洞模式：从 roles 中提取角色的 persona 信息用于私信风格指引
+    let brainstormCharacters = null;
+    if (isBrainstorm) {
+      // roles 中的 briefNote 包含了角色性格，这里用 name + briefNote 作为 persona 指引
+      const roles = meetingData.roles || [];
+      brainstormCharacters = roles.map(r => ({
+        name: r.name,
+        persona: r.briefNote || r.title || '',
+      }));
+    }
+
+    console.log(`[Review/Generate] meetingId=${meetingId}, 对话记录数=${conversations.length}, sceneType=${sceneType}`);
+
+    // 构造 prompt（脑洞模式传入角色风格信息）
     const { systemPrompt, userPrompt } = generateReviewPrompt({
       meetingData,
       conversationHistory: conversations,
       englishLevel,
+      sceneType,
+      brainstormCharacters,
     });
 
     // 调用 AI 生成复盘
@@ -91,8 +108,12 @@ router.post('/generate', async (req, res) => {
       title: reviewData.title || '会议英雄',
       titleEmoji: reviewData.titleEmoji || '🎖️',
       titleSubtext: reviewData.titleSubtext || '这场会，你撑过来了',
-      // 角色私信
-      roleFeedback: reviewData.roleFeedback || null,
+      // 策略亮点
+      highlight: reviewData.highlight || null,
+      lowlight: reviewData.lowlight || null,
+      // 角色私信（新版多条 + 旧版单条向后兼容）
+      roleFeedbacks: reviewData.roleFeedbacks || [],
+      roleFeedback: reviewData.roleFeedback || (reviewData.roleFeedbacks && reviewData.roleFeedbacks[0]) || null,
       achievement: reviewData.achievement,
       improvement: reviewData.improvement,
       nodes: reviewData.nodes,

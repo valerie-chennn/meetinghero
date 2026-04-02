@@ -442,9 +442,11 @@ function Meeting() {
     segmentNpcCountRef.current++;
 
     const msgId = `dialogue-${startIndex}`;
-    // keyNode 前最后一条 NPC 用较短延迟，过渡更自然
+    // 根据消息长度动态决定延迟：短消息（< 50字）800ms，长消息 1200ms
+    // keyNode 前最后一条 NPC 固定用短延迟，过渡更自然
     const nextMsg = dialogue[startIndex + 1];
-    const delay = (nextMsg && nextMsg.isKeyNode) ? 800 : 1200;
+    const msgLength = (msg.text || '').length;
+    const delay = (nextMsg && nextMsg.isKeyNode) ? 800 : (msgLength < 50 ? 800 : 1200);
 
     playTimerRef.current = setTimeout(() => {
       // 纵深防御：timer 等待期间可能已触发 keyNode 硬停
@@ -687,7 +689,9 @@ function Meeting() {
                   segmentNpcCountRef.current++;
                   setDisplayedMessages(prev => [...prev, { ...rMsg, isNew: true }]);
                   idx++;
-                  playTimerRef.current = setTimeout(appendNext, 800);
+                  // 根据消息长度动态调整间隔：短消息 800ms，长消息 1200ms
+                  const rMsgLength = (rMsg.text || '').length;
+                  playTimerRef.current = setTimeout(appendNext, rMsgLength < 50 ? 800 : 1200);
                 } else {
                   // 从同步 ref 读取索引，避免在 state updater 中执行副作用
                   // （React Strict Mode 下 updater 可能被双重调用，导致 playDialogueFrom 被触发两次）
@@ -726,7 +730,9 @@ function Meeting() {
             segmentNpcCountRef.current++;
             setDisplayedMessages(prev => [...prev, { ...rMsg, isNew: true }]);
             idx++;
-            playTimerRef.current = setTimeout(appendNext, 800);
+            // 根据消息长度动态调整间隔：短消息 800ms，长消息 1200ms
+            const rMsgLength = (rMsg.text || '').length;
+            playTimerRef.current = setTimeout(appendNext, rMsgLength < 50 ? 800 : 1200);
           } else {
             // 追加完毕或已达段上限，继续播放 processedDialogue 剩余内容
             // 从同步 ref 读取索引，避免在 state updater 中执行副作用

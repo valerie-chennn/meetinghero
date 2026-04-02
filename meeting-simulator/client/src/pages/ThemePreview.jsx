@@ -40,18 +40,31 @@ function ThemePreview() {
   const handleRefresh = async () => {
     if (refreshCount >= MAX_REFRESH || isRefreshing) return;
 
+    // 轮转选择 mainWorld：
+    // 第1次换主题用第2个角色的 world，第2次用第3个角色的 world，第3次用第1个角色的 world
+    // rotationIndex 取值 1, 2, 0（对应角色数组下标），以 refreshCount 推算
+    const characters = state.brainstormCharacters || [];
+    let nextMainWorld = state.brainstormMainWorld;
+    if (characters.length >= 3) {
+      // refreshCount 当前值（换主题前），下一次对应的角色下标
+      const rotationIndex = (refreshCount + 1) % characters.length;
+      nextMainWorld = characters[rotationIndex].world || nextMainWorld;
+    }
+
     setIsRefreshing(true);
     try {
       const result = await generateBrainstormTheme({
         sessionId: state.sessionId,
         sceneType: state.sceneType,
         characters: state.brainstormCharacters,
-        mainWorld: state.brainstormMainWorld,
+        mainWorld: nextMainWorld,
       });
 
+      // 同步更新主题和 mainWorld，使下次换主题能正确继续轮转
       updateState({
         brainstormTheme: result.theme,
         themeRefreshCount: refreshCount + 1,
+        brainstormMainWorld: nextMainWorld,
       });
     } catch (err) {
       console.error('换主题失败:', err);

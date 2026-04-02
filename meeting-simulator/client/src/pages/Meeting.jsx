@@ -102,8 +102,7 @@ const ROLE_COLORS = {
  */
 function getRoleColor(speaker, roles) {
   if (!speaker || !roles || !Array.isArray(roles)) return 'var(--role-collaborator)';
-  // 同时兼容英文名（nameEn）和中文名（name），优先匹配 nameEn
-  const role = roles.find(r => r.nameEn === speaker || r.name === speaker);
+  const role = roles.find(r => r.name === speaker);
   return ROLE_COLORS[role?.type] || ROLE_COLORS[role?.roleType] || 'var(--role-collaborator)';
 }
 
@@ -115,8 +114,7 @@ function getRoleColor(speaker, roles) {
  */
 function getRoleTitle(speaker, roles) {
   if (!speaker || !roles || !Array.isArray(roles)) return undefined;
-  // 同时兼容英文名（nameEn）和中文名（name）
-  const role = roles.find(r => r.nameEn === speaker || r.name === speaker);
+  const role = roles.find(r => r.name === speaker);
   return role?.title;
 }
 
@@ -153,9 +151,9 @@ function RoleInfoCard({ role, onClose }) {
       {/* 气泡卡片：阻止冒泡，防止点击内容区意外关闭 */}
       <div className={styles.rolePopover} onClick={e => e.stopPropagation()}>
 
-        {/* 行1：名字 · 职位，优先展示英文名 */}
+        {/* 行1：名字 · 职位 */}
         <div className={styles.rolePopoverName}>
-          {role.nameEn || role.name}
+          {role.name}
           {role.title && (
             <span className={styles.rolePopoverTitle}> · {role.title}</span>
           )}
@@ -988,8 +986,7 @@ function Meeting() {
                       <button
                         className={styles.npcSpeakerBtn}
                         onClick={() => {
-                          // 同时兼容英文名（nameEn）和中文名（name）
-                          const role = roles?.find(r => r.nameEn === msg.speaker || r.name === msg.speaker);
+                          const role = roles?.find(r => r.name === msg.speaker);
                           if (role) setActiveRoleCard(role);
                         }}
                       >

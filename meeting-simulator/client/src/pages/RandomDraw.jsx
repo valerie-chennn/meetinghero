@@ -215,8 +215,10 @@ function RandomDraw() {
         {shrinkingCards.some(Boolean) && (
           <div className={styles.smallCardsRow}>
             {[0, 1, 2].map((idx) => {
-              // 只渲染已缩小的小卡
-              if (!isSmallCard(idx)) return null;
+              // 未翻到的槽位用透明占位，保持布局稳定，避免新卡插入时前面的卡被推开
+              if (!isSmallCard(idx)) {
+                return <div key={idx} className={styles.smallCardPlaceholder} />;
+              }
               const char = characters[idx];
               return (
                 <div

@@ -146,6 +146,15 @@
   justify-content: center;
   gap: 16px;
   margin-bottom: var(--space-5);
+  /* 固定宽度 = 3张卡(110px×3) + 2个间距(16px×2) = 362px，避免新卡插入时布局重排 */
+  min-width: 362px;
+}
+
+/* 小卡占位符：和小卡同尺寸但不可见，保持布局稳定 */
+.smallCardPlaceholder {
+  width: 110px;
+  height: 148px;
+  flex-shrink: 0;
 }
 
 /* 小卡：110×148px */

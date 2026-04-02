@@ -69,6 +69,7 @@ router.post('/search-characters', async (req, res) => {
 7. id 字段用 kebab-case 格式（如 "light-yagami"）
 8. name 字段规则：英文作品的角色用英文原名（如 Frank Underwood、Iron Man），中文作品的角色用中文名（如 孙悟空、贾宝玉）
 9. nameEn 字段：角色的英文名，中文角色也要填（如 Sun Wukong）
+10. arrivalLine 字段：一句出场语，≤15字，用大白话，体现角色最鲜明的特征或标志性动作，要有画面感
 
 严格返回 JSON，不加任何说明：
 
@@ -80,7 +81,8 @@ router.post('/search-characters', async (req, res) => {
       "nameEn": "string（英文名）",
       "world": "custom",
       "worldLabel": "string（作品/世界名称）",
-      "persona": "string（≤20字性格描述）"
+      "persona": "string（≤20字性格描述）",
+      "arrivalLine": "string（≤15字出场语，体现角色最鲜明特征，用大白话有画面感，如正在驾着筋斗云赶来、正在调试最新战甲）"
     }
   ],
   "worldLabel": "string（整体世界/作品名称）"

@@ -14,7 +14,7 @@ const TIPS_FORMAL = [
   '会后有复盘环节，帮你巩固学到的表达',
 ];
 
-// 脑洞模式的提示
+// 脑洞模式的通用提示（无角色数据时的备用）
 const TIPS_BRAINSTORM = [
   '角色们正在换装适应新世界…',
   '场景设定越离谱，对话越有趣',
@@ -22,6 +22,25 @@ const TIPS_BRAINSTORM = [
   '每个角色都有自己的脾气，别惹错人',
   '会后复盘会告诉你哪些表达可以更好',
 ];
+
+/**
+ * 根据 persona 关键词生成角色出场语（乱炖局角色无 arrivalLine 时的备用）
+ * 格式：[角色名] + [动作]
+ */
+function generateArrivalLine(character) {
+  const persona = character.persona || '';
+  const name = character.name || '';
+  if (/智谋|聪明|策略|计谋|谋士/.test(persona)) {
+    return `${name} 正在推演今天的局势`;
+  }
+  if (/武|战|猛|格斗|武士|战士|将军|侠/.test(persona)) {
+    return `${name} 正在磨刀赶来`;
+  }
+  if (/优雅|冷静|从容|淡定|贵族/.test(persona)) {
+    return `${name} 正在从容整理衣冠`;
+  }
+  return `${name} 正在赶来的路上`;
+}
 
 /**
  * 加载页
@@ -34,7 +53,19 @@ function Loading() {
 
   // 判断是否脑洞模式，决定文案和 Tips 数组
   const isBrainstormMode = state.sceneType && state.sceneType.startsWith('brainstorm');
-  const TIPS = isBrainstormMode ? TIPS_BRAINSTORM : TIPS_FORMAL;
+
+  // 脑洞模式且有角色数据时，优先用角色出场语轮播
+  const brainstormCharacters = state.brainstormCharacters || [];
+  const characterArrivalTips = isBrainstormMode && brainstormCharacters.length > 0
+    ? brainstormCharacters.map(char =>
+        // 优先用 AI 生成的 arrivalLine（点将局），否则用 persona 模板（乱炖局）
+        char.arrivalLine || generateArrivalLine(char)
+      )
+    : null;
+
+  const TIPS = isBrainstormMode
+    ? (characterArrivalTips || TIPS_BRAINSTORM)
+    : TIPS_FORMAL;
 
   const [currentTip, setCurrentTip] = useState(0);
   const [tipVisible, setTipVisible] = useState(true);

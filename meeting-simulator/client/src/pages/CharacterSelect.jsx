@@ -7,7 +7,7 @@ import styles from './CharacterSelect.module.css';
 /**
  * 角色选择页（点将局专用）
  * 路由：/brainstorm/characters
- * 从搜索结果中选 2-3 个角色，确认后生成主题
+ * 从搜索结果中选 3 个角色，确认后生成主题
  */
 function CharacterSelect() {
   const navigate = useNavigate();
@@ -44,7 +44,7 @@ function CharacterSelect() {
 
   // 确认选择，直接跳 Loading 页生成完整会议（含主题生成）
   const handleConfirm = () => {
-    if (selectedIds.size < 2 || isLoading) return;
+    if (selectedIds.size < 3 || isLoading) return;
 
     const selectedCharacters = characters.filter(c => selectedIds.has(c.id));
     const mainWorld = selectedCharacters[0]?.world || '';
@@ -62,7 +62,8 @@ function CharacterSelect() {
   };
 
   const selectedCount = selectedIds.size;
-  const canConfirm = selectedCount >= 2;
+  // 必须选满 3 个才能确认
+  const canConfirm = selectedCount >= 3;
 
   return (
     <div className={styles.container}>
@@ -75,13 +76,13 @@ function CharacterSelect() {
           </svg>
         </button>
         <div className={styles.navInfo}>
-          <span className={styles.navTitle}>选 2-3 位角色</span>
+          <span className={styles.navTitle}>选 3 位角色</span>
           {worldLabel && <span className={styles.navSub}>{worldLabel}</span>}
         </div>
         {/* 已选计数 */}
         <div className={styles.countBadge}>
           <span className={selectedCount > 0 ? styles.countActive : styles.countDefault}>
-            已选 {selectedCount} / 最多 3
+            已选 {selectedCount} / 3
           </span>
         </div>
       </div>

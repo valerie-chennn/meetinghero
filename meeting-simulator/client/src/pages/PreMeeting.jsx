@@ -12,7 +12,10 @@ function PreMeeting() {
   const navigate = useNavigate();
   const { state } = useApp();
 
-  const { meetingData, userName } = state;
+  const { meetingData, userName, sceneType } = state;
+
+  // 脑洞模式标识
+  const isBrainstorm = sceneType === 'brainstorm-pick' || sceneType === 'brainstorm-random';
 
   // 从 localStorage 读取难度星级，默认 3 星
   const difficulty = parseInt(localStorage.getItem('meetingDifficulty') || '3', 10);
@@ -118,11 +121,18 @@ function PreMeeting() {
           {/* 2e. 渐变发光分隔线 */}
           <div className={styles.gradientLine} />
 
-          {/* 2f. 身份行：用户名 · 职位 */}
+          {/* 2f. 身份行：脑洞模式显示角色头衔，正经开会显示用户名 · 职位 */}
           <div className={styles.roleIdentityRow}>
             <span className={styles.roleIdentityText}>
-              {userName || '你'}
-              {jobTitle && <span className={styles.roleIdentitySep}> · {jobTitle}</span>}
+              {isBrainstorm
+                ? (meetingData?.userRole?.title || userName || '英雄')
+                : (
+                  <>
+                    {userName || '你'}
+                    {jobTitle && <span className={styles.roleIdentitySep}> · {jobTitle}</span>}
+                  </>
+                )
+              }
             </span>
           </div>
 

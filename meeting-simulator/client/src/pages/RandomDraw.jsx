@@ -24,6 +24,8 @@ function RandomDraw() {
   const [nextToFlip, setNextToFlip] = useState(0);
   // 翻牌后是否触发缩小动画（大卡 → 小卡过渡状态）
   const [shrinkingCards, setShrinkingCards] = useState([false, false, false]);
+  // 大卡切换过渡标志：为 true 时隐藏大卡区域，防止新大卡在初始化前短暂显示上一张内容
+  const [isTransitioning, setIsTransitioning] = useState(false);
   // 是否正在加载随机角色
   const [isLoadingChars, setIsLoadingChars] = useState(true);
   // 是否正在生成主题（"就这三位"按钮）
@@ -55,6 +57,7 @@ function RandomDraw() {
     setFlippedCards([false, false, false]);
     setShrinkingCards([false, false, false]);
     setNextToFlip(0);
+    setIsTransitioning(false);
     try {
       const result = await getRandomCharacters();
       setCharacters(result.characters || []);
@@ -85,10 +88,16 @@ function RandomDraw() {
         return next;
       });
 
-      // 3. 缩小动画完成后更新 nextToFlip（350ms 后）
+      // 3. 缩小动画完成后，先进入过渡状态隐藏大卡，再切换 nextToFlip（350ms 后）
       const t2 = setTimeout(() => {
         if (idx < 2) {
-          setNextToFlip(idx + 1);
+          // 先隐藏大卡区域，防止新 nextToFlip 的卡片在重置前短暂显示上一张内容
+          setIsTransitioning(true);
+          const t3 = setTimeout(() => {
+            setNextToFlip(idx + 1);
+            setIsTransitioning(false);
+          }, 50);
+          timersRef.current.push(t3);
         } else {
           setNextToFlip(null);
         }
@@ -233,8 +242,8 @@ function RandomDraw() {
           </div>
         )}
 
-        {/* ===== 大卡区域：当前该翻的那张 ===== */}
-        {nextToFlip !== null && (
+        {/* ===== 大卡区域：当前该翻的那张（isTransitioning 期间隐藏以防止闪现）===== */}
+        {nextToFlip !== null && !isTransitioning && (
           <div
             className={[
               styles.bigCardScene,

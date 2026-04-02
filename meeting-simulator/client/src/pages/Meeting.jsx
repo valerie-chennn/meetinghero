@@ -200,7 +200,14 @@ function Meeting() {
   const { state, addConversation } = useApp();
   const { showError } = useToast();
 
-  const { meetingData, meetingId } = state;
+  const { meetingData, meetingId, sceneType } = state;
+
+  // 脑洞模式标识
+  const isBrainstorm = sceneType === 'brainstorm-pick' || sceneType === 'brainstorm-random';
+  // 脑洞模式下用角色头衔简称来称呼用户，否则用花名
+  const displayUserName = isBrainstorm
+    ? (meetingData?.userRole?.title || state.userName || '英雄')
+    : (state.userName || 'You');
 
   // 已显示的消息列表
   const [displayedMessages, setDisplayedMessages] = useState([]);
@@ -226,8 +233,8 @@ function Meeting() {
   const [showEndButton, setShowEndButton] = useState(false);
   // 是否已触发会议结束流程（防止重复触发）
   const meetingEndedRef = useRef(false);
-  // 用 ref 保存 userName，供 playDialogueFrom 闭包中读取最新值（避免闭包过时）
-  const userNameRef = useRef(state.userName);
+  // 用 ref 保存显示用名（脑洞模式用角色头衔，正经开会用花名），供 playDialogueFrom 闭包读取最新值
+  const userNameRef = useRef(displayUserName);
   // 聊天流底部锚点
   const bottomRef = useRef(null);
   // 播放定时器
@@ -267,8 +274,8 @@ function Meeting() {
   const processedDialogueRef = useRef(null);
   processedDialogueRef.current = processedDialogue;
 
-  // 每次渲染时同步 ref，确保闭包中始终读取到最新值
-  userNameRef.current = state.userName;
+  // 每次渲染时同步 ref：脑洞模式用角色头衔，正经开会用花名
+  userNameRef.current = displayUserName;
   const activeNodeIndexRef = useRef(activeNodeIndex);
   activeNodeIndexRef.current = activeNodeIndex;
 
@@ -927,8 +934,9 @@ function Meeting() {
                 }
 
                 // 用户消息：右对齐 outgoing，使用 CustomContent 展示头像和名字
+                // 脑洞模式用角色头衔，正经开会用花名
                 if (msg.isUser || msg.type === 'user') {
-                  const currentUserName = state.userName || 'You';
+                  const currentUserName = displayUserName;
                   const userInitial = currentUserName.charAt(0).toUpperCase();
                   return (
                     <Message

@@ -140,7 +140,7 @@ function ThemePreview() {
               {theme.characters.map((char, idx) => (
                 <div key={char.id || idx} className={styles.characterRow}>
                   <span className={styles.charName}>{char.name}</span>
-                  {char.adaptedTitle && (
+                  {isRandomMode && char.adaptedTitle && (
                     <span className={styles.charAdapted}>· {char.adaptedTitle}</span>
                   )}
                   {/* 性格标签字段预留：char.personality */}

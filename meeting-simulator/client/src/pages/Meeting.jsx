@@ -1016,7 +1016,9 @@ function Meeting() {
                 // 显示时统一用中文名；匹配不上则保留原始 speaker 并取第一个词
                 const displayName = matchedRole ? matchedRole.name : (msg.speaker ? msg.speaker.split(' ')[0] : '?');
                 const firstName = displayName.split(' ')[0];
-                const headerLabel = roleTitle ? `${firstName} · ${roleTitle}` : firstName;
+                // 点将局角色身份已定，不显示适配头衔；乱炖局和正式会议保留
+                const showTitle = roleTitle && sceneType !== 'brainstorm-pick';
+                const headerLabel = showTitle ? `${firstName} · ${roleTitle}` : firstName;
 
                 return (
                   <Message

@@ -67,6 +67,8 @@ router.post('/search-characters', async (req, res) => {
 5. world 字段统一用 "custom" 表示自定义角色
 6. worldLabel 字段写该作品/世界的中文名称（如"死亡笔记"、"星际穿越"）
 7. id 字段用 kebab-case 格式（如 "light-yagami"）
+8. name 字段规则：英文作品的角色用英文原名（如 Frank Underwood、Iron Man），中文作品的角色用中文名（如 孙悟空、贾宝玉）
+9. nameEn 字段：角色的英文名，中文角色也要填（如 Sun Wukong）
 
 严格返回 JSON，不加任何说明：
 
@@ -74,7 +76,8 @@ router.post('/search-characters', async (req, res) => {
   "characters": [
     {
       "id": "string（kebab-case）",
-      "name": "string（角色中文名）",
+      "name": "string（英文IP用英文原名，中文IP用中文名）",
+      "nameEn": "string（英文名）",
       "world": "custom",
       "worldLabel": "string（作品/世界名称）",
       "persona": "string（≤20字性格描述）"

@@ -146,18 +146,25 @@ function CharacterSearch() {
           </div>
         )}
 
-        {/* 搜索加载骨架屏 */}
+        {/* 搜索加载态——"召唤中"状态，替代无聊的灰色骨架屏 */}
         {isLoading && (
-          <div className={styles.skeleton}>
-            {[1, 2, 3, 4].map(i => (
-              <div key={i} className={styles.skeletonCard}>
-                <div className={styles.skeletonAvatar} />
-                <div className={styles.skeletonBody}>
-                  <div className={styles.skeletonLine} style={{ width: '60%' }} />
-                  <div className={styles.skeletonLine} style={{ width: '85%' }} />
-                </div>
-              </div>
-            ))}
+          <div className={styles.summonLoading}>
+            {/* 脉冲圆点：表达"正在进行" */}
+            <div className={styles.summonDots}>
+              <span className={styles.summonDot} />
+              <span className={styles.summonDot} />
+              <span className={styles.summonDot} />
+            </div>
+            {/* 带关键字的动态文案 */}
+            <p className={styles.summonText}>
+              正在从<span className={styles.summonKeyword}>「{query}」</span>世界召唤角色...
+            </p>
+            {/* 占位行：暗示即将出现的角色卡片 */}
+            <div className={styles.summonLines}>
+              <div className={styles.summonLine} style={{ width: '72%' }} />
+              <div className={styles.summonLine} style={{ width: '55%' }} />
+              <div className={styles.summonLine} style={{ width: '88%' }} />
+            </div>
           </div>
         )}
 

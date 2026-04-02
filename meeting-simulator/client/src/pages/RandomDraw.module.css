@@ -243,8 +243,9 @@
 /* 翻牌完成后淡出，与小卡弹入形成平滑交叠（150ms 配合 JS 定时器）*/
 /* 退出动画用 ease-in：加速离开，与"弹入"的进入形成节奏对比 */
 .bigCardFadeOut {
-  animation: bigCardFadeOut 0.4s cubic-bezier(0.4, 0, 1, 1) both;
+  animation: bigCardFadeOut 0.25s cubic-bezier(0.4, 0, 1, 1) both;
   pointer-events: none;
+  position: absolute;  /* 淡出时脱离文档流，不占位 */
 }
 
 /* 第 2、3 张大卡从下方滑入（不带金色边框）*/

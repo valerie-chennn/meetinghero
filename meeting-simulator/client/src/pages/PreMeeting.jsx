@@ -1,7 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
 import styles from './PreMeeting.module.css';
+
+// 最多换主题次数
+const MAX_REFRESH = 3;
 
 /**
  * 会前准备页面——全息任务卡版本
@@ -10,12 +13,15 @@ import styles from './PreMeeting.module.css';
  */
 function PreMeeting() {
   const navigate = useNavigate();
-  const { state } = useApp();
+  const { state, updateState } = useApp();
 
   const { meetingData, userName, sceneType } = state;
 
   // 脑洞模式标识
-  const isBrainstorm = sceneType === 'brainstorm-pick' || sceneType === 'brainstorm-random';
+  // 双重判断：state.sceneType 或 meetingData.sceneType（兼容旧 localStorage 缺少 sceneType 的情况）
+  const isBrainstorm =
+    (sceneType && (sceneType === 'brainstorm-pick' || sceneType === 'brainstorm-random')) ||
+    (meetingData?.sceneType && meetingData.sceneType.startsWith('brainstorm'));
 
   // 从 localStorage 读取难度星级，默认 3 星
   const difficulty = parseInt(localStorage.getItem('meetingDifficulty') || '3', 10);
@@ -74,6 +80,34 @@ function PreMeeting() {
       );
     }
     return null;
+  };
+
+  // 当前会话已换主题次数（从 state 读取）
+  const refreshCount = state.themeRefreshCount || 0;
+  const canRefresh = isBrainstorm && refreshCount < MAX_REFRESH;
+
+  // 换主题：轮转 mainWorld → 清除旧主题和会议数据 → 跳回 Loading 重新生成
+  const handleRefreshTheme = () => {
+    if (!canRefresh) return;
+
+    const characters = state.brainstormCharacters || [];
+    let nextMainWorld = state.brainstormMainWorld;
+
+    // 轮转 mainWorld：同 ThemePreview 的逻辑
+    if (characters.length >= 3) {
+      const rotationIndex = (refreshCount + 1) % characters.length;
+      nextMainWorld = characters[rotationIndex].world || nextMainWorld;
+    }
+
+    // 清除旧主题和旧会议数据，Loading 页会用新 mainWorld 重新生成主题和会议
+    updateState({
+      brainstormMainWorld: nextMainWorld,
+      brainstormTheme: null,
+      meetingData: null,
+      meetingId: null,
+      themeRefreshCount: refreshCount + 1,
+    });
+    navigate('/loading');
   };
 
   // 进入会议
@@ -176,8 +210,28 @@ function PreMeeting() {
         <div style={{ height: 96 }} />
       </div>
 
-      {/* 固定底部：进入会议 CTA 按钮（翡翠绿） */}
+      {/* 固定底部：换主题按钮（脑洞模式） + 进入会议 CTA 按钮（翡翠绿） */}
       <div className={styles.footer}>
+        {/* 换主题按钮：仅脑洞模式显示 */}
+        {isBrainstorm && (
+          <div className={styles.refreshRow}>
+            <button
+              className={`${styles.refreshBtn} ${canRefresh ? styles.refreshBtnActive : ''}`}
+              onClick={handleRefreshTheme}
+              disabled={!canRefresh}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M1 4v6h6M23 20v-6h-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              换一个主题
+            </button>
+            <span className={`${styles.refreshCount} ${!canRefresh ? styles.refreshCountDepleted : ''}`}>
+              {refreshCount}/{MAX_REFRESH}
+            </span>
+          </div>
+        )}
+
         <button className={styles.enterButton} onClick={handleEnterMeeting}>
           进入会议
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none">

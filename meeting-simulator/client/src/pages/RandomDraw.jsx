@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
-import { getRandomCharacters, generateBrainstormTheme } from '../api/index.js';
+import { getRandomCharacters } from '../api/index.js';
 import { useToast } from '../context/ToastContext.jsx';
 import styles from './RandomDraw.module.css';
 
@@ -24,8 +24,8 @@ function RandomDraw() {
   const [nextToFlip, setNextToFlip] = useState(0);
   // 翻牌后是否触发缩小动画（大卡 → 小卡过渡状态）
   const [shrinkingCards, setShrinkingCards] = useState([false, false, false]);
-  // 大卡切换过渡标志：为 true 时隐藏大卡区域，防止新大卡在初始化前短暂显示上一张内容
-  const [isTransitioning, setIsTransitioning] = useState(false);
+  // 大卡唯一 key：每次切换 nextToFlip 时递增，强制 React 销毁旧 DOM 重建，保证新卡从背面初始状态渲染
+  const [cardKey, setCardKey] = useState(0);
   // 是否正在加载随机角色
   const [isLoadingChars, setIsLoadingChars] = useState(true);
   // 是否正在生成主题（"就这三位"按钮）
@@ -57,7 +57,7 @@ function RandomDraw() {
     setFlippedCards([false, false, false]);
     setShrinkingCards([false, false, false]);
     setNextToFlip(0);
-    setIsTransitioning(false);
+    setCardKey(0);
     try {
       const result = await getRandomCharacters();
       setCharacters(result.characters || []);
@@ -88,16 +88,12 @@ function RandomDraw() {
         return next;
       });
 
-      // 3. 缩小动画完成后，先进入过渡状态隐藏大卡，再切换 nextToFlip（350ms 后）
+      // 3. 缩小动画完成后切换 nextToFlip（350ms 后）
+      // 同时递增 cardKey，强制 React 销毁旧大卡 DOM，新卡从背面初始状态重建
       const t2 = setTimeout(() => {
         if (idx < 2) {
-          // 先隐藏大卡区域，防止新 nextToFlip 的卡片在重置前短暂显示上一张内容
-          setIsTransitioning(true);
-          const t3 = setTimeout(() => {
-            setNextToFlip(idx + 1);
-            setIsTransitioning(false);
-          }, 50);
-          timersRef.current.push(t3);
+          setCardKey(prev => prev + 1);
+          setNextToFlip(idx + 1);
         } else {
           setNextToFlip(null);
         }
@@ -117,35 +113,23 @@ function RandomDraw() {
     loadRandomCharacters();
   };
 
-  // 确认选择，生成主题
-  const handleConfirm = async () => {
+  // 确认选择，直接跳 Loading 页生成完整会议（含主题生成）
+  const handleConfirm = () => {
     if (!allFlipped || isGenerating || characters.length < 3) return;
 
     // 乱炖局：从 3 个世界中随机选主场景（给当代名人世界更低权重）
     const mainWorld = pickMainWorld(characters);
 
-    setIsGenerating(true);
-    try {
-      const result = await generateBrainstormTheme({
-        sessionId: state.sessionId,
-        sceneType: 'brainstorm-random',
-        characters,
-        mainWorld,
-      });
-
-      updateState({
-        brainstormCharacters: characters,
-        brainstormMainWorld: mainWorld,
-        brainstormTheme: result.theme,
-        themeRefreshCount: 0,
-      });
-      navigate('/brainstorm/theme');
-    } catch (err) {
-      console.error('生成主题失败:', err);
-      showError('生成主题失败，请重试');
-    } finally {
-      setIsGenerating(false);
-    }
+    // 清除旧主题，确保 Loading 页会重新生成主题
+    updateState({
+      brainstormCharacters: characters,
+      brainstormMainWorld: mainWorld,
+      brainstormTheme: null,
+      themeRefreshCount: 0,
+      sceneType: 'brainstorm-random',
+      meetingSource: 'generate',
+    });
+    navigate('/loading');
   };
 
   // 副标题文案（根据当前阶段动态变化）
@@ -242,9 +226,10 @@ function RandomDraw() {
           </div>
         )}
 
-        {/* ===== 大卡区域：当前该翻的那张（isTransitioning 期间隐藏以防止闪现）===== */}
-        {nextToFlip !== null && !isTransitioning && (
+        {/* ===== 大卡区域：当前该翻的那张，key={cardKey} 确保每次切换都是全新 DOM，不闪现上一张内容 ===== */}
+        {nextToFlip !== null && (
           <div
+            key={cardKey}
             className={[
               styles.bigCardScene,
               // 等待翻开时的金色脉冲（区分是否需要滑入动画）

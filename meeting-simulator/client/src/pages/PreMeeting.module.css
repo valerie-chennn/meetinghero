@@ -383,6 +383,60 @@
   animation: fadeInUp var(--duration-slow) var(--ease-out) 300ms both;
 }
 
+/* ── 换主题行（脑洞模式专属） ── */
+.refreshRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+/* 换主题按钮：默认灰色，可用时高亮 */
+.refreshBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  transition: all 0.2s var(--ease-out);
+  cursor: not-allowed;
+}
+
+/* 可用状态：靛蓝边框 + 品牌色文字 */
+.refreshBtnActive {
+  color: var(--color-brand);
+  background: rgba(79, 70, 229, 0.06);
+  border-color: rgba(79, 70, 229, 0.25);
+  cursor: pointer;
+}
+
+.refreshBtnActive:hover {
+  background: rgba(79, 70, 229, 0.10);
+  border-color: rgba(79, 70, 229, 0.4);
+}
+
+.refreshBtnActive:active {
+  transform: scale(0.97);
+}
+
+/* 换主题次数计数：灰色小字 */
+.refreshCount {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+/* 次数耗尽：更暗 */
+.refreshCountDepleted {
+  color: var(--text-disabled, #C0C0C0);
+}
+
 /* 进入会议按钮：翡翠绿 + 白字 + 箭头 */
 .enterButton {
   width: 100%;

@@ -203,7 +203,10 @@ function Meeting() {
   const { meetingData, meetingId, sceneType } = state;
 
   // 脑洞模式标识
-  const isBrainstorm = sceneType === 'brainstorm-pick' || sceneType === 'brainstorm-random';
+  // 双重判断：state.sceneType 或 meetingData.sceneType（兼容旧 localStorage 缺少 sceneType 的情况）
+  const isBrainstorm =
+    (sceneType && (sceneType === 'brainstorm-pick' || sceneType === 'brainstorm-random')) ||
+    (meetingData?.sceneType && meetingData.sceneType.startsWith('brainstorm'));
   // 脑洞模式下用角色头衔简称来称呼用户，否则用花名
   const displayUserName = isBrainstorm
     ? (meetingData?.userRole?.title || state.userName || '英雄')
@@ -918,7 +921,11 @@ function Meeting() {
                 // 内心独白（narrator）：用户内心 OS，右对齐（从用户方向发出）
                 // 脑洞模式下不渲染 narrator（保留 IP 角色的沉浸感，不要内心 OS 打断）
                 if (msg.speaker === 'narrator') {
-                  if (state.sceneType && state.sceneType.startsWith('brainstorm')) {
+                  // 双重判断兼容旧 localStorage 缺少 sceneType 的情况
+                  if (
+                    (state.sceneType && state.sceneType.startsWith('brainstorm')) ||
+                    (meetingData?.sceneType && meetingData.sceneType.startsWith('brainstorm'))
+                  ) {
                     return null;
                   }
                   return (

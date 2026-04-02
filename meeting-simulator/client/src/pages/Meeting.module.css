@@ -424,6 +424,41 @@
 }
 
 /* =====================================================
+   Typing Indicator — 三个跳动圆点
+   用于每段第一条 NPC 消息出现前的 1-1.5 秒等待
+   ===================================================== */
+.typingDots {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 10px 14px;
+  min-height: 20px;
+}
+
+.typingDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-secondary, #94a3b8);
+  animation: dotBounce 1.2s ease-in-out infinite;
+}
+
+.typingDot:nth-child(1) { animation-delay: 0s; }
+.typingDot:nth-child(2) { animation-delay: 0.2s; }
+.typingDot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes dotBounce {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-6px);
+    opacity: 1;
+  }
+}
+
+/* =====================================================
    NPC 消息内容区（气泡内部布局）
    ===================================================== */
 .npcMessageContent {

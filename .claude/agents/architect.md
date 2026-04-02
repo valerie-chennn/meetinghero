@@ -22,6 +22,9 @@ ls server/routes server/prompts client/src/pages 2>/dev/null || find . -type f -
 
 ## 核心思维模式
 
+### 影响链分析（每次设计前必须做）
+改了 A 模块 → 哪些 B 模块依赖 A → B 变了影响哪些 C？架构方案必须画出完整的影响链，标注每个受影响点的处理方式。
+
 ### 最小充分方案
 
 默认选最简单的方案。需要证明简单方案不够，才能升级复杂度。

@@ -276,8 +276,6 @@ function Meeting() {
   // 第二层控制器所需的段计数 ref（用户发言时归零）
   // segmentNpcCountRef：当前段（两次用户发言之间）已播放的 NPC 消息数，上限 3
   const segmentNpcCountRef = useRef(0);
-  // processedIndexesRef：防止 StrictMode 双重调用导致同一消息被处理两次
-  const processedIndexesRef = useRef(new Set());
   // segmentHasNarratorRef：当前段是否已播放过 narrator（含后端自带 + 前端注入）
   const segmentHasNarratorRef = useRef(false);
   // 当前节点的重试次数（0=首次，1=第二次）；遇到新节点时重置
@@ -488,13 +486,7 @@ function Meeting() {
       return;
     }
 
-    // 防止 StrictMode 双重调用：同一 startIndex 只处理一次
     const msgId = `dialogue-${startIndex}`;
-    if (processedIndexesRef.current.has(startIndex)) {
-      return; // 已处理过，直接跳过
-    }
-    processedIndexesRef.current.add(startIndex);
-
     segmentNpcCountRef.current++;
 
     // ——— 快速弹入路径：0.8-1s 延迟后直接显示，带 fadeInUp 动效 ———

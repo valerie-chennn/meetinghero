@@ -100,16 +100,16 @@ function CharacterSelect() {
                 onClick={() => !isDisabled && handleToggle(char.id)}
                 style={{ animationDelay: `${idx * 0.05}s` }}
               >
-                {/* 角色头像（首字母）*/}
+                {/* 角色头像（英文名首字母，无英文名则取中文名首字）*/}
                 <div className={`${styles.charAvatar} ${isSelected ? styles.avatarSelected : ''}`}>
-                  {char.name.charAt(0)}
+                  {(char.nameEn || char.name).charAt(0)}
                 </div>
 
-                {/* 角色信息 */}
+                {/* 角色信息：主名显示英文名，有英文名时中文名作副标题 */}
                 <div className={styles.charInfo}>
                   <div className={styles.charNameRow}>
-                    <span className={styles.charName}>{char.name}</span>
-                    {char.nameEn && <span className={styles.charNameEn}>{char.nameEn}</span>}
+                    <span className={styles.charName}>{char.nameEn || char.name}</span>
+                    {char.nameEn && <span className={styles.charNameEn}>{char.name}</span>}
                   </div>
                   {char.source && <span className={styles.charSource}>{char.source}</span>}
                   <span className={styles.charPersona}>{char.persona}</span>

@@ -204,15 +204,15 @@ function RandomDraw() {
                 >
                   {char ? (
                     <>
-                      {/* 头像 */}
+                      {/* 头像：英文名首字母，无英文名则取中文名首字 */}
                       <div className={styles.smallCardAvatar}>
-                        {char.name.charAt(0)}
+                        {(char.nameEn || char.name).charAt(0)}
                       </div>
-                      {/* 中文名 */}
-                      <span className={styles.smallCardName}>{char.name}</span>
-                      {/* 英文名：有则展示，无则不渲染 */}
+                      {/* 主名：英文名；无英文名时显示中文名 */}
+                      <span className={styles.smallCardName}>{char.nameEn || char.name}</span>
+                      {/* 中文名作副标题：仅在有英文名时展示 */}
                       {char.nameEn && (
-                        <span className={styles.smallCardNameEn}>{char.nameEn}</span>
+                        <span className={styles.smallCardNameEn}>{char.name}</span>
                       )}
                       {/* 来源标签 */}
                       {char.source && (
@@ -262,15 +262,15 @@ function RandomDraw() {
                   }
                   return (
                     <>
-                      {/* 头像 */}
+                      {/* 头像：英文名首字母，无英文名则取中文名首字 */}
                       <div className={styles.bigCardAvatar}>
-                        {char.name.charAt(0)}
+                        {(char.nameEn || char.name).charAt(0)}
                       </div>
-                      {/* 中文名 */}
-                      <span className={styles.bigCardName}>{char.name}</span>
-                      {/* 英文名：有则展示，无则不渲染不留空白 */}
+                      {/* 主名：英文名；无英文名时显示中文名 */}
+                      <span className={styles.bigCardName}>{char.nameEn || char.name}</span>
+                      {/* 中文名作副标题：仅在有英文名时展示 */}
                       {char.nameEn && (
-                        <span className={styles.bigCardNameEn}>{char.nameEn}</span>
+                        <span className={styles.bigCardNameEn}>{char.name}</span>
                       )}
                       {/* 来源标签 */}
                       {char.source && (

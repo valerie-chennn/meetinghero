@@ -209,6 +209,13 @@
   flex-shrink: 0;
   margin-bottom: var(--space-5);
   /* 初始状态无动画 */
+  will-change: opacity, transform;
+}
+
+/* 翻牌完成后淡出，与小卡弹入形成平滑交叠（150ms 配合 JS 定时器）*/
+.bigCardFadeOut {
+  animation: bigCardFadeOut 0.15s ease-in both;
+  pointer-events: none;
 }
 
 /* 第 2、3 张大卡从下方滑入（不带金色边框）*/
@@ -529,4 +536,16 @@ button.confirmBtn:disabled {
 @keyframes dotBounce {
   0%, 100% { transform: translateY(0); opacity: 0.6; }
   50% { transform: translateY(-4px); opacity: 1; }
+}
+
+/* 大卡翻完后淡出（与小卡弹入交叠，消除卡顿感）*/
+@keyframes bigCardFadeOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.96);
+  }
 }

@@ -26,6 +26,10 @@ function RandomDraw() {
   const [shrinkingCards, setShrinkingCards] = useState([false, false, false]);
   // 大卡唯一 key：每次切换 nextToFlip 时递增，强制 React 销毁旧 DOM 重建，保证新卡从背面初始状态渲染
   const [cardKey, setCardKey] = useState(0);
+  // 大卡是否正在淡出（翻完后先淡出再切换，避免闪现消失）
+  const [bigCardFading, setBigCardFading] = useState(false);
+  // 三张卡全部完成翻牌+缩小动画后才置 true，用于控制成就区和按钮区的出现时机
+  const [allAnimationDone, setAllAnimationDone] = useState(false);
   // 是否正在加载随机角色
   const [isLoadingChars, setIsLoadingChars] = useState(true);
   // 是否正在生成主题（"就这三位"按钮）
@@ -35,7 +39,7 @@ function RandomDraw() {
   // 收集所有 timer ID，用于组件卸载时清理
   const timersRef = useRef([]);
 
-  // 全部翻完：三张都是 true
+  // 全部翻完：三张都是 true（翻牌动画已触发，但缩小动画可能还没完成）
   const allFlipped = flippedCards.every(Boolean);
 
   // 组件卸载时清理所有进行中的 timer，防止内存泄漏
@@ -58,6 +62,8 @@ function RandomDraw() {
     setShrinkingCards([false, false, false]);
     setNextToFlip(0);
     setCardKey(0);
+    setBigCardFading(false);
+    setAllAnimationDone(false);
     try {
       const result = await getRandomCharacters();
       setCharacters(result.characters || []);
@@ -80,26 +86,41 @@ function RandomDraw() {
       return next;
     });
 
-    // 2. 翻牌完成后（650ms 延迟）：隐藏大卡 + 显示小卡 + 延迟后切换到下一张
+    // 2. 翻牌动画接近完成时（550ms 延迟）：先触发大卡淡出，同时让小卡开始弹入
+    //    这样大卡淡出（150ms）与小卡弹入（400ms）形成交叠，过渡更丝滑
     const t1 = setTimeout(() => {
-      // 先隐藏大卡（设 nextToFlip 为 null），同时显示小卡
-      setNextToFlip(null);
+      // 开始淡出大卡
+      setBigCardFading(true);
+      // 同时显示本张小卡（小卡 springIn 400ms，与大卡淡出交叠）
       setShrinkingCards(prev => {
         const next = [...prev];
         next[idx] = true;
         return next;
       });
 
-      // 3. 短暂间隔后显示下一张大卡（背面）
+      // 3. 大卡淡出完成后（150ms）：移除大卡 DOM，重置淡出状态
       const t2 = setTimeout(() => {
+        setBigCardFading(false);
+        setNextToFlip(null);
+
         if (idx < 2) {
-          setCardKey(prev => prev + 1);
-          setNextToFlip(idx + 1);
+          // 4. 短暂间隔后显示下一张大卡（背面）
+          const t3 = setTimeout(() => {
+            setCardKey(prev => prev + 1);
+            setNextToFlip(idx + 1);
+          }, 150);
+          timersRef.current.push(t3);
+        } else {
+          // idx === 2：三张全部缩小，等小卡 springIn 动画完成后显示成就区
+          // springIn 总时长 400ms，从 t1 触发时开始计算，此处已过约 150ms，还需约 300ms
+          const t3 = setTimeout(() => {
+            setAllAnimationDone(true);
+          }, 350);
+          timersRef.current.push(t3);
         }
-        // idx === 2 时 nextToFlip 已经是 null，保持不变
-      }, 300);
+      }, 150);
       timersRef.current.push(t2);
-    }, 650);
+    }, 550);
     timersRef.current.push(t1);
   };
 
@@ -115,7 +136,7 @@ function RandomDraw() {
 
   // 确认选择，直接跳 Loading 页生成完整会议（含主题生成）
   const handleConfirm = () => {
-    if (!allFlipped || isGenerating || characters.length < 3) return;
+    if (!allAnimationDone || isGenerating || characters.length < 3) return;
 
     // 乱炖局：从 3 个世界中随机选主场景（给当代名人世界更低权重）
     const mainWorld = pickMainWorld(characters);
@@ -168,7 +189,7 @@ function RandomDraw() {
       </div>
 
       {/* ===== 主内容区 ===== */}
-      <div className={`${styles.content} ${allFlipped ? styles.contentAllFlipped : ''}`}>
+      <div className={`${styles.content} ${allAnimationDone ? styles.contentAllFlipped : ''}`}>
 
         {/* ===== 页面标题区 ===== */}
         <div className={styles.titleArea}>
@@ -176,8 +197,8 @@ function RandomDraw() {
           <p className={styles.pageSubtitle}>{getSubtitle()}</p>
         </div>
 
-        {/* ===== 全部翻完后的成就区域 ===== */}
-        {allFlipped && (
+        {/* ===== 全部翻完后的成就区域（等所有卡片动画完成后再显示）===== */}
+        {allAnimationDone && (
           <div className={styles.achievementArea}>
             {/* 三颗金色星星，依次 fadeIn */}
             <div className={styles.starsRow}>
@@ -242,6 +263,8 @@ function RandomDraw() {
                   : '',
               // 已翻开：展示翻转状态
               flippedCards[nextToFlip] ? styles.bigCardFlipped : '',
+              // 翻牌完成后：淡出大卡，与小卡弹入形成交叠过渡
+              bigCardFading ? styles.bigCardFadeOut : '',
             ].join(' ')}
             style={{ width: bigCardSize.width, height: bigCardSize.height }}
             onClick={() => handleCardClick(nextToFlip)}
@@ -284,8 +307,8 @@ function RandomDraw() {
           </div>
         )}
 
-        {/* ===== 操作按钮区：全部翻完后从底部滑入 ===== */}
-        {allFlipped && (
+        {/* ===== 操作按钮区：所有动画完成后从底部滑入 ===== */}
+        {allAnimationDone && (
           <div className={styles.actionArea}>
             <div className={styles.confirmRow}>
               <button

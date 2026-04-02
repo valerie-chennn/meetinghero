@@ -36,6 +36,8 @@ function buildInitialState() {
     meetingData: null,      // 完整的会议数据（含 briefing、participants、conversations）
     reviewData: null,       // 复盘数据
     conversations: [],      // 用户在关键节点的输入记录
+    // ── 会话级字段（不持久化）──
+    pendingMode: null,          // 用户在首页选的模式，onboarding 完成后用于跳转：'brainstorm' | 'formal'
     // ── 脑洞模式字段（会话级，不持久化）──
     sceneType: null,            // 场景类型：'formal' | 'brainstorm-pick' | 'brainstorm-random'
     brainstormWorld: null,      // 点将局：用户搜索的 IP/世界名称
@@ -98,6 +100,7 @@ export function AppProvider({ children }) {
       englishLevel: null, jobTitle: null, industry: null,
       meetingData: null, reviewData: null, conversations: [],
       // 脑洞模式字段同步清除
+      pendingMode: null,
       sceneType: null, brainstormWorld: null, brainstormCharacters: [],
       brainstormMainWorld: null, themeRefreshCount: 0, brainstormTheme: null,
     });

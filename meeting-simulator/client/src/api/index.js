@@ -97,6 +97,18 @@ export async function updateWorkInfo(data) {
 }
 
 /**
+ * 更新用户英语等级（首页等级切换入口）
+ * @param {Object} data - { sessionId, englishLevel }
+ * @returns {Object} { success: true }
+ */
+export async function updateEnglishLevel(data) {
+  return request('/onboarding/update-english-level', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+/**
  * 用户在关键节点发言
  * @param {string} meetingId - 会议 ID
  * @param {number} nodeIndex - 节点索引

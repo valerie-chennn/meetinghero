@@ -1,21 +1,36 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
+import { updateEnglishLevel } from '../api/index.js';
 import styles from './Home.module.css';
 
 /**
  * 首页组件 — 重设计版
  * 布局：品牌区（光晕背景）→ 两张全宽大卡片（上下排列）→ 老用户区
  */
+// 有效的英语等级列表
+const ENGLISH_LEVELS = ['A1', 'A2', 'B1', 'B2'];
+
 function Home() {
   const navigate = useNavigate();
   const { state, updateState } = useApp();
 
+  // 英语等级切换面板是否展开
+  const [levelPanelOpen, setLevelPanelOpen] = useState(false);
+  // 等级更新请求中
+  const [levelUpdating, setLevelUpdating] = useState(false);
+
   // 检测老用户：localStorage 持久化的 sessionId 有值
   const hasSession = Boolean(state.sessionId);
 
-  // 点击"正经开会"：检测 jobTitle/industry 是否已有值
+  // 点击"正经开会"
   const handleFormalMeeting = () => {
+    // 新用户尚未完成 onboarding，先记录意图，跳到 onboarding
+    if (!state.sessionId || !state.englishLevel) {
+      updateState({ pendingMode: 'formal' });
+      navigate('/onboarding');
+      return;
+    }
     updateState({ sceneType: 'formal' });
     if (state.jobTitle && state.industry) {
       // 已有职位/行业信息，直接进入会议来源选择
@@ -28,7 +43,36 @@ function Home() {
 
   // 点击"脑洞模式"
   const handleBrainstorm = () => {
+    // 新用户尚未完成 onboarding，先记录意图，跳到 onboarding
+    if (!state.sessionId || !state.englishLevel) {
+      updateState({ pendingMode: 'brainstorm' });
+      navigate('/onboarding');
+      return;
+    }
     navigate('/brainstorm');
+  };
+
+  // 切换英语等级：更新本地 state 和后端数据库
+  const handleLevelChange = async (level) => {
+    if (level === state.englishLevel || levelUpdating) return;
+    // 保存旧值，用于请求失败时回滚
+    const prevLevel = state.englishLevel;
+    setLevelUpdating(true);
+    try {
+      // 乐观更新本地 state，让 UI 立即响应
+      updateState({ englishLevel: level });
+      // 同步到后端（有 sessionId 才调用）
+      if (state.sessionId) {
+        await updateEnglishLevel({ sessionId: state.sessionId, englishLevel: level });
+      }
+    } catch (err) {
+      console.error('[Home] 更新英语等级失败:', err.message);
+      // 失败时回滚本地 state 到旧值
+      updateState({ englishLevel: prevLevel });
+    } finally {
+      setLevelUpdating(false);
+      setLevelPanelOpen(false);
+    }
   };
 
   return (
@@ -54,6 +98,50 @@ function Home() {
         </div>
 
         <p className={styles.slogan}>i 人会议生存指南</p>
+
+        {/* 英语等级切换入口（有 englishLevel 时显示）*/}
+        {state.englishLevel && (
+          <div className={styles.levelBadgeWrap}>
+            {/* 当前等级 badge，点击展开切换面板 */}
+            <button
+              className={styles.levelBadge}
+              onClick={() => setLevelPanelOpen(prev => !prev)}
+              aria-label="切换英语等级"
+              aria-expanded={levelPanelOpen}
+            >
+              <span className={styles.levelBadgeLabel}>英语等级</span>
+              <span className={styles.levelBadgeValue}>{state.englishLevel}</span>
+              {/* 小箭头，展开时翻转 */}
+              <svg
+                className={`${styles.levelBadgeChevron} ${levelPanelOpen ? styles.levelBadgeChevronOpen : ''}`}
+                width="10" height="10" viewBox="0 0 24 24" fill="none"
+              >
+                <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+
+            {/* 下拉切换面板 */}
+            {levelPanelOpen && (
+              <div className={styles.levelPanel}>
+                {ENGLISH_LEVELS.map(level => (
+                  <button
+                    key={level}
+                    className={`${styles.levelOption} ${level === state.englishLevel ? styles.levelOptionActive : ''}`}
+                    onClick={() => handleLevelChange(level)}
+                    disabled={levelUpdating}
+                  >
+                    {level}
+                    {level === state.englishLevel && (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style={{ marginLeft: 4, flexShrink: 0 }}>
+                        <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ===== 模式入口区：上下两张全宽大卡片 ===== */}

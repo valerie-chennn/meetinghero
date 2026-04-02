@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
 import styles from './BrainstormEntry.module.css';
@@ -10,7 +10,16 @@ import styles from './BrainstormEntry.module.css';
  */
 function BrainstormEntry() {
   const navigate = useNavigate();
-  const { updateState } = useApp();
+  const { state, updateState } = useApp();
+
+  // 守卫：未完成 onboarding 的用户不能直接访问（通过 URL 直接输入等情况）
+  useEffect(() => {
+    if (!state.sessionId || !state.englishLevel) {
+      // 记录 pendingMode，onboarding 完成后会跳回 /brainstorm
+      updateState({ pendingMode: 'brainstorm' });
+      navigate('/onboarding', { replace: true });
+    }
+  }, [state.sessionId, state.englishLevel, navigate, updateState]);
 
   // 进入点将局
   const handlePickMode = () => {

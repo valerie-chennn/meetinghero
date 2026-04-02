@@ -139,4 +139,46 @@ router.post('/update-work-info', (req, res) => {
   }
 });
 
+/**
+ * POST /api/onboarding/update-english-level
+ * 更新已有用户的英语等级
+ * 用于首页等级切换入口
+ */
+router.post('/update-english-level', (req, res) => {
+  try {
+    const { sessionId, englishLevel } = req.body;
+
+    // 参数校验
+    if (!sessionId) {
+      return res.status(400).json({ error: 'sessionId 不能为空' });
+    }
+
+    if (!englishLevel || !VALID_LEVELS.includes(englishLevel)) {
+      return res.status(400).json({
+        error: '无效的英语等级，必须为 A1、A2、B1 或 B2',
+        field: 'englishLevel',
+      });
+    }
+
+    // 校验 session 是否存在
+    const session = db.prepare('SELECT id FROM sessions WHERE id = ?').get(sessionId);
+    if (!session) {
+      return res.status(404).json({ error: '会话不存在，请重新完成 onboarding' });
+    }
+
+    // 更新英语等级
+    db.prepare('UPDATE sessions SET english_level = ? WHERE id = ?').run(
+      englishLevel,
+      sessionId
+    );
+
+    console.log(`[Onboarding/UpdateEnglishLevel] sessionId=${sessionId}, englishLevel=${englishLevel}`);
+
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    console.error('[Onboarding/UpdateEnglishLevel] 错误：', err.message);
+    return res.status(500).json({ error: '服务器内部错误，请稍后重试' });
+  }
+});
+
 module.exports = router;

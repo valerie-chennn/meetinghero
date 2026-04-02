@@ -21,7 +21,7 @@ const TOTAL_STEPS = 2;
 
 function Onboarding() {
   const navigate = useNavigate();
-  const { updateState } = useApp();
+  const { state, updateState } = useApp();
   const { showError } = useToast();
 
   // 当前步骤（0=花名, 1=英语等级）
@@ -46,13 +46,28 @@ function Onboarding() {
     try {
       // 职位和行业暂时不收集，正经开会时按需补充
       const result = await createSession({ englishLevel, userName, jobTitle: '', industry: '' });
+
+      // 读取 pendingMode（用户在首页点击了哪个模式后才来 onboarding 的）
+      const pendingMode = state.pendingMode;
+
       updateState({
         sessionId: result.sessionId,
         userName: userName.trim(),
         englishLevel,
+        pendingMode: null, // 消费完毕后清除
       });
-      // 完成后跳首页，让用户选择模式
-      navigate('/');
+
+      // 根据 pendingMode 决定跳转目标
+      if (pendingMode === 'brainstorm') {
+        navigate('/brainstorm');
+      } else if (pendingMode === 'formal') {
+        // 正经开会：设置场景类型，职位/行业暂时都为空，跳补充信息页
+        updateState({ sceneType: 'formal' });
+        navigate('/work-info');
+      } else {
+        // 没有 pendingMode（用户直接访问 /onboarding，如修改信息），跳回首页
+        navigate('/');
+      }
     } catch (err) {
       showError('网络错误，请重试');
       console.error('创建会话失败:', err);

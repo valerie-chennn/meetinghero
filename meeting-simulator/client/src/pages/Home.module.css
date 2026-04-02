@@ -100,6 +100,106 @@
   opacity: 0.85;
 }
 
+/* ===== 英语等级切换区 ===== */
+
+/* badge + 下拉面板的定位容器 */
+.levelBadgeWrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* 当前等级 badge 按钮 */
+.levelBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(79, 70, 229, 0.22);
+  background: rgba(79, 70, 229, 0.06);
+  cursor: pointer;
+  transition: background var(--duration-fast), border-color var(--duration-fast);
+}
+
+.levelBadge:hover {
+  background: rgba(79, 70, 229, 0.12);
+  border-color: rgba(79, 70, 229, 0.38);
+}
+
+/* "英语等级" 文字标签 */
+.levelBadgeLabel {
+  font-size: var(--font-xs);
+  color: var(--text-muted);
+  line-height: 1;
+}
+
+/* 等级值（如 "B1"）*/
+.levelBadgeValue {
+  font-size: var(--font-sm);
+  font-weight: 700;
+  color: var(--color-brand);
+  line-height: 1;
+}
+
+/* 小箭头图标 */
+.levelBadgeChevron {
+  color: var(--text-muted);
+  transition: transform var(--duration-fast) var(--ease-out);
+  flex-shrink: 0;
+}
+
+.levelBadgeChevronOpen {
+  transform: rotate(180deg);
+}
+
+/* 下拉切换面板 */
+.levelPanel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  gap: 4px;
+  padding: 6px;
+  z-index: 10;
+  animation: fadeInUp 0.18s var(--ease-out) both;
+}
+
+/* 等级选项按钮 */
+.levelOption {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  padding: 6px 8px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid transparent;
+  background: none;
+  font-size: var(--font-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background var(--duration-fast), color var(--duration-fast), border-color var(--duration-fast);
+}
+
+.levelOption:hover {
+  background: var(--color-brand-light);
+  color: var(--color-brand);
+}
+
+/* 当前选中的等级 */
+.levelOptionActive {
+  background: var(--color-brand-light);
+  border-color: var(--color-brand-mid);
+  color: var(--color-brand);
+}
+
 /* ===== 模式入口区：上下排列的全宽大卡片 ===== */
 .modeCards {
   padding: 0 var(--space-5);

@@ -92,9 +92,13 @@ function Loading() {
     hasCalledRef.current = true;
 
     const generate = async () => {
-      // 防止 sessionId 缺失（刷新页面等情况）
+      // 防止 sessionId 或 englishLevel 缺失（刷新页面、直接访问 URL 等情况）
       if (!state.sessionId) {
         navigate('/');
+        return;
+      }
+      if (!state.englishLevel) {
+        navigate('/onboarding', { replace: true });
         return;
       }
 

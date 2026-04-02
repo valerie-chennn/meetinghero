@@ -489,10 +489,22 @@ function Meeting() {
     const msgId = `dialogue-${startIndex}`;
     segmentNpcCountRef.current++;
 
-    // ——— 快速弹入路径：0.8-1s 延迟后直接显示，带 fadeInUp 动效 ———
+    // ——— 逐条弹入：根据消息长度决定停留时间，模拟自然对话节奏 ———
     const nextMsg = dialogue[startIndex + 1];
     const msgLength = (msg.text || '').length;
-    const delay = (nextMsg && nextMsg.isKeyNode) ? 800 : (msgLength < 50 ? 800 : 1000);
+    // 英文消息延迟 + 翻译阅读时间（按英文的一半估算）
+    let delay;
+    if (msgLength < 50) {
+      delay = 1800;  // 短消息：1.2s + 翻译 0.6s
+    } else if (msgLength <= 120) {
+      delay = 3000;  // 中消息：2s + 翻译 1s
+    } else {
+      delay = 4200;  // 长消息：2.8s + 翻译 1.4s
+    }
+    // 下一条是 keyNode 时用固定 1.5s（keyNode 自己也有延迟）
+    if (nextMsg && nextMsg.isKeyNode) {
+      delay = 1500;
+    }
 
     playTimerRef.current = setTimeout(() => {
       if (isWaitingForUserRef.current) return;
@@ -729,7 +741,7 @@ function Meeting() {
                   const rMsgId = `resp-msg-invalid-${idx}`;
                   setDisplayedMessages(prev => [...prev, { ...rMsg, id: rMsgId, isNew: true }]);
                   const rMsgLength = (rMsg.text || '').length;
-                  playTimerRef.current = setTimeout(appendNext, rMsgLength < 50 ? 800 : 1000);
+                  playTimerRef.current = setTimeout(appendNext, rMsgLength < 50 ? 1800 : rMsgLength <= 120 ? 3000 : 4200);
                 } else {
                   // 从同步 ref 读取索引，避免在 state updater 中执行副作用
                   setIsWaiting(false);
@@ -771,7 +783,7 @@ function Meeting() {
             const rMsgId = `resp-msg-${idx}`;
             setDisplayedMessages(prev => [...prev, { ...rMsg, id: rMsgId, isNew: true }]);
             const rMsgLength = (rMsg.text || '').length;
-            playTimerRef.current = setTimeout(appendNext, rMsgLength < 50 ? 800 : 1000);
+            playTimerRef.current = setTimeout(appendNext, rMsgLength < 50 ? 1800 : rMsgLength <= 120 ? 3000 : 4200);
           } else {
             // 追加完毕或已达段上限，继续播放 processedDialogue 剩余内容
             // 从同步 ref 读取索引，避免在 state updater 中执行副作用

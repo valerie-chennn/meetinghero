@@ -57,10 +57,13 @@ function Loading() {
   // 脑洞模式且有角色数据时，优先用角色出场语轮播
   const brainstormCharacters = state.brainstormCharacters || [];
   const characterArrivalTips = isBrainstormMode && brainstormCharacters.length > 0
-    ? brainstormCharacters.map(char =>
+    ? brainstormCharacters.map(char => {
         // 优先用 AI 生成的 arrivalLine（点将局），否则用 persona 模板（乱炖局）
-        char.arrivalLine || generateArrivalLine(char)
-      )
+        const line = char.arrivalLine || generateArrivalLine(char);
+        // 确保出场语带角色名前缀（AI 生成的 arrivalLine 可能不带名字）
+        const name = char.name || '';
+        return line.startsWith(name) ? line : `${name} ${line}`;
+      })
     : null;
 
   const TIPS = isBrainstormMode

@@ -19,6 +19,13 @@ const CHARACTER_POOL = {
     { id: 'wang-xifeng', name: '王熙凤', world: 'chinese-classic', worldLabel: '中国古典', persona: '精明强干，铁腕管家，笑里藏刀', source: '《红楼梦》' },
     { id: 'zhuge-liang', name: '诸葛亮', world: 'chinese-classic', worldLabel: '中国古典', persona: '运筹帷幄，鞠躬尽瘁，洞察一切', source: '《三国演义》' },
     { id: 'cao-cao', name: '曹操', world: 'chinese-classic', worldLabel: '中国古典', persona: '雄才大略，多疑狡诈，宁可我负天下人', source: '《三国演义》' },
+    { id: 'liu-bei', name: '刘备', world: 'chinese-classic', worldLabel: '中国古典', persona: '以仁义号令天下，哭得比谁都动情', nameEn: 'Liu Bei', source: '《三国演义》' },
+    { id: 'guan-yu', name: '关羽', world: 'chinese-classic', worldLabel: '中国古典', persona: '义薄云天，傲视群雄，唯独对大哥俯首帖耳', nameEn: 'Guan Yu', source: '《三国演义》' },
+    // 甄嬛传
+    { id: 'zhen-huan', name: '甄嬛', world: 'chinese-classic', worldLabel: '中国古典', persona: '隐忍蛰伏，步步为营，从天真少女变成宫斗之神', source: '《甄嬛传》' },
+    { id: 'hua-fei', name: '华妃', world: 'chinese-classic', worldLabel: '中国古典', persona: '骄横跋扈，爱恨极端，被宠坏的刀子嘴刀子心', source: '《甄嬛传》' },
+    { id: 'shen-meizhuang', name: '沈眉庄', world: 'chinese-classic', worldLabel: '中国古典', persona: '端庄冷静，清高自持，宁可碎也不肯弯腰', source: '《甄嬛传》' },
+    { id: 'an-lingrong', name: '安陵容', world: 'chinese-classic', worldLabel: '中国古典', persona: '自卑敏感，表里不一，嫉妒是她最深的驱动力', source: '《甄嬛传》' },
   ],
 
   // 西方文学
@@ -60,6 +67,9 @@ const CHARACTER_POOL = {
   // 动漫
   'anime': [
     { id: 'luffy', name: '路飞', world: 'anime', worldLabel: '动漫', persona: '纯粹热血，无脑冲锋，用拳头解决一切', nameEn: 'Monkey D. Luffy', source: '《海贼王》' },
+    { id: 'zoro', name: '索隆', world: 'anime', worldLabel: '动漫', persona: '三刀流天才，迷路必踩点，为成天下第一剑士可以去死', nameEn: 'Roronoa Zoro', source: '《海贼王》' },
+    { id: 'nami', name: '娜美', world: 'anime', worldLabel: '动漫', persona: '唯钱是图，航海奇才，喜欢的人她也用贝利丈量', nameEn: 'Nami', source: '《海贼王》' },
+    { id: 'sanji', name: '山治', world: 'anime', worldLabel: '动漫', persona: '厨艺第一，色心第一，对女人永远失去理性', nameEn: 'Sanji', source: '《海贼王》' },
     { id: 'naruto', name: '鸣人', world: 'anime', worldLabel: '动漫', persona: '不认输的螺旋，孤独逆袭，靠念叨打动所有人', nameEn: 'Naruto Uzumaki', source: '《火影忍者》' },
     { id: 'edward-elric', name: '爱德华·艾尔利克', world: 'anime', worldLabel: '动漫', persona: '固执暴躁，天才炼金，永远为了弟弟拼命', nameEn: 'Edward Elric', source: '《钢之炼金术师》' },
     { id: 'light-yagami', name: '夜神月', world: 'anime', worldLabel: '动漫', persona: '精英病态，自我神化，把正义当成统治的借口', nameEn: 'Light Yagami', source: '《死亡笔记》' },
@@ -72,13 +82,23 @@ const CHARACTER_POOL = {
   // 影视
   'film-tv': [
     { id: 'tony-stark', name: '托尼·斯塔克', world: 'film-tv', worldLabel: '影视', persona: '天才自大狂，毒舌幽默，内心其实脆弱无比', nameEn: 'Tony Stark', source: '《钢铁侠》' },
+    { id: 'thor', name: '雷神索尔', world: 'film-tv', worldLabel: '影视', persona: '肌肉王子，霸气直球，锤子不在就是最可爱的傻瓜', nameEn: 'Thor', source: '《雷神》' },
+    { id: 'black-widow', name: '黑寡妇', world: 'film-tv', worldLabel: '影视', persona: '冷静致命，情感债沉重，用身份消除的罪债从没真正归零', nameEn: 'Black Widow', source: '《复仇者联盟》' },
+    { id: 'captain-america', name: '美国队长', world: 'film-tv', worldLabel: '影视', persona: '正义到死，原则不折，时代变了他还是那个Brooklyn小子', nameEn: 'Captain America', source: '《美国队长》' },
     { id: 'hermione', name: '赫敏·格兰杰', world: 'film-tv', worldLabel: '影视', persona: '学霸控制欲，规则守护者，用智慧帮大家收拾烂摊子', nameEn: 'Hermione Granger', source: '《哈利·波特》' },
+    { id: 'harry-potter', name: '哈利·波特', world: 'film-tv', worldLabel: '影视', persona: '命中注定的主角，靠朋友才能活，有时候勇气大过脑子', nameEn: 'Harry Potter', source: '《哈利·波特》' },
+    { id: 'dumbledore', name: '邓布利多', world: 'film-tv', worldLabel: '影视', persona: '智慧深不可测，从不把底牌亮出来，慈悲背后有太多算计', nameEn: 'Albus Dumbledore', source: '《哈利·波特》' },
+    { id: 'snape', name: '斯内普', world: 'film-tv', worldLabel: '影视', persona: '冷酷刻薄表象下，是一辈子的暗恋和守护', nameEn: 'Severus Snape', source: '《哈利·波特》' },
+    { id: 'voldemort', name: '伏地魔', world: 'film-tv', worldLabel: '影视', persona: '对死亡的极度恐惧催生了极度的残忍，连名字都是禁忌', nameEn: 'Lord Voldemort', source: '《哈利·波特》' },
     { id: 'hannibal', name: '汉尼拔·莱克特', world: 'film-tv', worldLabel: '影视', persona: '优雅残酷，审美洁癖，把杀人当成一种艺术行为', nameEn: 'Hannibal Lecter', source: '《汉尼拔》' },
     { id: 'don-draper', name: '唐·德雷珀', world: 'film-tv', worldLabel: '影视', persona: '魅力表象，内在空洞，靠叙事掌控一切', nameEn: 'Don Draper', source: '《广告狂人》' },
     { id: 'sheldon-cooper', name: '谢尔顿·库珀', world: 'film-tv', worldLabel: '影视', persona: '智商爆表，情商为零，自认宇宙中心', nameEn: 'Sheldon Cooper', source: '《生活大爆炸》' },
     { id: 'walter-white', name: '沃尔特·怀特', world: 'film-tv', worldLabel: '影视', persona: '平凡人的崩塌，自我欺骗，一步步成为他鄙视的人', nameEn: 'Walter White', source: '《绝命毒师》' },
     { id: 'jack-sparrow', name: '杰克·斯派罗', world: 'film-tv', worldLabel: '影视', persona: '醉鬼海盗，鬼才逃跑，混乱中总能占到便宜', nameEn: 'Jack Sparrow', source: '《加勒比海盗》' },
     { id: 'tyrion-lannister', name: '提利昂·兰尼斯特', world: 'film-tv', worldLabel: '影视', persona: '毒舌智者，用嘴活命，被低估的人中最危险', nameEn: 'Tyrion Lannister', source: '《权力的游戏》' },
+    { id: 'jon-snow', name: '琼恩·雪诺', world: 'film-tv', worldLabel: '影视', persona: '贵贱不明的王者，啥都不知道，但啥都肯扛', nameEn: 'Jon Snow', source: '《权力的游戏》' },
+    { id: 'cersei', name: '瑟曦·兰尼斯特', world: 'film-tv', worldLabel: '影视', persona: '权欲滔天，保护后代不择手段，把爱变成了武器', nameEn: 'Cersei Lannister', source: '《权力的游戏》' },
+    { id: 'daenerys', name: '丹妮莉丝', world: 'film-tv', worldLabel: '影视', persona: '从受害者到征服者，龙焰之下是无法熄灭的使命感', nameEn: 'Daenerys Targaryen', source: '《权力的游戏》' },
   ],
 
   // 神话
@@ -100,66 +120,72 @@ const CHARACTER_POOL = {
  * 用于快速命中预设角色，跳过 AI 调用
  */
 const HOT_IP_MAP = {
-  // 西游记相关
+  // 西游记（4 个同 IP 角色）
   '西游记': ['sun-wukong', 'zhu-bajie', 'tang-seng', 'sha-wujing'],
   '孙悟空': ['sun-wukong', 'zhu-bajie', 'tang-seng', 'sha-wujing'],
   '取经': ['sun-wukong', 'zhu-bajie', 'tang-seng', 'sha-wujing'],
-  // 红楼梦相关
+  // 红楼梦（只有 3 个角色，不足 4 个，走 AI 搜索）
   '红楼梦': ['lin-daiyu', 'jia-baoyu', 'wang-xifeng'],
   '林黛玉': ['lin-daiyu', 'jia-baoyu', 'wang-xifeng'],
   '贾宝玉': ['lin-daiyu', 'jia-baoyu', 'wang-xifeng'],
   '大观园': ['lin-daiyu', 'jia-baoyu', 'wang-xifeng'],
-  // 三国相关
-  '三国': ['zhuge-liang', 'cao-cao', 'wu-zetian'],
-  '诸葛亮': ['zhuge-liang', 'cao-cao'],
-  '曹操': ['zhuge-liang', 'cao-cao'],
-  // 哈利波特相关
-  '哈利波特': ['hermione', 'tony-stark', 'hannibal', 'sheldon-cooper'],
-  '赫敏': ['hermione', 'tony-stark', 'hannibal'],
-  '霍格沃茨': ['hermione', 'tony-stark', 'sheldon-cooper'],
-  // 漫威相关
-  '漫威': ['tony-stark', 'hermione', 'loki', 'athena'],
-  '钢铁侠': ['tony-stark', 'hermione', 'loki'],
-  '复仇者': ['tony-stark', 'hermione', 'loki', 'zeus'],
-  // 海贼王相关
-  '海贼王': ['luffy', 'naruto', 'levi', 'gintoki'],
-  '路飞': ['luffy', 'naruto', 'levi'],
-  '草帽': ['luffy', 'naruto', 'gintoki'],
-  // 火影相关
-  '火影': ['naruto', 'luffy', 'edward-elric', 'levi'],
-  '鸣人': ['naruto', 'luffy', 'edward-elric'],
-  '忍者': ['naruto', 'luffy', 'levi'],
-  // 希腊神话相关
+  // 三国（4 个同 IP 角色）
+  '三国': ['zhuge-liang', 'cao-cao', 'liu-bei', 'guan-yu'],
+  '诸葛亮': ['zhuge-liang', 'cao-cao', 'liu-bei', 'guan-yu'],
+  '曹操': ['zhuge-liang', 'cao-cao', 'liu-bei', 'guan-yu'],
+  // 甄嬛传（4 个同 IP 角色）
+  '甄嬛传': ['zhen-huan', 'hua-fei', 'shen-meizhuang', 'an-lingrong'],
+  '甄嬛': ['zhen-huan', 'hua-fei', 'shen-meizhuang', 'an-lingrong'],
+  // 哈利波特（5 个同 IP 角色）
+  '哈利波特': ['harry-potter', 'hermione', 'dumbledore', 'snape', 'voldemort'],
+  '赫敏': ['harry-potter', 'hermione', 'dumbledore', 'snape', 'voldemort'],
+  '霍格沃茨': ['harry-potter', 'hermione', 'dumbledore', 'snape', 'voldemort'],
+  // 漫威（4 个同 IP 角色）
+  '漫威': ['tony-stark', 'thor', 'black-widow', 'captain-america'],
+  '钢铁侠': ['tony-stark', 'thor', 'black-widow', 'captain-america'],
+  '复仇者': ['tony-stark', 'thor', 'black-widow', 'captain-america'],
+  // 海贼王（4 个同 IP 角色）
+  '海贼王': ['luffy', 'zoro', 'nami', 'sanji'],
+  '路飞': ['luffy', 'zoro', 'nami', 'sanji'],
+  '草帽': ['luffy', 'zoro', 'nami', 'sanji'],
+  // 权力的游戏（4 个同 IP 角色）
+  '权游': ['tyrion-lannister', 'jon-snow', 'cersei', 'daenerys'],
+  '权力的游戏': ['tyrion-lannister', 'jon-snow', 'cersei', 'daenerys'],
+  // 希腊神话（4 个同 IP 角色）
   '希腊神话': ['zeus', 'athena', 'hermes', 'medusa'],
-  '奥林匹斯': ['zeus', 'athena', 'hermes', 'loki'],
-  '宙斯': ['zeus', 'athena', 'hermes'],
-  // 中国神话相关
+  '奥林匹斯': ['zeus', 'athena', 'hermes', 'medusa'],
+  '宙斯': ['zeus', 'athena', 'hermes', 'medusa'],
+  // 中国神话（4 个同 IP 角色）
   '中国神话': ['nuwa', 'nezha', 'yanluo', 'sun-wukong-myth'],
   '哪吒': ['nezha', 'nuwa', 'yanluo', 'sun-wukong-myth'],
-  '女娲': ['nuwa', 'nezha', 'yanluo'],
-  // 硅谷科技相关
+  '女娲': ['nuwa', 'nezha', 'yanluo', 'sun-wukong-myth'],
+  // 硅谷科技（4-5 个同 IP 人物）
   '科技巨头': ['steve-jobs', 'elon-musk', 'bill-gates', 'bezos', 'zuckerberg'],
   '乔布斯': ['steve-jobs', 'elon-musk', 'bill-gates', 'bezos'],
   '马斯克': ['elon-musk', 'steve-jobs', 'bezos', 'ren-zhengfei'],
   '硅谷': ['steve-jobs', 'elon-musk', 'bill-gates', 'zuckerberg'],
-  // 历史相关
+  // 历史（3 个角色，不足 4 个，走 AI 搜索）
   '罗马': ['julius-caesar', 'cleopatra', 'napoleon'],
   '凯撒': ['julius-caesar', 'cleopatra', 'napoleon'],
-  // 进击的巨人
-  '进击的巨人': ['levi', 'naruto', 'luffy', 'edward-elric'],
-  '利威尔': ['levi', 'naruto', 'edward-elric'],
-  // 咒术回战
-  '咒术回战': ['satoru-gojo', 'naruto', 'levi', 'luffy'],
-  '五条悟': ['satoru-gojo', 'naruto', 'edward-elric'],
-  // 石纪元
-  '石纪元': ['senku', 'edward-elric', 'hermione', 'bill-gates'],
-  '千空': ['senku', 'edward-elric'],
-  // 死亡笔记
-  '死亡笔记': ['light-yagami', 'sherlock-holmes', 'hannibal'],
-  '夜神月': ['light-yagami', 'sherlock-holmes', 'hannibal'],
-  // 银魂
-  '银魂': ['gintoki', 'luffy', 'naruto', 'jack-sparrow'],
-  '坂田银时': ['gintoki', 'luffy', 'jack-sparrow'],
+  // 以下 IP 角色不够 4 个，保留关键词但走 AI 搜索（< 4 个时 searchPresetCharacters 返回 null）
+  // 火影忍者 - 只有鸣人一个
+  '火影': ['naruto'],
+  '鸣人': ['naruto'],
+  // 进击的巨人 - 只有利威尔一个
+  '进击的巨人': ['levi'],
+  '利威尔': ['levi'],
+  // 咒术回战 - 只有五条悟一个
+  '咒术回战': ['satoru-gojo'],
+  '五条悟': ['satoru-gojo'],
+  // 死亡笔记 - 只有夜神月一个
+  '死亡笔记': ['light-yagami'],
+  '夜神月': ['light-yagami'],
+  // 银魂 - 只有银时一个
+  '银魂': ['gintoki'],
+  '坂田银时': ['gintoki'],
+  // 石纪元 - 只有千空一个
+  '石纪元': ['senku'],
+  '千空': ['senku'],
 };
 
 /**

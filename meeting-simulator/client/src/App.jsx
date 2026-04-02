@@ -17,7 +17,7 @@ import BrainstormEntry from './pages/BrainstormEntry.jsx';
 import CharacterSearch from './pages/CharacterSearch.jsx';
 import CharacterSelect from './pages/CharacterSelect.jsx';
 import RandomDraw from './pages/RandomDraw.jsx';
-import ThemePreview from './pages/ThemePreview.jsx';
+// ThemePreview 文件保留但路由已合并进 PreMeeting，不再导入
 
 // 重置页面：清除所有数据并跳转到首页
 function ResetPage() {
@@ -52,8 +52,8 @@ function App() {
             <Route path="/brainstorm/characters" element={<CharacterSelect />} />
             {/* 随机抽签页（乱炖局）*/}
             <Route path="/brainstorm/random" element={<RandomDraw />} />
-            {/* 主题预览页（点将局 + 乱炖局共用）*/}
-            <Route path="/brainstorm/theme" element={<ThemePreview />} />
+            {/* 主题预览页已合并进 PreMeeting，此路由重定向到 Loading 避免旧链接失效 */}
+            <Route path="/brainstorm/theme" element={<Navigate to="/loading" replace />} />
             {/* 加载页：生成会议中 */}
             <Route path="/loading" element={<Loading />} />
             {/* 会前 Briefing */}

@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
-import { generateBrainstormTheme } from '../api/index.js';
-import { useToast } from '../context/ToastContext.jsx';
+
 import styles from './CharacterSelect.module.css';
 
 /**
@@ -13,8 +12,6 @@ import styles from './CharacterSelect.module.css';
 function CharacterSelect() {
   const navigate = useNavigate();
   const { state, updateState } = useApp();
-  const { showError } = useToast();
-
   // 从 AppContext 取搜索结果（由 CharacterSearch 存入）
   const characters = state._searchedCharacters || [];
   const worldLabel = state._searchedWorldLabel || '';
@@ -45,37 +42,23 @@ function CharacterSelect() {
     });
   };
 
-  // 确认选择，生成主题
-  const handleConfirm = async () => {
+  // 确认选择，直接跳 Loading 页生成完整会议（含主题生成）
+  const handleConfirm = () => {
     if (selectedIds.size < 2 || isLoading) return;
 
     const selectedCharacters = characters.filter(c => selectedIds.has(c.id));
     const mainWorld = selectedCharacters[0]?.world || '';
 
-    setIsLoading(true);
-    try {
-      // 生成主题预览
-      const result = await generateBrainstormTheme({
-        sessionId: state.sessionId,
-        sceneType: 'brainstorm-pick',
-        characters: selectedCharacters,
-        mainWorld,
-      });
-
-      // 保存选中角色和主题数据
-      updateState({
-        brainstormCharacters: selectedCharacters,
-        brainstormMainWorld: mainWorld,
-        brainstormTheme: result.theme,
-        themeRefreshCount: 0,
-      });
-      navigate('/brainstorm/theme');
-    } catch (err) {
-      console.error('生成主题失败:', err);
-      showError('生成主题失败，请重试');
-    } finally {
-      setIsLoading(false);
-    }
+    // 清除旧主题，确保 Loading 页会重新生成主题
+    updateState({
+      brainstormCharacters: selectedCharacters,
+      brainstormMainWorld: mainWorld,
+      brainstormTheme: null,
+      themeRefreshCount: 0,
+      sceneType: 'brainstorm-pick',
+      meetingSource: 'generate',
+    });
+    navigate('/loading');
   };
 
   const selectedCount = selectedIds.size;

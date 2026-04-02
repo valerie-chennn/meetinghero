@@ -108,6 +108,11 @@
 
 不要让已完成的事项留在待办里，不要让记忆变成垃圾堆。
 
+### 10. Bug 模式检查
+
+每次改代码前，根据改动类型去 memory 中的 bug-patterns.md 查对应分类，执行检查动作。
+每次修复 bug 后，判断根因属于哪类模式，更新 bug-patterns.md（新模式则新增，已有模式则补充）。
+
 ## 项目结构速查
 
 完整文档：`meeting-simulator/docs/project-structure.md`

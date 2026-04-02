@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
-import { generateMeeting } from '../api/index.js';
+import { generateMeeting, generateBrainstormTheme } from '../api/index.js';
 import { useToast } from '../context/ToastContext.jsx';
 import styles from './Loading.module.css';
 
@@ -99,13 +99,29 @@ function Loading() {
       }
 
       try {
-        // 脑洞模式需要额外传入角色和场景参数
+        // 判断是否脑洞模式
         const isBrainstorm = state.sceneType && state.sceneType.startsWith('brainstorm');
+
+        // 脑洞模式：如果没有预生成主题，先轻量调用 generateBrainstormTheme（约 2-3 秒）
+        let brainstormTheme = state.brainstormTheme || null;
+        if (isBrainstorm && !brainstormTheme) {
+          const themeResult = await generateBrainstormTheme({
+            sessionId: state.sessionId,
+            sceneType: state.sceneType,
+            characters: state.brainstormCharacters || [],
+            mainWorld: state.brainstormMainWorld || '',
+          });
+          brainstormTheme = themeResult.theme;
+          // 存入全局状态，供 PreMeeting 页的换主题功能使用
+          updateState({ brainstormTheme });
+        }
+
+        // 脑洞模式需要额外传入角色和场景参数
         const brainstormParams = isBrainstorm ? {
           sceneType: state.sceneType,
           characters: state.brainstormCharacters || [],
           mainWorld: state.brainstormMainWorld || '',
-          brainstormTheme: state.brainstormTheme || null,
+          brainstormTheme: brainstormTheme,
         } : null;
 
         const meetingData = await generateMeeting(
@@ -132,9 +148,9 @@ function Loading() {
       } catch (err) {
         console.error('生成会议失败:', err);
         showError('会议生成失败，请重试');
-        // 脑洞模式失败跳回主题预览，正经开会失败跳来源选择
+        // 脑洞模式失败跳回脑洞入口，正经开会失败跳来源选择
         const isBrainstorm = state.sceneType && state.sceneType.startsWith('brainstorm');
-        setTimeout(() => navigate(isBrainstorm ? '/brainstorm/theme' : '/source'), 2000);
+        setTimeout(() => navigate(isBrainstorm ? '/brainstorm' : '/source'), 2000);
       }
     };
 

@@ -236,11 +236,13 @@
   line-height: 1.2;
 }
 
-/* 副文案：15px，次要色 */
+/* 副文案：15px，次要色，显式居中确保与称号行对齐 */
 .titleSubtext {
   font-size: var(--font-base);  /* 15px */
   color: var(--text-secondary);
   line-height: 1.5;
+  text-align: center;
+  width: 100%;
 }
 
 /* =====================================================

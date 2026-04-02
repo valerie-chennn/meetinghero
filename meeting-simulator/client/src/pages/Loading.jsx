@@ -5,13 +5,22 @@ import { generateMeeting } from '../api/index.js';
 import { useToast } from '../context/ToastContext.jsx';
 import styles from './Loading.module.css';
 
-// 会前预习提示内容
-const TIPS = [
+// 正经开会模式的提示
+const TIPS_FORMAL = [
   '这是一场项目会议，你会和 3-4 位同事对话',
   '会议中有 3 个关键时刻需要你发言',
   '你可以用中文输入，系统会帮你转成英文',
   '不确定怎么说时，可以点开「参考说法」',
   '会后有复盘环节，帮你巩固学到的表达',
+];
+
+// 脑洞模式的提示
+const TIPS_BRAINSTORM = [
+  '角色们正在换装适应新世界…',
+  '场景设定越离谱，对话越有趣',
+  '用英语跟传奇人物过招，想想就刺激',
+  '每个角色都有自己的脾气，别惹错人',
+  '会后复盘会告诉你哪些表达可以更好',
 ];
 
 /**
@@ -22,6 +31,11 @@ function Loading() {
   const navigate = useNavigate();
   const { state, updateState } = useApp();
   const { showError } = useToast();
+
+  // 判断是否脑洞模式，决定文案和 Tips 数组
+  const isBrainstormMode = state.sceneType && state.sceneType.startsWith('brainstorm');
+  const TIPS = isBrainstormMode ? TIPS_BRAINSTORM : TIPS_FORMAL;
+
   const [currentTip, setCurrentTip] = useState(0);
   const [tipVisible, setTipVisible] = useState(true);
   // 模拟进度：0~90 平滑增长，API 返回后跳到 100
@@ -134,10 +148,14 @@ function Loading() {
 
   return (
     <div className={styles.container}>
-      {/* 主标题 */}
+      {/* 主标题：根据模式显示不同文案 */}
       <div className={styles.titleGroup}>
-        <h1 className={styles.title}>正在生成你的会议…</h1>
-        <p className={styles.subtitle}>把你的信息整理成一场真实的会议</p>
+        <h1 className={styles.title}>
+          {isBrainstormMode ? '正在召唤角色…' : '正在生成你的会议…'}
+        </h1>
+        <p className={styles.subtitle}>
+          {isBrainstormMode ? '命运正在安排一场意想不到的碰面' : '把你的信息整理成一场真实的会议'}
+        </p>
       </div>
 
       {/* 进度条区域 */}

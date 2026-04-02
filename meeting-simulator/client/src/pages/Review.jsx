@@ -246,7 +246,7 @@ function Review() {
           <div className={styles.statDivider}></div>
           <div className={styles.statItem}>
             <span className={styles.statNumber}>{totalWords}</span>
-            <span className={styles.statLabel}>共 N 词</span>
+            <span className={styles.statLabel}>英文词数</span>
           </div>
           <div className={styles.statDivider}></div>
           <div className={styles.statItem}>

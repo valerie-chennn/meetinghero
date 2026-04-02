@@ -86,12 +86,13 @@ function RandomDraw() {
       return next;
     });
 
-    // 2. 翻牌动画接近完成时（550ms 延迟）：先触发大卡淡出，同时让小卡开始弹入
-    //    这样大卡淡出（150ms）与小卡弹入（400ms）形成交叠，过渡更丝滑
+    // 2. 翻牌动画接近完成时触发大卡淡出 + 小卡弹入
+    //    翻转动画现为 500ms（spring 曲线），在 460ms 时开始交叠过渡：
+    //    大卡淡出 150ms（ease-in 加速离开）与小卡弹入 450ms 形成交叠，视觉更连续
     const t1 = setTimeout(() => {
       // 开始淡出大卡
       setBigCardFading(true);
-      // 同时显示本张小卡（小卡 springIn 400ms，与大卡淡出交叠）
+      // 同时显示本张小卡（小卡 springIn 450ms，与大卡淡出交叠）
       setShrinkingCards(prev => {
         const next = [...prev];
         next[idx] = true;
@@ -104,15 +105,15 @@ function RandomDraw() {
         setNextToFlip(null);
 
         if (idx < 2) {
-          // 4. 短暂间隔后显示下一张大卡（背面）
+          // 4. 短暂间隔后显示下一张大卡（背面），留 120ms 让前一张小卡稳定
           const t3 = setTimeout(() => {
             setCardKey(prev => prev + 1);
             setNextToFlip(idx + 1);
-          }, 150);
+          }, 120);
           timersRef.current.push(t3);
         } else {
           // idx === 2：三张全部缩小，等小卡 springIn 动画完成后显示成就区
-          // springIn 总时长 400ms，从 t1 触发时开始计算，此处已过约 150ms，还需约 300ms
+          // springIn 总时长 450ms，从 t1 触发时开始计算，此处已过约 150ms，还需约 320ms
           const t3 = setTimeout(() => {
             setAllAnimationDone(true);
           }, 350);
@@ -120,7 +121,7 @@ function RandomDraw() {
         }
       }, 150);
       timersRef.current.push(t2);
-    }, 550);
+    }, 460);
     timersRef.current.push(t1);
   };
 

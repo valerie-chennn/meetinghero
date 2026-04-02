@@ -219,15 +219,6 @@
   line-height: 1;
 }
 
-/* 前情提要正文（旧格式，单段） */
-.backstoryText {
-  font-size: 14px;
-  font-weight: 400;
-  color: var(--text-primary);
-  line-height: 1.7;
-  margin: 0;
-}
-
 /* 前情提要分行显示（新格式，按类型区分样式） */
 .backstoryLines {
   display: flex;
@@ -355,18 +346,6 @@
 .roleInfoGoal {
   background: rgba(16, 185, 129, 0.04);
   animation-delay: 280ms;
-}
-
-/* 难点行背景：极淡橙色 */
-.roleInfoChallenge {
-  background: rgba(249, 115, 22, 0.04);
-  animation-delay: 360ms;
-}
-
-/* 盟友行背景：极淡品牌靛蓝 */
-.roleInfoAlly {
-  background: rgba(79, 70, 229, 0.04);
-  animation-delay: 440ms;
 }
 
 /* 左侧 3px 竖向色条（通过 inline style 传入具体颜色） */

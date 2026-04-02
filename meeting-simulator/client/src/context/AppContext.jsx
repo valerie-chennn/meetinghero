@@ -4,7 +4,8 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 const AppContext = createContext(null);
 
 // localStorage 中持久化的字段列表
-const PERSIST_KEYS = ['sessionId', 'userName', 'englishLevel', 'jobTitle', 'industry', 'sceneType'];
+// sceneType 是会话级字段，不持久化（用户刷新后应重新选择模式）
+const PERSIST_KEYS = ['sessionId', 'userName', 'englishLevel', 'jobTitle', 'industry'];
 
 // 从 localStorage 读取持久化状态
 function loadPersistedState() {

@@ -181,7 +181,8 @@ router.post('/generate', async (req, res) => {
       const NAME_PATTERN = /[A-Z][a-z]+(?:\s[A-Z][a-z]+)*(?:\s*[（(][^）)]+[）)])?/g;
 
       // ========== 修正 challenge：强制使用 pressureRole 的名字 ==========
-      if (meetingData.userRole.challenge && pressureRole) {
+      // 脑洞模式不生成 challenge/ally 字段，isBrainstorm 时跳过
+      if (!isBrainstorm && meetingData.userRole.challenge && pressureRole) {
         const roleName = pressureRole.name;
         const roleTitle = pressureRole.title;
         const text = meetingData.userRole.challenge;
@@ -203,7 +204,8 @@ router.post('/generate', async (req, res) => {
       }
 
       // ========== 修正 ally：强制使用 allyRole 的名字 ==========
-      if (meetingData.userRole.ally && allyRole) {
+      // 脑洞模式不生成 challenge/ally 字段，isBrainstorm 时跳过
+      if (!isBrainstorm && meetingData.userRole.ally && allyRole) {
         const roleName = allyRole.name;
         const roleTitle = allyRole.title;
         const text = meetingData.userRole.ally;

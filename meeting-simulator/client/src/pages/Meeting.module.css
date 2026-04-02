@@ -423,14 +423,24 @@
   animation: fadeInUp 0.35s var(--ease-spring);
 }
 
-/* NPC（左侧）消息入场：从左侧滑入 */
+/* NPC（左侧）消息入场：从下方浮起 + 淡入，统一 bubbleIn 动画 */
 .newMessageIncoming {
-  animation: slideInLeft 0.4s var(--ease-spring);
+  animation: bubbleIn 0.28s ease-out;
 }
 
 /* 用户（右侧）消息入场：从右侧滑入 */
 .newMessageOutgoing {
   animation: slideInFromRight 0.4s var(--ease-spring);
+}
+
+/* 同一说话人的连续消息入场：与首条相同动画，视觉一致 */
+.newMessageContinuous {
+  animation: bubbleIn 0.28s ease-out;
+}
+
+/* 连续消息紧凑间距：与上一条消息缩小间距，减少视觉割裂感 */
+.continuousMessage {
+  margin-top: -4px !important;
 }
 
 
@@ -460,6 +470,11 @@
   background: #F8FAFC;
   border-left: 2px solid var(--color-brand);
   border-radius: 0 6px 6px 0;
+}
+
+/* 打字机完成后翻译淡入，不硬切 */
+.translationFadeIn {
+  animation: fadeIn 0.4s ease-out;
 }
 
 .translationText {
@@ -574,14 +589,27 @@
    设计：左侧彩色竖线区分激活/完成状态，橙绿色彩系
    ===================================================== */
 
-@keyframes nodeCardEnter {
+/* keynote 整体入场：translateY(15px)→0 + opacity，600ms ease-out */
+@keyframes keynoteEnter {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(15px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* 每个选项块入场：translateY(8px)+scale(0.95)→正常，400ms ease-out */
+@keyframes optionEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 
@@ -600,7 +628,8 @@
   transition: background 0.3s var(--ease-standard),
               border-color 0.3s var(--ease-standard),
               box-shadow 0.3s var(--ease-standard);
-  animation: nodeCardEnter 0.35s var(--ease-spring);
+  /* keynote 整体入场动画：600ms ease-out */
+  animation: keynoteEnter 0.6s ease-out;
 }
 
 /* 激活状态：橙色左边框 + 极浅橙背景 */
@@ -1108,46 +1137,33 @@
 }
 
 /* =====================================================
-   自定义 Typing Indicator
+   自定义 Typing Indicator（作为消息气泡渲染）
    ===================================================== */
-.typingIndicator {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 24px;
+.typingMessage {
+  margin-bottom: 4px !important;
 }
 
-.typingDots {
+.typingBubble {
   display: flex;
-  gap: 4px;
+  gap: 6px;
   align-items: center;
+  padding: 10px 16px;
 }
 
 .typingDot {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  background: var(--text-muted);
+  background: var(--color-brand-mid, #6366f1);
   animation: dotBounce 1.4s ease-in-out infinite;
 }
 
 .typingDot:nth-child(2) {
-  animation-delay: 0.2s;
+  animation-delay: 0.18s;
 }
 
 .typingDot:nth-child(3) {
-  animation-delay: 0.4s;
-}
-
-@keyframes dotBounce {
-  0%, 80%, 100% {
-    transform: translateY(0);
-    opacity: 0.4;
-  }
-  40% {
-    transform: translateY(-6px);
-    opacity: 1;
-  }
+  animation-delay: 0.36s;
 }
 
 .endButton:active {

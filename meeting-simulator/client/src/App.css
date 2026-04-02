@@ -356,6 +356,18 @@ textarea:focus {
   }
 }
 
+/* 轻微浮起（连续消息入场，位移量小，不过于抢眼）*/
+@keyframes fadeInUpLight {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* 从上淡入（Toast、下拉等）*/
 @keyframes fadeInDown {
   from {
@@ -444,7 +456,19 @@ textarea:focus {
   }
 }
 
-/* 从左滑入（NPC 消息入场）*/
+/* 气泡入场（NPC 消息统一入场动画：从下方浮起 + 淡入）*/
+@keyframes bubbleIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 从左滑入（已废弃，保留兼容性）*/
 @keyframes slideInLeft {
   from {
     opacity: 0;
@@ -472,6 +496,33 @@ textarea:focus {
 @keyframes glowPulse {
   0%, 100% { box-shadow: var(--shadow-brand); }
   50%       { box-shadow: 0 4px 24px rgba(79, 70, 229, 0.35); }
+}
+
+/* Typing indicator 圆点（全局类名+全局 keyframes，绕开 CSS Modules hash）*/
+/* !important 覆盖 prefers-reduced-motion 的全局禁用，确保圆点始终跳动 */
+.typing-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #6366f1;
+  display: inline-block;
+  animation-name: dotPulseWave !important;
+  animation-duration: 1.4s !important;
+  animation-timing-function: ease-in-out !important;
+  animation-iteration-count: infinite !important;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.18s !important; }
+.typing-dot:nth-child(3) { animation-delay: 0.36s !important; }
+
+@keyframes dotPulseWave {
+  0%, 55%, 100% {
+    transform: translateY(0);
+    opacity: 0.35;
+  }
+  28% {
+    transform: translateY(-10px);
+    opacity: 1;
+  }
 }
 
 /* ===================================================
@@ -505,6 +556,20 @@ textarea:focus {
 
 .toast.error {
   border-left: 3px solid var(--color-error);
+}
+
+/* ===================================================
+   Meeting keynote 选项块入场动画（全局定义，供内联 style animation 引用）
+   =================================================== */
+@keyframes optionEnter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .toast.success {

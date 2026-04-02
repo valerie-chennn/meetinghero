@@ -220,6 +220,41 @@ function RoleInfoCard({ role, onClose }) {
 }
 
 /**
+ * 打字机效果组件：文字逐字出现，模拟 AI 流式输出感
+ * @param {string} text - 要显示的文字
+ * @param {number} speed - 每个字的间隔（毫秒），默认 35
+ * @param {function} onComplete - 全部显示完成后的回调
+ */
+function TypewriterText({ text, speed = 35, onComplete }) {
+  const [displayedLength, setDisplayedLength] = useState(0);
+  const completedRef = useRef(false);
+
+  useEffect(() => {
+    if (!text) return;
+    // 每次 text 变化重置状态
+    setDisplayedLength(0);
+    completedRef.current = false;
+
+    let i = 0;
+    const timer = setInterval(() => {
+      i++;
+      setDisplayedLength(i);
+      if (i >= text.length) {
+        clearInterval(timer);
+        if (!completedRef.current) {
+          completedRef.current = true;
+          onComplete?.();
+        }
+      }
+    }, speed);
+
+    return () => clearInterval(timer);
+  }, [text, speed]);
+
+  return <>{text.slice(0, displayedLength)}</>;
+}
+
+/**
  * 会中聊天流页面
  * 实现逐条播放 dialogue，遇到 isKeyNode 时暂停等待用户输入，
  * 用户提交后追加 responseDialogue，继续播放直到会议结束后跳转复盘
@@ -265,6 +300,8 @@ function Meeting() {
   const [failedNodes, setFailedNodes] = useState(new Set());
   // 会议结束后是否显示"查看复盘"按钮
   const [showEndButton, setShowEndButton] = useState(false);
+  // 已完成打字机效果的消息 ID 集合（避免 re-render 时重复播放）
+  const [typewriterDoneIds, setTypewriterDoneIds] = useState(new Set());
   // 是否已触发会议结束流程（防止重复触发）
   const meetingEndedRef = useRef(false);
   // 用 ref 保存显示用名（脑洞模式用角色头衔，正经开会用花名），供 playDialogueFrom 闭包读取最新值
@@ -437,8 +474,11 @@ function Meeting() {
       currentDialogueIndexRef.current = startIndex + 1;
       setCurrentDialogueIndex(startIndex + 1);
       setActiveNodeIndex(msg.nodeIndex);
-      setShowInput(true);
-      }, 1200); // keyNode 延迟 1.2s 出现
+
+      // 输入框延迟出现：等 keynote 整体入场(600ms) + 等待(500ms) + 选项动画完成 + 等待(400ms)
+      // 选项间隔 600ms，动画 800ms：1100 + 3×600 + 800 + 400 = 4100ms
+      setTimeout(() => setShowInput(true), 4100);
+      }, 1000); // keyNode 延迟 1s 出现（打字机完成后等待）
 
       return; // 铁律 1：硬停
     }
@@ -491,89 +531,107 @@ function Meeting() {
     const msgId = `dialogue-${startIndex}`;
     segmentNpcCountRef.current++;
 
-    // ——— 逐条弹入：根据消息长度决定停留时间，模拟自然对话节奏 ———
+    // ——— 新播放流程：间隔等待 → typing indicator → 消息出现 ———
     const nextMsg = dialogue[startIndex + 1];
     const msgLength = (msg.text || '').length;
-    // 第一条消息直接显示不等待，后续消息根据长度延迟
-    let delay;
+
+    // 判断是否为同一说话人连续发言（基于 dialogue 原始数组，不受 NPC 上限影响）
+    const prevDialogueMsg = startIndex > 0 ? dialogue[startIndex - 1] : null;
+    const isSameSpeakerInDialogue = prevDialogueMsg
+      && prevDialogueMsg.speaker === msg.speaker
+      && !prevDialogueMsg.isKeyNode;
+
+    // 步骤1：计算消息间隔时间
+    // 第一条消息间隔为 0，后续根据同人/换人分档
+    let gapDelay;
     if (startIndex === 0) {
-      delay = 0;  // 第一条立即出现
-    } else if (msgLength < 50) {
-      delay = 1800;  // 短消息：1.2s + 翻译 0.6s
-    } else if (msgLength <= 120) {
-      delay = 3000;  // 中消息：2s + 翻译 1s
+      gapDelay = 0;  // 第一条立即出现 typing indicator
+    } else if (isSameSpeakerInDialogue) {
+      // 同一人连续发言：较短间隔，节奏紧凑
+      gapDelay = Math.round((600 + msgLength * 20) * 0.6);
     } else {
-      delay = 4200;  // 长消息：2.8s + 翻译 1.4s
+      // 换人发言：较长间隔，留时间"换个人"
+      gapDelay = Math.round((600 + msgLength * 20) * 1.2);
     }
-    // 下一条是 keyNode 时用固定 1.5s（不加抖动）
+    // 下一条是 keyNode 时用固定较短间隔，避免等太久
     if (startIndex !== 0 && nextMsg && nextMsg.isKeyNode) {
-      delay = 1500;
-    } else if (delay > 0) {
-      // 随机抖动 ±25%，模拟自然说话节奏
-      delay = Math.round(delay * (0.75 + Math.random() * 0.5));
+      gapDelay = 800;
     }
 
-    // 有等待延迟时，显示"正在输入"角色信息；第一条（delay=0）不显示
-    if (delay > 0) {
-      const speakingRole = findRoleBySpeaker(roles, msg.speaker);
-      setTypingRole(speakingRole || { name: msg.speaker });
-    }
+    // 步骤2：计算 typing indicator 停留时间（模拟打字速度）
+    const typingDuration = 1200 + msgLength * 30;
 
+    // 步骤1：等待间隔后显示 typing indicator
     playTimerRef.current = setTimeout(() => {
-      // 无论是否被 keyNode 阻断，都先清除 typing indicator
-      setTypingRole(null);
       if (isWaitingForUserRef.current) return;
 
-      setDisplayedMessages(prev => {
-        if (prev.some(m => m.id === msgId)) return prev;
-        return [...prev, { ...msg, id: msgId, isNew: true }];
-      });
+      // 显示"正在输入"圆点
+      const speakingRole = findRoleBySpeaker(roles, msg.speaker);
+      setTypingRole(speakingRole || { name: msg.speaker });
 
-      // ——— 铁律 2：检查是否需要注入前端 narrator ———
-      if (segmentNpcCountRef.current === 1 && !segmentHasNarratorRef.current) {
-        let npcBeforeKeyNode = 0;
-        for (let j = startIndex + 1; j < dialogue.length; j++) {
-          const c = dialogue[j];
-          if (c.isKeyNode) break;
-          if (c.speaker === 'narrator') continue;
-          npcBeforeKeyNode++;
+      // 步骤3：圆点停留结束后清除并插入消息
+      playTimerRef.current = setTimeout(() => {
+        // 无论是否被 keyNode 阻断，都先清除 typing indicator
+        setTypingRole(null);
+        if (isWaitingForUserRef.current) return;
+
+        setDisplayedMessages(prev => {
+          if (prev.some(m => m.id === msgId)) return prev;
+          return [...prev, { ...msg, id: msgId, isNew: true }];
+        });
+
+        // 打字机效果时长：等打完再调度下一条消息
+        const typewriterDuration = msgLength * 35;
+
+        // ——— 铁律 2：检查是否需要注入前端 narrator ———
+        if (segmentNpcCountRef.current === 1 && !segmentHasNarratorRef.current) {
+          let npcBeforeKeyNode = 0;
+          for (let j = startIndex + 1; j < dialogue.length; j++) {
+            const c = dialogue[j];
+            if (c.isKeyNode) break;
+            if (c.speaker === 'narrator') continue;
+            npcBeforeKeyNode++;
+          }
+          const canInject = npcBeforeKeyNode >= 1;
+          const nextDialogMsg = dialogue[startIndex + 1];
+          const nextIsNpc = nextDialogMsg &&
+            !nextDialogMsg.isKeyNode &&
+            nextDialogMsg.speaker !== 'narrator';
+
+          if (nextIsNpc && canInject) {
+            segmentHasNarratorRef.current = true;
+            const speakerName = msg.speaker ? msg.speaker.split(' ')[0] : '他';
+            const narratorTexts = [
+              `${speakerName} 向来说话不留情面`,
+              `${speakerName} 每次都这样，先夸再转折`,
+              `看 ${speakerName} 的语气，接下来要追问了`,
+              `${speakerName} 这是在给谁铺垫？`,
+              `嗯，${speakerName} 话里有话`,
+              `${speakerName} 又开始施压了，老套路`,
+            ];
+            const narratorMsg = {
+              speaker: 'narrator',
+              text: narratorTexts[Math.floor(Math.random() * narratorTexts.length)],
+              isNew: true,
+              id: `narrator-inject-${startIndex}`,
+              _injected: true,
+            };
+
+            playTimerRef.current = setTimeout(() => {
+              if (isWaitingForUserRef.current) return;
+              setDisplayedMessages(prev => [...prev, narratorMsg]);
+              playDialogueFrom(startIndex + 1);
+            }, typewriterDuration + 1500);
+            return;
+          }
         }
-        const canInject = npcBeforeKeyNode >= 1;
-        const nextDialogMsg = dialogue[startIndex + 1];
-        const nextIsNpc = nextDialogMsg &&
-          !nextDialogMsg.isKeyNode &&
-          nextDialogMsg.speaker !== 'narrator';
 
-        if (nextIsNpc && canInject) {
-          segmentHasNarratorRef.current = true;
-          const speakerName = msg.speaker ? msg.speaker.split(' ')[0] : '他';
-          const narratorTexts = [
-            `${speakerName} 向来说话不留情面`,
-            `${speakerName} 每次都这样，先夸再转折`,
-            `看 ${speakerName} 的语气，接下来要追问了`,
-            `${speakerName} 这是在给谁铺垫？`,
-            `嗯，${speakerName} 话里有话`,
-            `${speakerName} 又开始施压了，老套路`,
-          ];
-          const narratorMsg = {
-            speaker: 'narrator',
-            text: narratorTexts[Math.floor(Math.random() * narratorTexts.length)],
-            isNew: true,
-            id: `narrator-inject-${startIndex}`,
-            _injected: true,
-          };
-
-          playTimerRef.current = setTimeout(() => {
-            if (isWaitingForUserRef.current) return;
-            setDisplayedMessages(prev => [...prev, narratorMsg]);
-            playDialogueFrom(startIndex + 1);
-          }, 1500);
-          return;
-        }
-      }
-
-      playDialogueFrom(startIndex + 1);
-    }, delay);
+        // 等打字机打完再调度下一条
+        playTimerRef.current = setTimeout(() => {
+          playDialogueFrom(startIndex + 1);
+        }, typewriterDuration);
+      }, typingDuration);
+    }, gapDelay);
   }, [handleMeetingEnd]);
 
   // 初始化：从 processedDialogue[0] 开始播放
@@ -943,17 +1001,7 @@ function Meeting() {
           <ChatContainer className={styles.csChatContainer}>
             <MessageList
               className={styles.csMessageList}
-              typingIndicator={
-                (typingRole || isWaiting) ? (
-                  <div className={styles.typingIndicator}>
-                    <div className={styles.typingDots}>
-                      <span className={styles.typingDot} />
-                      <span className={styles.typingDot} />
-                      <span className={styles.typingDot} />
-                    </div>
-                  </div>
-                ) : null
-              }
+              typingIndicator={null}
             >
               {/* 会议开始分隔符 */}
               <MessageSeparator content="会议开始" />
@@ -1043,6 +1091,16 @@ function Meeting() {
                 const showTitle = roleTitle && sceneType !== 'brainstorm-pick';
                 const headerLabel = showTitle ? `${firstName} · ${roleTitle}` : firstName;
 
+                // 判断是否为连续消息：与上一条消息同一说话人，且都不是 narrator/keyNode/用户消息
+                const prevMsg = idx > 0 ? displayedMessages[idx - 1] : null;
+                const isContinuous = prevMsg
+                  && prevMsg.speaker === msg.speaker
+                  && prevMsg.speaker !== 'narrator'
+                  && !prevMsg.isKeyNode
+                  && !msg.isKeyNode
+                  && !prevMsg.isUser
+                  && prevMsg.type !== 'user';
+
                 return (
                   <Message
                     key={idx}
@@ -1051,36 +1109,45 @@ function Meeting() {
                       direction: 'incoming',
                       position: 'single',
                     }}
-                    className={msg.isNew ? styles.newMessageIncoming : ''}
+                    className={`${msg.isNew ? (isContinuous ? styles.newMessageContinuous : styles.newMessageIncoming) : ''} ${isContinuous ? styles.continuousMessage : ''}`}
                   >
                     <Message.CustomContent>
-                      {/* 可点击的角色名头部：点击弹出角色信息卡 */}
-                      <button
-                        className={styles.npcSpeakerBtn}
-                        onClick={() => {
-                          // 使用 findRoleBySpeaker 兜底匹配，中英文名都能弹出角色卡
-                          const role = findRoleBySpeaker(roles, msg.speaker);
-                          if (role) setActiveRoleCard(role);
-                        }}
-                      >
-                        {/* 小尺寸头像 */}
-                        <div
-                          className={styles.npcSpeakerAvatar}
-                          style={{ background: roleColor }}
+                      {/* 连续消息隐藏角色名头部，保留缩进对齐；首条消息正常显示 */}
+                      {!isContinuous && (
+                        <button
+                          className={styles.npcSpeakerBtn}
+                          onClick={() => {
+                            // 使用 findRoleBySpeaker 兜底匹配，中英文名都能弹出角色卡
+                            const role = findRoleBySpeaker(roles, msg.speaker);
+                            if (role) setActiveRoleCard(role);
+                          }}
                         >
-                          {firstName.charAt(0)}
-                        </div>
-                        {/* 角色名 · 职位 */}
-                        <span className={styles.npcSpeakerLabel}>{headerLabel}</span>
-                      </button>
+                          {/* 小尺寸头像 */}
+                          <div
+                            className={styles.npcSpeakerAvatar}
+                            style={{ background: roleColor }}
+                          >
+                            {firstName.charAt(0)}
+                          </div>
+                          {/* 角色名 · 职位 */}
+                          <span className={styles.npcSpeakerLabel}>{headerLabel}</span>
+                        </button>
+                      )}
                       {/* 消息内容 */}
                       <div className={styles.npcMessageContent}>
                         <p className={styles.npcMessageText}>
-                          {msg.text}
+                          {/* 新消息且未完成打字机则逐字显示，否则直接全文 */}
+                          {msg.isNew && !typewriterDoneIds.has(msg.id) ? (
+                            <TypewriterText
+                              text={msg.text}
+                              speed={35}
+                              onComplete={() => setTypewriterDoneIds(prev => new Set(prev).add(msg.id))}
+                            />
+                          ) : msg.text}
                         </p>
-                        {/* 中文翻译区域：开启翻译且有 textZh 时显示（打字机模式下翻译即时可见，辅助理解） */}
-                        {showTranslation && msg.textZh && (
-                          <div className={styles.translationBlock}>
+                        {/* 中文翻译区域：打字机完成后淡入显示 */}
+                        {showTranslation && msg.textZh && (!msg.isNew || typewriterDoneIds.has(msg.id)) && (
+                          <div className={`${styles.translationBlock} ${msg.isNew && typewriterDoneIds.has(msg.id) ? styles.translationFadeIn : ''}`}>
                             <p className={styles.translationText}>
                               <span className={styles.translationTag}>译</span>
                               {msg.textZh}
@@ -1096,6 +1163,22 @@ function Meeting() {
                   </Message>
                 );
               })}
+
+              {/* Typing Indicator：作为消息渲染，不依赖 chatscope 的 typingIndicator prop */}
+              {(typingRole || isWaiting) && (
+                <Message
+                  model={{ type: 'custom', direction: 'incoming', position: 'single' }}
+                  className={styles.typingMessage}
+                >
+                  <Message.CustomContent>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center', padding: '10px 16px' }}>
+                      <span className="typing-dot" />
+                      <span className="typing-dot" />
+                      <span className="typing-dot" />
+                    </div>
+                  </Message.CustomContent>
+                </Message>
+              )}
 
               {/* 滚动锚点 */}
               <div ref={bottomRef} style={{ height: 8 }}></div>
@@ -1216,12 +1299,24 @@ function NodePromptCard({ nodeIndex, prompt, keyData, isActive, isCompleted }) {
       {/* Key Data 区：仅在有数据且未完成时显示 */}
       {!isCompleted && keyData && keyData.length > 0 && (
         <div className={styles.keyDataRow}>
-          {keyData.map((item, i) => (
-            <div key={i} className={styles.keyDataItem}>
-              <span className={styles.keyDataLabel}>{item.label}</span>
-              <span className={styles.keyDataValue}>{item.value}</span>
-            </div>
-          ))}
+          {keyData.map((item, i) => {
+            // 每个选项依次出现：
+            // keynote 整体入场 600ms + 等待 500ms = 1100ms 起，每个间隔 600ms
+            const optionDelay = 1100 + i * 600;
+            return (
+              <div
+                key={i}
+                className={styles.keyDataItem}
+                style={{
+                  opacity: 0,
+                  animation: `optionEnter 0.8s cubic-bezier(0.25, 0.1, 0.25, 1) ${optionDelay}ms forwards`,
+                }}
+              >
+                <span className={styles.keyDataLabel}>{item.label}</span>
+                <span className={styles.keyDataValue}>{item.value}</span>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

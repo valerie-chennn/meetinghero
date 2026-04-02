@@ -21,6 +21,9 @@
  * @param {string} params.englishLevel - 用户英语等级
  * @param {number} [params.retryCount=0] - 当前节点已重试次数（0 或 1）
  * @param {number} [params.failedNodeCount=0] - 本次会议中已失败的节点数（0-2）
+ * @param {string} [params.sceneType] - 场景类型，brainstorm-pick|brainstorm-random|formal
+ * @param {Array} [params.characters] - 脑洞模式角色数组（可选）
+ * @param {string} [params.mainWorld] - 脑洞模式主场景世界 ID（可选）
  * @returns {{ systemPrompt: string, userPrompt: string }}
  */
 function respondMeetingPrompt({
@@ -32,6 +35,9 @@ function respondMeetingPrompt({
   englishLevel,
   retryCount = 0,
   failedNodeCount = 0,
+  sceneType,
+  characters,
+  mainWorld,
 }) {
   // 将对话上下文格式化为字符串
   const contextStr = (dialogueContext || [])
@@ -50,8 +56,36 @@ function respondMeetingPrompt({
   // 是否为第 2 次 invalid（需要生成 failureResponse 收场）
   const isSecondInvalid = retryCount >= 1;
 
-  const systemPrompt = `你是一个职场英文会议模拟器的实时响应引擎。
+  // 判断是否为脑洞模式，用于注入专属响应规则
+  const isBrainstorm = sceneType && sceneType.startsWith('brainstorm');
 
+  // 脑洞模式：构建角色英语风格提示
+  const brainstormCharacterNote = isBrainstorm && characters && characters.length > 0
+    ? characters.map(c => `- ${c.name}（来自 ${c.worldLabel || c.world}）：${c.persona}`).join('\n')
+    : '';
+
+  // 脑洞模式专属响应规则段落（只在脑洞模式下注入，不影响正经开会）
+  const brainstormResponseRules = isBrainstorm ? `
+## 脑洞模式响应规则
+当前是脑洞模式，NPC 响应原则与正经开会完全不同：
+- NPC 反应来自角色的性格和世界观，不是"职场专业性"
+- valid 响应：角色用自己的思维框架回应，可以有惊喜、有梗、有角色特色的表达方式
+- weak 响应：角色用符合性格的方式表达不满（古典角色用典故暗讽，动漫角色直接喊出来，当代人物皱眉追问），不是标准的"Could you elaborate?"
+- invalid 响应：角色用自己的方式给用户提示，不是通用的重试提示（不要出现"please try again"这类系统语言）
+
+角色说英语时，风格必须匹配角色类型：
+- 古典中国角色：formal, literary English（"Before we proceed, consider this..."，"There is a pattern others have overlooked."）
+- 当代真实人物：direct, casual business English（"Look, the numbers don't add up.", "What's the actual ask here?"）
+- 动漫角色：energetic, dramatic English（"That's not enough!", "I won't stand for this!", "This is my moment!"）
+- 神话角色：authoritative, archaic English（"This is not open to negotiation.", "I have seen kingdoms fall for lesser reasons."）
+- 西方古典人物：eloquent, philosophical English（"But what is the true nature of this problem?", "There is a deeper question we have not yet addressed."）
+
+参与角色：
+${brainstormCharacterNote}
+` : '';
+
+  const systemPrompt = `你是一个${isBrainstorm ? '脑洞模式跨次元会议' : '职场英文会议'}模拟器的实时响应引擎。
+${brainstormResponseRules}
 ## 你的任务
 用户在会议关键节点进行了发言，你需要：
 1. 判断输入有效性
@@ -65,7 +99,7 @@ function respondMeetingPrompt({
 
 ## 意译原则（针对中文/混合输入）
 - 不是逐字翻译，而是基于节点语用目标生成地道英文表达
-- 保持说话者意图，使用职场英文惯用表达
+- 保持说话者意图，使用${isBrainstorm ? '符合场景世界观的英文表达' : '职场英文惯用表达'}
 - 语言等级参考用户等级（${englishLevel}），但意译结果本身要地道自然
 
 ## 不同 inputType 的后续对话要求
@@ -75,18 +109,19 @@ function respondMeetingPrompt({
 
 ### weak
 - NPC 照接，会议继续，但 NPC 语气或措辞体现"你说得不够清楚/不够有力"
-- 例如：轻微皱眉、追问细节、用 "Hmm" 开头表示存疑、或礼貌但不满的回应
+- ${isBrainstorm ? '脑洞模式：角色用符合自身性格的方式表达不满，不是标准职场皱眉' : '例如：轻微皱眉、追问细节、用 "Hmm" 开头表示存疑、或礼貌但不满的回应'}
 - 不重试，直接推进${npcToneNote}
 
 ### invalid（第 1 次，retryCount=0）
 - NPC 给出角色化补救反应（roleplay 语境下的自然对话，不是系统提示）
-- 例如："Take your time. Can you at least share what you do know about the timeline?"
+- ${isBrainstorm ? '脑洞模式：角色用自己的方式给提示，体现角色个性（古典角色用典故暗示，动漫角色直接质疑，神话角色用权威口吻）' : '例如："Take your time. Can you at least share what you do know about the timeline?"'}
 - retryPrompt：NPC 角色的对话（英文 + 中文翻译），引导用户重新尝试
 - responseDialogue 可为空数组或仅包含补救对话本身${npcToneNote}
 
 ### invalid（第 2 次，retryCount=1，需要生成 failureResponse）
 - NPC 给出收场反应，表示放弃追问，自行推进话题
 - failureResponse：NPC 的收场语（英文 + 中文翻译），${failedNodeCount >= 2 ? '语气非常冷淡甚至终结性' : failedNodeCount === 1 ? '语气明显不满' : '语气带有失望但专业'}
+- ${isBrainstorm ? '脑洞模式：收场语也要体现角色个性，不能是通用的会议结束语' : ''}
 - responseDialogue 包含收场对话（1-2 条）
 
 ## 输出格式

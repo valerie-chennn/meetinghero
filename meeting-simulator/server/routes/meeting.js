@@ -363,20 +363,38 @@ router.post('/respond', async (req, res) => {
 
     console.log(`[Meeting/Respond] meetingId=${meetingId}, nodeIndex=${nodeIndex}, lang=${inputLanguage}`);
 
-    // 构造 prompt（含重试状态和累积失败数）
+    // 从 session 查询英语等级（统一提前查询，供下方 prompt 构造使用）
+    const respondSession = db.prepare('SELECT english_level FROM sessions WHERE id = ?').get(meeting.session_id);
+    const respondEnglishLevel = respondSession?.english_level || 'B1';
+
+    // 脑洞模式：从会议记录中恢复角色信息，注入 respond prompt
+    let respondCharacters;
+    if (meeting.scene_type && meeting.scene_type.startsWith('brainstorm') && meeting.brainstorm_characters) {
+      // brainstorm_characters 存储的是角色 id/name 数组，roles 存储了完整角色信息
+      const meetingRoles = JSON.parse(meeting.roles || '[]');
+      // 将 roles 数组转换为 characters 格式，补充 world/worldLabel 信息
+      respondCharacters = meetingRoles.map(r => ({
+        name: r.name,
+        world: meeting.brainstorm_world || '',
+        worldLabel: r.title || '',
+        persona: r.briefNote || '',
+      }));
+    }
+
+    // 构造 prompt（含重试状态、累积失败数，以及脑洞模式参数）
     const { systemPrompt, userPrompt } = respondMeetingPrompt({
       userInput: userInput.trim(),
       inputLanguage,
       nodePrompt: currentNode.prompt,
       nodeType: currentNode.type,
       dialogueContext: contextDialogue,
-      englishLevel: (() => {
-        // 从 session 中查询英语等级
-        const session = db.prepare('SELECT english_level FROM sessions WHERE id = ?').get(meeting.session_id);
-        return session?.english_level || 'B1';
-      })(),
+      englishLevel: respondEnglishLevel,
       retryCount: Number(retryCount) || 0,
       failedNodeCount: Number(failedNodeCount) || 0,
+      // 脑洞模式专属参数（正经模式下为 undefined，不影响逻辑）
+      sceneType: meeting.scene_type || undefined,
+      characters: respondCharacters || undefined,
+      mainWorld: meeting.brainstorm_world || undefined,
     });
 
     // 调用 AI 生成响应

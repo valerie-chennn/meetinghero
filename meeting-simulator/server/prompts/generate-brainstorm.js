@@ -326,6 +326,7 @@ dialogue 中用户的称呼统一用角色头衔的简称。
 - topic/status 用世界观语言描述，禁止现代企业词汇
 
 ## userRole（角色卡，全部中文）
+- title：用户在本场的角色头衔，5-10 字，有实权感（如"天庭监察仙官""西境掌局人"）。NPC 对话中用此头衔称呼用户。
 - backstory：恰好 2 句，用 \\n 分隔，每句必须有独立信息量，禁止废话铺垫
   - 第 1 句：核心矛盾/问题是什么？（具体事件，不是"大家都在关注"这种废话）
     好例：幽冥欠账三千年，生死簿记录失真，十殿阎王各执一词。
@@ -372,7 +373,7 @@ dialogue 中用户的称呼统一用角色头衔的简称。
 
 {
   "briefing": {"topic":"","topicZh":"","status":"","statusZh":"","keyFacts":[],"keyFactsZh":[]},
-  "userRole": {"backstory":"","goal":"","challenge":"","ally":""},
+  "userRole": {"title":"","backstory":"","goal":"","challenge":"","ally":""},
   "memo": [{"text":""}],
   "roles": [{"name":"","title":"","type":"leader|collaborator|challenger","avatar":"","briefNote":"","stance":"ally|neutral|pressure"}],
   "dialogue": [

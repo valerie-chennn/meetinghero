@@ -80,24 +80,24 @@ function RandomDraw() {
       return next;
     });
 
-    // 2. 翻牌完成后（650ms 延迟）触发大卡缩小
+    // 2. 翻牌完成后（650ms 延迟）：隐藏大卡 + 显示小卡 + 延迟后切换到下一张
     const t1 = setTimeout(() => {
+      // 先隐藏大卡（设 nextToFlip 为 null），同时显示小卡
+      setNextToFlip(null);
       setShrinkingCards(prev => {
         const next = [...prev];
         next[idx] = true;
         return next;
       });
 
-      // 3. 缩小动画完成后切换 nextToFlip（350ms 后）
-      // 同时递增 cardKey，强制 React 销毁旧大卡 DOM，新卡从背面初始状态重建
+      // 3. 短暂间隔后显示下一张大卡（背面）
       const t2 = setTimeout(() => {
         if (idx < 2) {
           setCardKey(prev => prev + 1);
           setNextToFlip(idx + 1);
-        } else {
-          setNextToFlip(null);
         }
-      }, 350);
+        // idx === 2 时 nextToFlip 已经是 null，保持不变
+      }, 300);
       timersRef.current.push(t2);
     }, 650);
     timersRef.current.push(t1);

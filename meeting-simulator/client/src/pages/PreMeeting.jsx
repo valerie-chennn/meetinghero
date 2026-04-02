@@ -15,7 +15,7 @@ function PreMeeting() {
   const navigate = useNavigate();
   const { state, updateState } = useApp();
 
-  const { meetingData, userName, sceneType } = state;
+  const { meetingData, userName, sceneType, brainstormTheme } = state;
 
   // 脑洞模式标识
   // 双重判断：state.sceneType 或 meetingData.sceneType（兼容旧 localStorage 缺少 sceneType 的情况）
@@ -159,7 +159,7 @@ function PreMeeting() {
           <div className={styles.roleIdentityRow}>
             <span className={styles.roleIdentityText}>
               {isBrainstorm
-                ? (meetingData?.userRole?.title || userName || '英雄')
+                ? (meetingData?.userRole?.title || brainstormTheme?.userRole || userName || '英雄')
                 : (
                   <>
                     {userName || '你'}

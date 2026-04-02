@@ -234,6 +234,7 @@ ${themeContext}
 
 ## 角色设计（NPC）
 - 使用提供的角色作为 NPC（不要另外创造与世界不符的角色）
+- **角色名统一用中文名**：roles[].name、dialogue[].speaker 全部用中文名（与传入的 characters[].name 一致），禁止用英文名
 - 每个角色的 avatar 取名字首字母（如 "孙悟空" → "SW"）
 - briefNote：一句话关系描述，中文，≤18字，基于该角色的性格特点（如"天生反骨，这次会议可能直接掀桌"）
 - stance：根据角色性格设定：ally（友善）| neutral（中立）| pressure（施压），整体至少 1 个 ally、1 个 pressure

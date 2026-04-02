@@ -251,6 +251,8 @@ function Meeting() {
   const [showInput, setShowInput] = useState(false);
   // 是否正在等待 API 响应
   const [isWaiting, setIsWaiting] = useState(false);
+  // 当前正在"输入中"的角色（null 表示无），用于自定义 typing indicator
+  const [typingRole, setTypingRole] = useState(null);
   // Briefing 抽屉开关
   const [showBriefing, setShowBriefing] = useState(false);
   // 当前展示的角色信息卡（null 表示关闭）
@@ -503,12 +505,23 @@ function Meeting() {
     } else {
       delay = 4200;  // 长消息：2.8s + 翻译 1.4s
     }
-    // 下一条是 keyNode 时用固定 1.5s
+    // 下一条是 keyNode 时用固定 1.5s（不加抖动）
     if (startIndex !== 0 && nextMsg && nextMsg.isKeyNode) {
       delay = 1500;
+    } else if (delay > 0) {
+      // 随机抖动 ±25%，模拟自然说话节奏
+      delay = Math.round(delay * (0.75 + Math.random() * 0.5));
+    }
+
+    // 有等待延迟时，显示"正在输入"角色信息；第一条（delay=0）不显示
+    if (delay > 0) {
+      const speakingRole = findRoleBySpeaker(roles, msg.speaker);
+      setTypingRole(speakingRole || { name: msg.speaker });
     }
 
     playTimerRef.current = setTimeout(() => {
+      // 无论是否被 keyNode 阻断，都先清除 typing indicator
+      setTypingRole(null);
       if (isWaitingForUserRef.current) return;
 
       setDisplayedMessages(prev => {
@@ -930,7 +943,17 @@ function Meeting() {
           <ChatContainer className={styles.csChatContainer}>
             <MessageList
               className={styles.csMessageList}
-              typingIndicator={isWaiting ? <TypingIndicator content="" /> : null}
+              typingIndicator={
+                (typingRole || isWaiting) ? (
+                  <div className={styles.typingIndicator}>
+                    <div className={styles.typingDots}>
+                      <span className={styles.typingDot} />
+                      <span className={styles.typingDot} />
+                      <span className={styles.typingDot} />
+                    </div>
+                  </div>
+                ) : null
+              }
             >
               {/* 会议开始分隔符 */}
               <MessageSeparator content="会议开始" />
@@ -974,7 +997,7 @@ function Meeting() {
                   return (
                     <Message key={idx} model={{ type: 'custom', direction: 'outgoing', position: 'single' }}>
                       <Message.CustomContent>
-                        <div className={`${styles.narratorBubble} narrator-bubble ${msg.isNew ? styles.newMessage : ''}`}>
+                        <div className={`${styles.narratorBubble} narrator-bubble ${msg.isNew ? styles.newMessageOutgoing : ''}`}>
                           <span className={styles.narratorPrefix}>💭</span>
                           <span className={styles.narratorText}>{msg.text}</span>
                         </div>
@@ -992,7 +1015,7 @@ function Meeting() {
                     <Message
                       key={idx}
                       model={{ type: 'custom', direction: 'outgoing', position: 'single' }}
-                      className={msg.isNew ? styles.newMessage : ''}
+                      className={msg.isNew ? styles.newMessageOutgoing : ''}
                     >
                       <Message.CustomContent>
                         {/* 用户名字（右对齐） */}
@@ -1028,7 +1051,7 @@ function Meeting() {
                       direction: 'incoming',
                       position: 'single',
                     }}
-                    className={msg.isNew ? styles.newMessage : ''}
+                    className={msg.isNew ? styles.newMessageIncoming : ''}
                   >
                     <Message.CustomContent>
                       {/* 可点击的角色名头部：点击弹出角色信息卡 */}

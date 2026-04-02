@@ -444,6 +444,30 @@ textarea:focus {
   }
 }
 
+/* 从左滑入（NPC 消息入场）*/
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* 从右滑入（用户消息入场）*/
+@keyframes slideInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 /* 光晕脉冲（品牌 CTA 吸引注意）*/
 @keyframes glowPulse {
   0%, 100% { box-shadow: var(--shadow-brand); }

@@ -161,61 +161,6 @@ const TYPE_LABELS = {
   supporter: { text: '支持者', color: '#059669', bg: 'rgba(5, 150, 105, 0.10)' },
 };
 
-/**
- * 打字机效果组件
- *
- * 用于每段第一条 NPC 消息：逐字符显示英文 text，完成后触发 onComplete。
- * 直接操作 DOM textContent，不通过 React state 驱动，零额外 re-render。
- * 打字过程中每隔 150ms 触发一次底部滚动，保持聊天流跟随。
- *
- * @param {string}   text       - 完整英文文本
- * @param {Function} onComplete - 打字完成回调（用于触发下一条消息）
- * @param {Object}   bottomRef  - 聊天流底部锚点 ref，用于打字过程中滚动
- */
-function TypewriterMessage({ text, onComplete, bottomRef }) {
-  const [displayed, setDisplayed] = useState('');
-  const onCompleteRef = useRef(onComplete);
-  onCompleteRef.current = onComplete;
-  // 防止 StrictMode 双重执行导致 onComplete 被调两次
-  const completedRef = useRef(false);
-
-  useEffect(() => {
-    if (!text) {
-      onCompleteRef.current?.();
-      return;
-    }
-
-    completedRef.current = false;
-    const chars = [...text];
-    let i = 0;
-    const CHAR_DELAY = 25; // 每字符 25ms
-
-    const timer = setInterval(() => {
-      i++;
-      setDisplayed(chars.slice(0, i).join(''));
-
-      // 每 5 个字符滚动一次底部
-      if (i % 5 === 0 && bottomRef?.current) {
-        bottomRef.current.scrollIntoView({ behavior: 'smooth' });
-      }
-
-      if (i >= chars.length) {
-        clearInterval(timer);
-        if (bottomRef?.current) {
-          bottomRef.current.scrollIntoView({ behavior: 'smooth' });
-        }
-        if (!completedRef.current) {
-          completedRef.current = true;
-          onCompleteRef.current?.();
-        }
-      }
-    }, CHAR_DELAY);
-
-    return () => clearInterval(timer);
-  }, [text]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  return <span>{displayed}</span>;
-}
 
 /**
  * 角色信息 Popover 气泡
@@ -328,17 +273,11 @@ function Meeting() {
   const playTimerRef = useRef(null);
   // 标记是否已启动过播放（解决 StrictMode 双重 effect 问题）
   const hasStartedRef = useRef(false);
-  // 第二层控制器所需的两个段计数 ref（用户发言时归零）
+  // 第二层控制器所需的段计数 ref（用户发言时归零）
   // segmentNpcCountRef：当前段（两次用户发言之间）已播放的 NPC 消息数，上限 3
   const segmentNpcCountRef = useRef(0);
-  // segmentPosRef：当前段已展示的 NPC 消息位置（1 = 第一条，>1 = 后续）
-  // 用于决定走打字机（第一条）还是快速弹入（后续）
-  // 与 segmentNpcCountRef 同步归零（用户发言时）
-  const segmentPosRef = useRef(0);
-  // typewriterCallbackRef：打字机完成时要调用的回调
-  // appendAndContinue 写入此 ref，TypewriterMessage 的 onComplete 读取并调用
-  // 每次只有一条消息在打字，不存在并发冲突
-  const typewriterCallbackRef = useRef(null);
+  // processedIndexesRef：防止 StrictMode 双重调用导致同一消息被处理两次
+  const processedIndexesRef = useRef(new Set());
   // segmentHasNarratorRef：当前段是否已播放过 narrator（含后端自带 + 前端注入）
   const segmentHasNarratorRef = useRef(false);
   // 当前节点的重试次数（0=首次，1=第二次）；遇到新节点时重置
@@ -549,155 +488,73 @@ function Meeting() {
       return;
     }
 
-    segmentNpcCountRef.current++;
-    segmentPosRef.current++;
-
-    // 段内位置：第一条走打字机（先显示 typing indicator，再打字机效果）
-    // 后续条次直接弹入（0.8-1s 延迟 + fadeInUp 动效）
-    const isFirstInSegment = segmentPosRef.current === 1;
+    // 防止 StrictMode 双重调用：同一 startIndex 只处理一次
     const msgId = `dialogue-${startIndex}`;
+    if (processedIndexesRef.current.has(startIndex)) {
+      return; // 已处理过，直接跳过
+    }
+    processedIndexesRef.current.add(startIndex);
 
-    if (isFirstInSegment) {
-      // ——— 打字机路径 ———
-      // 第 1 步：先插入 typing indicator 占位消息（1-1.5 秒可见）
-      const indicatorId = `typing-indicator-${startIndex}`;
-      const indicatorDelay = 1000 + Math.random() * 500; // 1000-1500ms
+    segmentNpcCountRef.current++;
+
+    // ——— 快速弹入路径：0.8-1s 延迟后直接显示，带 fadeInUp 动效 ———
+    const nextMsg = dialogue[startIndex + 1];
+    const msgLength = (msg.text || '').length;
+    const delay = (nextMsg && nextMsg.isKeyNode) ? 800 : (msgLength < 50 ? 800 : 1000);
+
+    playTimerRef.current = setTimeout(() => {
+      if (isWaitingForUserRef.current) return;
 
       setDisplayedMessages(prev => {
-        if (prev.some(m => m.id === indicatorId)) return prev;
-        return [...prev, { isTypingIndicator: true, id: indicatorId, _forMsgId: msgId }];
+        if (prev.some(m => m.id === msgId)) return prev;
+        return [...prev, { ...msg, id: msgId, isNew: true }];
       });
 
-      playTimerRef.current = setTimeout(() => {
-        // 纵深防御：timer 等待期间可能已触发 keyNode 硬停
-        if (isWaitingForUserRef.current) return;
-
-        // 第 2 步：用实际消息（带 isTypewriter 标记）替换 indicator
-        setDisplayedMessages(prev => {
-          // 已渲染过真实消息则跳过（防重复）
-          if (prev.some(m => m.id === msgId)) return prev;
-          // 移除 indicator，追加真实消息
-          const without = prev.filter(m => m.id !== indicatorId);
-          return [...without, { ...msg, id: msgId, isNew: true, isTypewriter: true }];
-        });
-
-        // 注意：下一条消息的播放由打字机 onComplete 回调触发，
-        // 通过 typewriterCallbackRef 传递，不在此处调用 playDialogueFrom，避免并行
-        // ——— 铁律 2 检查（打字机路径同样需要注入 narrator）———
-        if (segmentNpcCountRef.current === 1 && !segmentHasNarratorRef.current) {
-          let npcBeforeKeyNode = 0;
-          for (let j = startIndex + 1; j < dialogue.length; j++) {
-            const c = dialogue[j];
-            if (c.isKeyNode) break;
-            if (c.speaker === 'narrator') continue;
-            npcBeforeKeyNode++;
-          }
-          const canInject = npcBeforeKeyNode >= 1;
-          const nextDialogMsg = dialogue[startIndex + 1];
-          const nextIsNpc = nextDialogMsg &&
-            !nextDialogMsg.isKeyNode &&
-            nextDialogMsg.speaker !== 'narrator';
-
-          if (nextIsNpc && canInject) {
-            segmentHasNarratorRef.current = true;
-            const speakerName = msg.speaker ? msg.speaker.split(' ')[0] : '他';
-            const narratorTexts = [
-              `${speakerName} 向来说话不留情面`,
-              `${speakerName} 每次都这样，先夸再转折`,
-              `看 ${speakerName} 的语气，接下来要追问了`,
-              `${speakerName} 这是在给谁铺垫？`,
-              `嗯，${speakerName} 话里有话`,
-              `${speakerName} 又开始施压了，老套路`,
-            ];
-            const narratorText = narratorTexts[Math.floor(Math.random() * narratorTexts.length)];
-            // 打字机完成后：先展示 narrator，1.5 秒后继续播放下一条
-            typewriterCallbackRef.current = () => {
-              if (isWaitingForUserRef.current) return;
-              playTimerRef.current = setTimeout(() => {
-                if (isWaitingForUserRef.current) return;
-                setDisplayedMessages(prev => [...prev, {
-                  speaker: 'narrator',
-                  text: narratorText,
-                  isNew: true,
-                  id: `narrator-inject-${startIndex}`,
-                  _injected: true,
-                }]);
-                playDialogueFrom(startIndex + 1);
-              }, 1500);
-            };
-            return;
-          }
+      // ——— 铁律 2：检查是否需要注入前端 narrator ———
+      if (segmentNpcCountRef.current === 1 && !segmentHasNarratorRef.current) {
+        let npcBeforeKeyNode = 0;
+        for (let j = startIndex + 1; j < dialogue.length; j++) {
+          const c = dialogue[j];
+          if (c.isKeyNode) break;
+          if (c.speaker === 'narrator') continue;
+          npcBeforeKeyNode++;
         }
+        const canInject = npcBeforeKeyNode >= 1;
+        const nextDialogMsg = dialogue[startIndex + 1];
+        const nextIsNpc = nextDialogMsg &&
+          !nextDialogMsg.isKeyNode &&
+          nextDialogMsg.speaker !== 'narrator';
 
-        // 无 narrator 注入：打字机完成后直接播放下一条
-        typewriterCallbackRef.current = () => {
-          if (!isWaitingForUserRef.current) {
+        if (nextIsNpc && canInject) {
+          segmentHasNarratorRef.current = true;
+          const speakerName = msg.speaker ? msg.speaker.split(' ')[0] : '他';
+          const narratorTexts = [
+            `${speakerName} 向来说话不留情面`,
+            `${speakerName} 每次都这样，先夸再转折`,
+            `看 ${speakerName} 的语气，接下来要追问了`,
+            `${speakerName} 这是在给谁铺垫？`,
+            `嗯，${speakerName} 话里有话`,
+            `${speakerName} 又开始施压了，老套路`,
+          ];
+          const narratorMsg = {
+            speaker: 'narrator',
+            text: narratorTexts[Math.floor(Math.random() * narratorTexts.length)],
+            isNew: true,
+            id: `narrator-inject-${startIndex}`,
+            _injected: true,
+          };
+
+          playTimerRef.current = setTimeout(() => {
+            if (isWaitingForUserRef.current) return;
+            setDisplayedMessages(prev => [...prev, narratorMsg]);
             playDialogueFrom(startIndex + 1);
-          }
-        };
-      }, indicatorDelay);
-
-    } else {
-      // ——— 快速弹入路径（段内后续消息）———
-      // 0.8-1s 延迟后直接显示，不需要打字机
-      const nextMsg = dialogue[startIndex + 1];
-      const msgLength = (msg.text || '').length;
-      const delay = (nextMsg && nextMsg.isKeyNode) ? 800 : (msgLength < 50 ? 800 : 1000);
-
-      playTimerRef.current = setTimeout(() => {
-        if (isWaitingForUserRef.current) return;
-
-        setDisplayedMessages(prev => {
-          if (prev.some(m => m.id === msgId)) return prev;
-          return [...prev, { ...msg, id: msgId, isNew: true }];
-        });
-
-        // ——— 铁律 2：检查是否需要注入前端 narrator（快速弹入路径）———
-        if (segmentNpcCountRef.current === 1 && !segmentHasNarratorRef.current) {
-          let npcBeforeKeyNode = 0;
-          for (let j = startIndex + 1; j < dialogue.length; j++) {
-            const c = dialogue[j];
-            if (c.isKeyNode) break;
-            if (c.speaker === 'narrator') continue;
-            npcBeforeKeyNode++;
-          }
-          const canInject = npcBeforeKeyNode >= 1;
-          const nextDialogMsg = dialogue[startIndex + 1];
-          const nextIsNpc = nextDialogMsg &&
-            !nextDialogMsg.isKeyNode &&
-            nextDialogMsg.speaker !== 'narrator';
-
-          if (nextIsNpc && canInject) {
-            segmentHasNarratorRef.current = true;
-            const speakerName = msg.speaker ? msg.speaker.split(' ')[0] : '他';
-            const narratorTexts = [
-              `${speakerName} 向来说话不留情面`,
-              `${speakerName} 每次都这样，先夸再转折`,
-              `看 ${speakerName} 的语气，接下来要追问了`,
-              `${speakerName} 这是在给谁铺垫？`,
-              `嗯，${speakerName} 话里有话`,
-              `${speakerName} 又开始施压了，老套路`,
-            ];
-            const narratorMsg = {
-              speaker: 'narrator',
-              text: narratorTexts[Math.floor(Math.random() * narratorTexts.length)],
-              isNew: true,
-              id: `narrator-inject-${startIndex}`,
-              _injected: true,
-            };
-
-            playTimerRef.current = setTimeout(() => {
-              if (isWaitingForUserRef.current) return;
-              setDisplayedMessages(prev => [...prev, narratorMsg]);
-              playDialogueFrom(startIndex + 1);
-            }, 1500);
-            return;
-          }
+          }, 1500);
+          return;
         }
+      }
 
-        playDialogueFrom(startIndex + 1);
-      }, delay);
-    }
+      playDialogueFrom(startIndex + 1);
+    }, delay);
   }, [handleMeetingEnd]);
 
   // 初始化：从 processedDialogue[0] 开始播放
@@ -753,7 +610,6 @@ function Meeting() {
     // 用户发言了，重置段计数器（开始新的一段）
     segmentNpcCountRef.current = 0;
     segmentHasNarratorRef.current = false;
-    segmentPosRef.current = 0;
 
     // 在异步操作前先保存当前节点索引，防止 state 更新后取值错误
     const currentNodeIndex = activeNodeIndex;
@@ -875,44 +731,15 @@ function Meeting() {
                 if (idx < responseDialogue.length && segmentNpcCountRef.current < 3) {
                   const rMsg = responseDialogue[idx];
                   segmentNpcCountRef.current++;
-                  segmentPosRef.current++;
-                  const isFirst = segmentPosRef.current === 1;
                   idx++;
 
-                  if (isFirst) {
-                    // 第一条走打字机：先插 typing indicator，1-1.5s 后替换为打字机消息
-                    const rIndicatorId = `resp-typing-indicator-${idx}`;
-                    const rMsgId = `resp-msg-${idx}`;
-                    const rIndicatorDelay = 1000 + Math.random() * 500;
-
-                    setDisplayedMessages(prev => [
-                      ...prev,
-                      { isTypingIndicator: true, id: rIndicatorId },
-                    ]);
-
-                    playTimerRef.current = setTimeout(() => {
-                      if (isWaitingForUserRef.current) return;
-                      setDisplayedMessages(prev => {
-                        const without = prev.filter(m => m.id !== rIndicatorId);
-                        return [...without, { ...rMsg, id: rMsgId, isNew: true, isTypewriter: true }];
-                      });
-                      // 打字机完成后继续追加下一条（纵深防御：二次检查等待状态）
-                      typewriterCallbackRef.current = () => {
-                        if (isWaitingForUserRef.current) return;
-                        const rMsgLength = (rMsg.text || '').length;
-                        playTimerRef.current = setTimeout(appendNext, rMsgLength < 50 ? 800 : 1000);
-                      };
-                    }, rIndicatorDelay);
-                  } else {
-                    // 后续条次直接弹入
-                    setDisplayedMessages(prev => [...prev, { ...rMsg, isNew: true }]);
-                    // 根据消息长度动态调整间隔：短消息 800ms，长消息 1000ms
-                    const rMsgLength = (rMsg.text || '').length;
-                    playTimerRef.current = setTimeout(appendNext, rMsgLength < 50 ? 800 : 1000);
-                  }
+                  // 快速弹入：根据消息长度动态调整间隔
+                  const rMsgId = `resp-msg-invalid-${idx}`;
+                  setDisplayedMessages(prev => [...prev, { ...rMsg, id: rMsgId, isNew: true }]);
+                  const rMsgLength = (rMsg.text || '').length;
+                  playTimerRef.current = setTimeout(appendNext, rMsgLength < 50 ? 800 : 1000);
                 } else {
                   // 从同步 ref 读取索引，避免在 state updater 中执行副作用
-                  // （React Strict Mode 下 updater 可能被双重调用，导致 playDialogueFrom 被触发两次）
                   setIsWaiting(false);
                   const nextIndex = currentDialogueIndexRef.current;
                   playDialogueFrom(nextIndex);
@@ -933,9 +760,8 @@ function Meeting() {
       setCompletedNodes(prev => new Set([...prev, currentNodeIndex]));
       setActiveNodeIndex(null);
 
-      // 将后端返回的 responseDialogue 逐条追加
+      // 将后端返回的 responseDialogue 逐条追加（快速弹入，800-1000ms 间隔）
       // 受 segmentNpcCountRef 约束：每段最多 3 条 NPC（与 processedDialogue 共享段计数器）
-      // 第一条走打字机（先 typing indicator，再逐字显示），后续快速弹入
       const responseDialogue = result.responseDialogue || [];
       const appendDelay = 400;
 
@@ -947,41 +773,13 @@ function Meeting() {
           if (idx < responseDialogue.length && segmentNpcCountRef.current < 3) {
             const rMsg = responseDialogue[idx];
             segmentNpcCountRef.current++;
-            segmentPosRef.current++;
-            const isFirst = segmentPosRef.current === 1;
             idx++;
 
-            if (isFirst) {
-              // 第一条走打字机：先插 typing indicator，1-1.5s 后替换为打字机消息
-              const rIndicatorId = `resp-typing-indicator-${idx}`;
-              const rMsgId = `resp-msg-${idx}`;
-              const rIndicatorDelay = 1000 + Math.random() * 500;
-
-              setDisplayedMessages(prev => [
-                ...prev,
-                { isTypingIndicator: true, id: rIndicatorId },
-              ]);
-
-              playTimerRef.current = setTimeout(() => {
-                if (isWaitingForUserRef.current) return;
-                setDisplayedMessages(prev => {
-                  const without = prev.filter(m => m.id !== rIndicatorId);
-                  return [...without, { ...rMsg, id: rMsgId, isNew: true, isTypewriter: true }];
-                });
-                // 打字机完成后继续追加下一条（纵深防御：二次检查等待状态）
-                typewriterCallbackRef.current = () => {
-                  if (isWaitingForUserRef.current) return;
-                  const rMsgLength = (rMsg.text || '').length;
-                  playTimerRef.current = setTimeout(appendNext, rMsgLength < 50 ? 800 : 1000);
-                };
-              }, rIndicatorDelay);
-            } else {
-              // 后续条次直接弹入
-              setDisplayedMessages(prev => [...prev, { ...rMsg, isNew: true }]);
-              // 根据消息长度动态调整间隔：短消息 800ms，长消息 1000ms
-              const rMsgLength = (rMsg.text || '').length;
-              playTimerRef.current = setTimeout(appendNext, rMsgLength < 50 ? 800 : 1000);
-            }
+            // 快速弹入：根据消息长度动态调整间隔
+            const rMsgId = `resp-msg-${idx}`;
+            setDisplayedMessages(prev => [...prev, { ...rMsg, id: rMsgId, isNew: true }]);
+            const rMsgLength = (rMsg.text || '').length;
+            playTimerRef.current = setTimeout(appendNext, rMsgLength < 50 ? 800 : 1000);
           } else {
             // 追加完毕或已达段上限，继续播放 processedDialogue 剩余内容
             // 从同步 ref 读取索引，避免在 state updater 中执行副作用
@@ -1140,25 +938,6 @@ function Meeting() {
                   );
                 }
 
-                // Typing indicator 占位气泡：三个跳动圆点，模拟 NPC 正在输入
-                if (msg.isTypingIndicator) {
-                  return (
-                    <Message
-                      key={msg.id}
-                      model={{ type: 'custom', direction: 'incoming', position: 'single' }}
-                      className={styles.newMessage}
-                    >
-                      <Message.CustomContent>
-                        <div className={styles.typingDots}>
-                          <span className={styles.typingDot}></span>
-                          <span className={styles.typingDot}></span>
-                          <span className={styles.typingDot}></span>
-                        </div>
-                      </Message.CustomContent>
-                    </Message>
-                  );
-                }
-
                 // 关键节点提示卡片：不使用 chatscope，通过 Message.CustomContent 嵌入
                 if (msg.isKeyNode || msg._displayType === 'node_prompt') {
                   return (
@@ -1266,20 +1045,7 @@ function Meeting() {
                       {/* 消息内容 */}
                       <div className={styles.npcMessageContent}>
                         <p className={styles.npcMessageText}>
-                          {msg.isTypewriter ? (
-                            /* 打字机模式：逐字显示英文，完成后触发 typewriterCallbackRef */
-                            <TypewriterMessage
-                              text={msg.text}
-                              bottomRef={bottomRef}
-                              onComplete={() => {
-                                // 调用当前注册的打字机完成回调（由 playDialogueFrom 或 appendAndContinue 注入）
-                                typewriterCallbackRef.current?.();
-                                typewriterCallbackRef.current = null;
-                              }}
-                            />
-                          ) : (
-                            msg.text
-                          )}
+                          {msg.text}
                         </p>
                         {/* 中文翻译区域：开启翻译且有 textZh 时显示（打字机模式下翻译即时可见，辅助理解） */}
                         {showTranslation && msg.textZh && (

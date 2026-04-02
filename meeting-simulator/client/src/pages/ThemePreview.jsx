@@ -66,8 +66,8 @@ function ThemePreview() {
     if (isEntering) return;
     setIsEntering(true);
 
-    // 设置 meetingSource 为 brainstorm（供 Loading.jsx 使用）
-    updateState({ meetingSource: 'brainstorm' });
+    // 脑洞模式也用 generate 作为 source，sceneType 已区分模式
+    updateState({ meetingSource: 'generate' });
     navigate('/loading');
   };
 

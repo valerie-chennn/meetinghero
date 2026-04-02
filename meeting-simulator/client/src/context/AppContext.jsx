@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 const AppContext = createContext(null);
 
 // localStorage 中持久化的字段列表
-const PERSIST_KEYS = ['sessionId', 'userName', 'englishLevel', 'jobTitle', 'industry'];
+const PERSIST_KEYS = ['sessionId', 'userName', 'englishLevel', 'jobTitle', 'industry', 'sceneType'];
 
 // 从 localStorage 读取持久化状态
 function loadPersistedState() {

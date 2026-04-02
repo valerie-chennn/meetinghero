@@ -35,26 +35,26 @@ const CHARACTER_POOL = {
 
   // 历史人物
   'historical': [
-    { id: 'napoleon', name: '拿破仑', world: 'historical', worldLabel: '历史人物', persona: '野心勃勃，军事天才，矮个子的无边征服欲', nameEn: 'Napoleon Bonaparte', source: '真实历史人物' },
-    { id: 'julius-caesar', name: '凯撒大帝', world: 'historical', worldLabel: '历史人物', persona: '魅力四射，权谋娴熟，功勋盖世却倒在盟友刀下', nameEn: 'Julius Caesar', source: '真实历史人物' },
-    { id: 'cleopatra', name: '克利奥帕特拉', world: 'historical', worldLabel: '历史人物', persona: '美貌与智慧并存，政治棋手，把两个罗马男人耍得团团转', nameEn: 'Cleopatra VII', source: '真实历史人物' },
-    { id: 'genghis-khan', name: '成吉思汗', world: 'historical', worldLabel: '历史人物', persona: '无情征服，铁骑横扫，规则只有一条：赢', source: '真实历史人物' },
-    { id: 'qin-shi-huang', name: '秦始皇', world: 'historical', worldLabel: '历史人物', persona: '一统天下，制度革命，暴政与伟业一体两面', source: '真实历史人物' },
-    { id: 'da-vinci', name: '达芬奇', world: 'historical', worldLabel: '历史人物', persona: '博学跨界，想太多做不完，天才拖延症患者', nameEn: 'Leonardo da Vinci', source: '真实历史人物' },
-    { id: 'elizabeth-i', name: '伊丽莎白一世', world: 'historical', worldLabel: '历史人物', persona: '铁腕女王，终身未嫁，把政治玩弄于情感之上', nameEn: 'Elizabeth I', source: '真实历史人物' },
-    { id: 'wu-zetian', name: '武则天', world: 'historical', worldLabel: '历史人物', persona: '铁腕权谋，心机深沉，中国历史唯一女皇帝', source: '真实历史人物' },
+    { id: 'napoleon', name: '拿破仑', world: 'historical', worldLabel: '历史人物', persona: '野心勃勃，军事天才，矮个子的无边征服欲', nameEn: 'Napoleon Bonaparte', source: '法兰西帝国' },
+    { id: 'julius-caesar', name: '凯撒大帝', world: 'historical', worldLabel: '历史人物', persona: '魅力四射，权谋娴熟，功勋盖世却倒在盟友刀下', nameEn: 'Julius Caesar', source: '罗马共和国' },
+    { id: 'cleopatra', name: '克利奥帕特拉', world: 'historical', worldLabel: '历史人物', persona: '美貌与智慧并存，政治棋手，把两个罗马男人耍得团团转', nameEn: 'Cleopatra VII', source: '古埃及' },
+    { id: 'genghis-khan', name: '成吉思汗', world: 'historical', worldLabel: '历史人物', persona: '无情征服，铁骑横扫，规则只有一条：赢', nameEn: 'Genghis Khan', source: '蒙古帝国' },
+    { id: 'qin-shi-huang', name: '秦始皇', world: 'historical', worldLabel: '历史人物', persona: '一统天下，制度革命，暴政与伟业一体两面', source: '秦朝' },
+    { id: 'da-vinci', name: '达芬奇', world: 'historical', worldLabel: '历史人物', persona: '博学跨界，想太多做不完，天才拖延症患者', nameEn: 'Leonardo da Vinci', source: '文艺复兴' },
+    { id: 'elizabeth-i', name: '伊丽莎白一世', world: 'historical', worldLabel: '历史人物', persona: '铁腕女王，终身未嫁，把政治玩弄于情感之上', nameEn: 'Elizabeth I', source: '都铎王朝' },
+    { id: 'wu-zetian', name: '武则天', world: 'historical', worldLabel: '历史人物', persona: '铁腕权谋，心机深沉，中国历史唯一女皇帝', source: '唐朝' },
   ],
 
   // 当代名人
   'contemporary': [
-    { id: 'steve-jobs', name: '乔布斯', world: 'contemporary', worldLabel: '当代名人', persona: '追求极致，偏执完美主义，改变世界的执念', nameEn: 'Steve Jobs', source: '真实人物' },
-    { id: 'elon-musk', name: '马斯克', world: 'contemporary', worldLabel: '当代名人', persona: '疯狂冒险，不断颠覆，睡工厂地板也要登火星', nameEn: 'Elon Musk', source: '真实人物' },
-    { id: 'oprah', name: '奥普拉', world: 'contemporary', worldLabel: '当代名人', persona: '共情大师，励志导师，把倾诉变成了一种商业帝国', nameEn: 'Oprah Winfrey', source: '真实人物' },
-    { id: 'jack-ma', name: '马云', world: 'contemporary', worldLabel: '当代名人', persona: '草根逆袭，口才一流，永远比别人看得远一步', source: '真实人物' },
-    { id: 'bill-gates', name: '比尔·盖茨', world: 'contemporary', worldLabel: '当代名人', persona: '极客理性，慈善转型，跑步一边思考如何拯救世界', nameEn: 'Bill Gates', source: '真实人物' },
-    { id: 'bezos', name: '贝佐斯', world: 'contemporary', worldLabel: '当代名人', persona: '长期主义，不惜代价，客户第一只是效率的另一张脸', nameEn: 'Jeff Bezos', source: '真实人物' },
-    { id: 'zuckerberg', name: '扎克伯格', world: 'contemporary', worldLabel: '当代名人', persona: '技术至上，情绪钝感，把连接世界当成唯一命题', nameEn: 'Mark Zuckerberg', source: '真实人物' },
-    { id: 'ren-zhengfei', name: '任正非', world: 'contemporary', worldLabel: '当代名人', persona: '危机意识，低调务实，随时准备应对最坏的情况', source: '真实人物' },
+    { id: 'steve-jobs', name: '乔布斯', world: 'contemporary', worldLabel: '当代名人', persona: '追求极致，偏执完美主义，改变世界的执念', nameEn: 'Steve Jobs', source: 'Apple 创始人' },
+    { id: 'elon-musk', name: '马斯克', world: 'contemporary', worldLabel: '当代名人', persona: '疯狂冒险，不断颠覆，睡工厂地板也要登火星', nameEn: 'Elon Musk', source: 'Tesla / SpaceX' },
+    { id: 'oprah', name: '奥普拉', world: 'contemporary', worldLabel: '当代名人', persona: '共情大师，励志导师，把倾诉变成了一种商业帝国', nameEn: 'Oprah Winfrey', source: '媒体界' },
+    { id: 'jack-ma', name: '马云', world: 'contemporary', worldLabel: '当代名人', persona: '草根逆袭，口才一流，永远比别人看得远一步', nameEn: 'Jack Ma', source: '阿里巴巴创始人' },
+    { id: 'bill-gates', name: '比尔·盖茨', world: 'contemporary', worldLabel: '当代名人', persona: '极客理性，慈善转型，跑步一边思考如何拯救世界', nameEn: 'Bill Gates', source: '微软创始人' },
+    { id: 'bezos', name: '贝佐斯', world: 'contemporary', worldLabel: '当代名人', persona: '长期主义，不惜代价，客户第一只是效率的另一张脸', nameEn: 'Jeff Bezos', source: 'Amazon 创始人' },
+    { id: 'zuckerberg', name: '扎克伯格', world: 'contemporary', worldLabel: '当代名人', persona: '技术至上，情绪钝感，把连接世界当成唯一命题', nameEn: 'Mark Zuckerberg', source: 'Meta 创始人' },
+    { id: 'ren-zhengfei', name: '任正非', world: 'contemporary', worldLabel: '当代名人', persona: '危机意识，低调务实，随时准备应对最坏的情况', nameEn: 'Ren Zhengfei', source: '华为创始人' },
   ],
 
   // 动漫

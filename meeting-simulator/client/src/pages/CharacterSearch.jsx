@@ -99,7 +99,7 @@ function CharacterSearch() {
             <input
               className={styles.searchInput}
               type="text"
-              placeholder="输入角色、作品、或任何你想到的名字..."
+              placeholder="输入角色、作品名称..."
               value={query}
               onChange={e => setQuery(e.target.value)}
               onKeyDown={handleKeyDown}

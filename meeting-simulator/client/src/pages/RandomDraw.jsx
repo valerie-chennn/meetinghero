@@ -99,7 +99,7 @@ function RandomDraw() {
         return next;
       });
 
-      // 3. 大卡淡出完成后（150ms）：移除大卡 DOM，重置淡出状态
+      // 3. 大卡淡出完成后（400ms）：移除大卡 DOM，重置淡出状态
       const t2 = setTimeout(() => {
         setBigCardFading(false);
         setNextToFlip(null);
@@ -113,13 +113,13 @@ function RandomDraw() {
           timersRef.current.push(t3);
         } else {
           // idx === 2：三张全部缩小，等小卡 springIn 动画完成后显示成就区
-          // springIn 总时长 450ms，从 t1 触发时开始计算，此处已过约 150ms，还需约 320ms
+          // springIn 总时长 600ms，从 t1 触发时开始计算，此处已过约 400ms，还需约 300ms
           const t3 = setTimeout(() => {
             setAllAnimationDone(true);
-          }, 350);
+          }, 300);
           timersRef.current.push(t3);
         }
-      }, 150);
+      }, 400);
       timersRef.current.push(t2);
     }, 460);
     timersRef.current.push(t1);

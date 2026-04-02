@@ -162,7 +162,7 @@
   justify-content: center;
   gap: 4px;
   /* 小卡弹入动画：spring 曲线赋予"从大卡弹缩而来"的物理感 */
-  animation: springIn 0.45s var(--spring-curve) both;
+  animation: springIn 0.6s var(--spring-curve) both;
   /* 动画期间提升为合成层，避免重绘 */
   will-change: transform, opacity;
   flex-shrink: 0;
@@ -243,7 +243,7 @@
 /* 翻牌完成后淡出，与小卡弹入形成平滑交叠（150ms 配合 JS 定时器）*/
 /* 退出动画用 ease-in：加速离开，与"弹入"的进入形成节奏对比 */
 .bigCardFadeOut {
-  animation: bigCardFadeOut 0.15s cubic-bezier(0.4, 0, 1, 1) both;
+  animation: bigCardFadeOut 0.4s cubic-bezier(0.4, 0, 1, 1) both;
   pointer-events: none;
 }
 

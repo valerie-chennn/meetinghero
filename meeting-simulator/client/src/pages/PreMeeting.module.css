@@ -228,33 +228,74 @@
   margin: 0;
 }
 
-/* 前情提要分行显示（新格式，每句一行） */
+/* 前情提要分行显示（新格式，按类型区分样式） */
 .backstoryLines {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
-.backstoryLine {
+/* ── 大背景叙述行：正常正文，无装饰 ── */
+.backstoryLineContext {
   font-size: 14px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  line-height: 1.65;
+  margin: 0;
+  /* 和下方角色行之间留一点距离 */
+  margin-bottom: 2px;
+}
+
+/* ── 角色立场行：左侧隐性缩进，角色名与态度区分 ── */
+.backstoryLineRole {
+  font-size: 13px;
   font-weight: 400;
   color: var(--text-primary);
   line-height: 1.6;
   margin: 0;
-  /* 每行前加小圆点 */
-  padding-left: 12px;
-  position: relative;
+  /* 左侧 2px 品牌色竖线作为视觉锚点 */
+  padding-left: 10px;
+  border-left: 2px solid rgba(79, 70, 229, 0.25);
 }
 
-.backstoryLine::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 8px;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--color-brand-mid, #818CF8);
+/* 角色名：品牌色加粗 */
+.backstoryRoleName {
+  font-weight: 600;
+  color: var(--color-brand);
+  font-size: 13px;
+}
+
+/* 态度描述：次要色，正常字重 */
+.backstoryRoleStance {
+  font-weight: 400;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+/* ── 钩子问题行：最醒目，浅底色 + 深色加粗 ── */
+.backstoryLineHook {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.55;
+  margin: 0;
+  /* 角色行下方留一点间距再显示钩子 */
+  margin-top: 4px;
+  /* 浅底色 + 圆角，让这行在视觉上脱离列表，成为独立焦点 */
+  background: var(--color-brand-light);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+/* 钩子行的箭头符号：品牌色，固定宽度不换行 */
+.backstoryHookArrow {
+  color: var(--color-brand);
+  font-weight: 700;
+  flex-shrink: 0;
+  line-height: 1.55;
 }
 
 /* 旧数据兼容：keyFacts 列表形式 */
@@ -364,77 +405,48 @@
    底部固定 CTA 区
    =================================================== */
 
-.footer {
-  position: sticky;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: var(--space-4);
-  padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom));
-  /* 上方渐变遮罩，防止内容被截断感 */
-  background: linear-gradient(
-    to bottom,
-    transparent 0%,
-    var(--bg-base) 40%
-  );
-  /* 在光斑上方 */
-  position: relative;
-  z-index: 2;
+/* 按钮区域：跟随卡片内容流，不固定在底部 */
+.buttonArea {
+  padding: var(--space-4) 0 var(--space-2);
   animation: fadeInUp var(--duration-slow) var(--ease-out) 300ms both;
 }
 
-/* ── 换主题行（脑洞模式专属） ── */
-.refreshRow {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin-bottom: 10px;
-}
-
-/* 换主题按钮：默认灰色，可用时高亮 */
-.refreshBtn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border-radius: 9999px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-muted);
-  background: rgba(0, 0, 0, 0.04);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  transition: all 0.2s var(--ease-out);
+/* ── 换主题文字链接（脑洞模式专属，放在进入会议按钮下方） ── */
+.refreshLink {
+  /* 居中显示，无背景无边框，纯文字感 */
+  display: block;
+  width: 100%;
+  margin-top: var(--space-3);
+  padding: var(--space-2) 0;
+  background: none;
+  border: none;
+  text-align: center;
+  font-size: var(--font-sm);   /* 13px，小于主按钮，天然降权 */
+  font-weight: 400;
+  color: var(--text-muted);    /* var(--text-muted) #94A3B8，低调灰 */
   cursor: not-allowed;
+  transition: color var(--duration-fast) var(--ease-out);
+  /* 去掉全局 button 的 active 缩放，文字链接不需要 */
+  line-height: 1.4;
 }
 
-/* 可用状态：靛蓝边框 + 品牌色文字 */
-.refreshBtnActive {
-  color: var(--color-brand);
-  background: rgba(79, 70, 229, 0.06);
-  border-color: rgba(79, 70, 229, 0.25);
+/* 可用状态：品牌色，鼠标变手型 */
+.refreshLinkActive {
+  color: var(--color-brand);   /* var(--color-brand) #4F46E5 */
   cursor: pointer;
 }
 
-.refreshBtnActive:hover {
-  background: rgba(79, 70, 229, 0.10);
-  border-color: rgba(79, 70, 229, 0.4);
+.refreshLinkActive:hover {
+  color: var(--color-brand-dark);  /* var(--color-brand-dark) #4338CA，hover 加深 */
+  /* 下划线出现，强化"可点击"语义 */
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
-.refreshBtnActive:active {
-  transform: scale(0.97);
-}
-
-/* 换主题次数计数：灰色小字 */
-.refreshCount {
-  font-size: 12px;
-  font-weight: 500;
+/* 次数耗尽状态：比默认更淡，暗示已不可用 */
+.refreshLinkDepleted {
   color: var(--text-muted);
-}
-
-/* 次数耗尽：更暗 */
-.refreshCountDepleted {
-  color: var(--text-disabled, #C0C0C0);
+  opacity: 0.5;
 }
 
 /* 进入会议按钮：翡翠绿 + 白字 + 箭头 */

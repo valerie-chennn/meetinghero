@@ -38,7 +38,7 @@ function PreMeeting() {
 
   if (!meetingData) return null;
 
-  // userRole 包含剧本杀风格字段：backstory / goal / challenge / ally
+  // userRole 包含字段：backstory / goal
   const { briefing, userRole } = meetingData;
 
   // 渲染难度星级：使用实心/空心星符号
@@ -54,18 +54,55 @@ function PreMeeting() {
 
   /**
    * 前情提要内容：
-   * 优先取 userRole.backstory（新数据格式）
+   * 优先取 userRole.backstory（新数据格式），识别三种行类型分别渲染：
+   *   - "→ " 开头：钩子问题，最醒目
+   *   - "· " 开头：角色立场，角色名加粗用品牌色
+   *   - 其他：大背景叙述，正常段落文字
    * 如果不存在，降级取 briefing.keyFacts 数组，每条前加 "· " 展示
    */
   const renderBackstory = () => {
     if (userRole?.backstory) {
-      // 按换行符分段，每段一行，方便扫读
       const lines = userRole.backstory.split('\n').filter(Boolean);
       return (
         <div className={styles.backstoryLines}>
-          {lines.map((line, idx) => (
-            <p key={idx} className={styles.backstoryLine}>{line}</p>
-          ))}
+          {lines.map((line, idx) => {
+            // 钩子问题：以 "→" 开头（兼容全角/半角空格）
+            if (line.startsWith('→')) {
+              const text = line.replace(/^→\s*/, '');
+              return (
+                <p key={idx} className={styles.backstoryLineHook}>
+                  <span className={styles.backstoryHookArrow}>→</span>
+                  {text}
+                </p>
+              );
+            }
+            // 角色立场：以 "·" 或 "• " 开头，格式为 "· 角色名：态度"
+            if (line.startsWith('·') || line.startsWith('•')) {
+              const text = line.replace(/^[·•]\s*/, '');
+              // 拆分"角色名：态度"，以第一个"："为界
+              const colonIdx = text.indexOf('：');
+              if (colonIdx !== -1) {
+                const name = text.slice(0, colonIdx);
+                const stance = text.slice(colonIdx + 1);
+                return (
+                  <p key={idx} className={styles.backstoryLineRole}>
+                    <span className={styles.backstoryRoleName}>{name}</span>
+                    <span className={styles.backstoryRoleStance}>：{stance}</span>
+                  </p>
+                );
+              }
+              // 没有冒号则整行作为角色行
+              return (
+                <p key={idx} className={styles.backstoryLineRole}>
+                  <span className={styles.backstoryRoleName}>{text}</span>
+                </p>
+              );
+            }
+            // 大背景：普通叙述行
+            return (
+              <p key={idx} className={styles.backstoryLineContext}>{line}</p>
+            );
+          })}
         </div>
       );
     }
@@ -155,11 +192,11 @@ function PreMeeting() {
           {/* 2e. 渐变发光分隔线 */}
           <div className={styles.gradientLine} />
 
-          {/* 2f. 身份行：脑洞模式显示角色头衔，正经开会显示用户名 · 职位 */}
+          {/* 2f. 身份行：脑洞模式显示"你的角色：头衔"，正经开会显示用户名 · 职位 */}
           <div className={styles.roleIdentityRow}>
             <span className={styles.roleIdentityText}>
               {isBrainstorm
-                ? (meetingData?.userRole?.title || brainstormTheme?.userRole || userName || '英雄')
+                ? (<>{'你的角色：'}{meetingData?.userRole?.title || brainstormTheme?.userRole || userName || '英雄'}</>)
                 : (
                   <>
                     {userName || '你'}
@@ -170,8 +207,8 @@ function PreMeeting() {
             </span>
           </div>
 
-          {/* 2g. 目标 / 难点 / 盟友三行信息 */}
-          {userRole && (
+          {/* 2g. 目标行 */}
+          {userRole?.goal && (
             <div className={styles.roleInfoList}>
               {/* 目标行：翡翠绿 */}
               <div className={`${styles.roleInfoItem} ${styles.roleInfoGoal}`}>
@@ -182,63 +219,32 @@ function PreMeeting() {
                   {userRole.goal}
                 </span>
               </div>
-
-              {/* 难点行：橙色 */}
-              <div className={`${styles.roleInfoItem} ${styles.roleInfoChallenge}`}>
-                <div className={styles.roleInfoAccentBar} style={{ background: 'var(--accent-orange)' }} />
-                <span className={styles.roleInfoEmoji}>⚠️</span>
-                <span className={styles.roleInfoText}>
-                  <span className={styles.roleInfoLabel}>难点：</span>
-                  {userRole.challenge}
-                </span>
-              </div>
-
-              {/* 盟友行：品牌靛蓝 */}
-              <div className={`${styles.roleInfoItem} ${styles.roleInfoAlly}`}>
-                <div className={styles.roleInfoAccentBar} style={{ background: 'var(--color-brand)' }} />
-                <span className={styles.roleInfoEmoji}>💚</span>
-                <span className={styles.roleInfoText}>
-                  <span className={styles.roleInfoLabel}>盟友：</span>
-                  {userRole.ally}
-                </span>
-              </div>
             </div>
           )}
-        </div>
 
-        {/* 底部占位，防止固定按钮遮挡内容 */}
-        <div style={{ height: 96 }} />
-      </div>
-
-      {/* 固定底部：换主题按钮（脑洞模式） + 进入会议 CTA 按钮（翡翠绿） */}
-      <div className={styles.footer}>
-        {/* 换主题按钮：仅脑洞模式显示 */}
-        {isBrainstorm && (
-          <div className={styles.refreshRow}>
-            <button
-              className={`${styles.refreshBtn} ${canRefresh ? styles.refreshBtnActive : ''}`}
-              onClick={handleRefreshTheme}
-              disabled={!canRefresh}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                <path d="M1 4v6h6M23 20v-6h-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          {/* 按钮区域：跟随卡片内容流，不固定在底部 */}
+          <div className={styles.buttonArea}>
+            {/* 主 CTA：进入会议 */}
+            <button className={styles.enterButton} onClick={handleEnterMeeting}>
+              进入会议
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                <path d="M12 5L19 12L12 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-              换一个主题
             </button>
-            <span className={`${styles.refreshCount} ${!canRefresh ? styles.refreshCountDepleted : ''}`}>
-              {refreshCount}/{MAX_REFRESH}
-            </span>
-          </div>
-        )}
 
-        <button className={styles.enterButton} onClick={handleEnterMeeting}>
-          进入会议
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <path d="M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-            <path d="M12 5L19 12L12 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
+            {/* 换主题：文字链接 */}
+            {isBrainstorm && (
+              <button
+                className={`${styles.refreshLink} ${canRefresh ? styles.refreshLinkActive : styles.refreshLinkDepleted}`}
+                onClick={handleRefreshTheme}
+                disabled={!canRefresh}
+              >
+                换个主题试试 ({refreshCount}/{MAX_REFRESH})
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

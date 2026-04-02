@@ -224,7 +224,8 @@ router.post('/generate', async (req, res) => {
       }
 
       // ========== 修正 backstory：删除身份介绍 + 修正 NPC 名字 ==========
-      if (meetingData.userRole.backstory) {
+      // 脑洞模式的 backstory 已经是结构化格式，不需要后处理修正
+      if (!isBrainstorm && meetingData.userRole.backstory) {
         let fixed = meetingData.userRole.backstory;
 
         // 按换行分段，删除包含"你是...英文人名"的身份介绍行

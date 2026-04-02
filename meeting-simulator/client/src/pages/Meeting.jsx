@@ -492,17 +492,19 @@ function Meeting() {
     // ——— 逐条弹入：根据消息长度决定停留时间，模拟自然对话节奏 ———
     const nextMsg = dialogue[startIndex + 1];
     const msgLength = (msg.text || '').length;
-    // 英文消息延迟 + 翻译阅读时间（按英文的一半估算）
+    // 第一条消息直接显示不等待，后续消息根据长度延迟
     let delay;
-    if (msgLength < 50) {
+    if (startIndex === 0) {
+      delay = 0;  // 第一条立即出现
+    } else if (msgLength < 50) {
       delay = 1800;  // 短消息：1.2s + 翻译 0.6s
     } else if (msgLength <= 120) {
       delay = 3000;  // 中消息：2s + 翻译 1s
     } else {
       delay = 4200;  // 长消息：2.8s + 翻译 1.4s
     }
-    // 下一条是 keyNode 时用固定 1.5s（keyNode 自己也有延迟）
-    if (nextMsg && nextMsg.isKeyNode) {
+    // 下一条是 keyNode 时用固定 1.5s
+    if (startIndex !== 0 && nextMsg && nextMsg.isKeyNode) {
       delay = 1500;
     }
 

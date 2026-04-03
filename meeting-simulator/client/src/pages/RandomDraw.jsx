@@ -42,15 +42,21 @@ function RandomDraw() {
   const [isGenerating, setIsGenerating] = useState(false);
   // 防止重复请求
   const hasLoadedRef = useRef(false);
+  // 收集翻牌相关 setTimeout 的 ID，用于组件卸载/刷新时清理
+  const timerRefs = useRef([]);
 
   // 全部翻完：三张都是 true
   const allFlipped = flippedCards.every(Boolean);
 
-  // 初次加载时拉取随机角色
+  // 初次加载时拉取随机角色；组件卸载时清理所有翻牌定时器
   useEffect(() => {
     if (hasLoadedRef.current) return;
     hasLoadedRef.current = true;
     loadRandomCharacters();
+    return () => {
+      timerRefs.current.forEach(id => clearTimeout(id));
+      timerRefs.current = [];
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -98,16 +104,18 @@ function RandomDraw() {
     setBackFlipping(true);
 
     // 背面动画进行到 350ms 时启动正面翻入（350+400=750ms，有 50ms 重叠，视觉更连贯）
-    setTimeout(() => {
+    const t1 = setTimeout(() => {
       setFrontFlipping(true);
     }, 350);
+    timerRefs.current.push(t1);
   };
 
   // 正面翻入动画结束 → 停留 350ms → 触发大卡淡出
   const handleFrontAnimationEnd = () => {
-    setTimeout(() => {
+    const t2 = setTimeout(() => {
       setCardFading(true); // 触发 transition: opacity+scale
     }, 350);
+    timerRefs.current.push(t2);
   };
 
   // 大卡淡出 transition 结束 → 显示小卡 → 准备下一张或结束
@@ -133,14 +141,19 @@ function RandomDraw() {
       setCardEntering(true);
       setCurrentCard(idx + 1);
     } else {
-      // 三张全部翻完，显示成就区
-      setAllAnimationDone(true);
+      // 三张全部翻完，等小卡 CSS transition（500ms）完成后再显示成就区
+      const t3 = setTimeout(() => {
+        setAllAnimationDone(true);
+      }, 500);
+      timerRefs.current.push(t3);
     }
   };
 
-  // 换一批：重置所有状态，重新拉取角色
+  // 换一批：先清理未触发的定时器，再重置所有状态，重新拉取角色
   const handleRefresh = () => {
     if (isGenerating) return;
+    timerRefs.current.forEach(id => clearTimeout(id));
+    timerRefs.current = [];
     hasLoadedRef.current = false;
     loadRandomCharacters();
   };

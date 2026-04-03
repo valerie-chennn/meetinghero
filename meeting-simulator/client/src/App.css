@@ -516,12 +516,12 @@ textarea:focus {
 
 @keyframes dotPulseWave {
   0%, 55%, 100% {
-    transform: translateY(0);
+    transform: scale(0.8);
     opacity: 0.35;
   }
   28% {
-    transform: translateY(-10px);
-    opacity: 1;
+    transform: scale(1.15);
+    opacity: 0.9;
   }
 }
 
@@ -561,6 +561,23 @@ textarea:focus {
 /* ===================================================
    Meeting keynote 选项块入场动画（全局定义，供内联 style animation 引用）
    =================================================== */
+@keyframes keynoteEnter {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* keynote 选项块依次入场（全局类名，!important 覆盖 reduced-motion） */
+.keynote-option {
+  opacity: 0;
+  animation: optionEnter 0.8s cubic-bezier(0.25, 0.1, 0.25, 1) var(--option-delay, 0ms) forwards !important;
+}
+
 @keyframes optionEnter {
   from {
     opacity: 0;

@@ -589,17 +589,7 @@
    设计：左侧彩色竖线区分激活/完成状态，橙绿色彩系
    ===================================================== */
 
-/* keynote 整体入场：translateY(15px)→0 + opacity，600ms ease-out */
-@keyframes keynoteEnter {
-  from {
-    opacity: 0;
-    transform: translateY(15px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
+/* keynoteEnter 已移至全局 App.css，避免 CSS Modules hash */
 
 /* 每个选项块入场：translateY(8px)+scale(0.95)→正常，400ms ease-out */
 @keyframes optionEnter {
@@ -628,8 +618,8 @@
   transition: background 0.3s var(--ease-standard),
               border-color 0.3s var(--ease-standard),
               box-shadow 0.3s var(--ease-standard);
-  /* keynote 整体入场动画：600ms ease-out */
-  animation: keynoteEnter 0.6s ease-out;
+  /* keynote 整体入场动画：600ms ease-out，!important 覆盖 reduced-motion */
+  animation: keynoteEnter 0.6s ease-out !important;
 }
 
 /* 激活状态：橙色左边框 + 极浅橙背景 */

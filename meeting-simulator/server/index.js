@@ -8,6 +8,7 @@ require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 
 // 初始化数据库（触发 schema 创建）
 require('./db');
@@ -59,6 +60,14 @@ app.use('/api/upload', uploadRouter);
 app.use('/api/history', historyRouter);
 app.use('/api/brainstorm', brainstormRouter);
 
+// ==================== 生产环境静态文件 ====================
+
+// 生产环境下 serve 前端构建产物（client/dist）
+if (process.env.NODE_ENV === 'production') {
+  const distPath = path.join(__dirname, '../client/dist');
+  app.use(express.static(distPath));
+}
+
 // ==================== 健康检查 ====================
 
 app.get('/health', (req, res) => {
@@ -74,8 +83,11 @@ app.get('/health', (req, res) => {
 
 // ==================== 错误处理 ====================
 
-// 404 处理
+// 404 处理：生产环境下非 API 路由返回 index.html（SPA fallback）
 app.use((req, res) => {
+  if (process.env.NODE_ENV === 'production' && !req.path.startsWith('/api') && !req.path.startsWith('/health')) {
+    return res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+  }
   res.status(404).json({ error: `路由 ${req.method} ${req.path} 不存在` });
 });
 

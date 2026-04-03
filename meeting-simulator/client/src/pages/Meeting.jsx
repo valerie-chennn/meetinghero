@@ -1306,10 +1306,9 @@ function NodePromptCard({ nodeIndex, prompt, keyData, isActive, isCompleted }) {
             return (
               <div
                 key={i}
-                className={styles.keyDataItem}
+                className={`${styles.keyDataItem} keynote-option`}
                 style={{
-                  opacity: 0,
-                  animation: `optionEnter 0.8s cubic-bezier(0.25, 0.1, 0.25, 1) ${optionDelay}ms forwards`,
+                  '--option-delay': `${optionDelay}ms`,
                 }}
               >
                 <span className={styles.keyDataLabel}>{item.label}</span>

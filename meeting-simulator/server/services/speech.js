@@ -1,7 +1,81 @@
 /**
- * Azure Speech 服务封装
+ * 语音服务封装
  * 提供文字转语音（TTS）和语音转文字（STT）功能
+ * TTS 优先使用 ElevenLabs，fallback 到 Azure
+ * STT 使用 Azure Whisper
  */
+
+/**
+ * 检查 ElevenLabs TTS 服务是否已配置
+ * @returns {boolean}
+ */
+function isElevenLabsConfigured() {
+  return !!process.env.ELEVENLABS_API_KEY;
+}
+
+/**
+ * 文字转语音（ElevenLabs TTS）
+ * 调用 ElevenLabs REST API 生成音频数据
+ * @param {string} text - 要转换的文本
+ * @param {string} voiceId - ElevenLabs 音色 ID
+ * @returns {Promise<Buffer>} 返回音频 Buffer（MP3 格式）
+ */
+async function textToSpeechElevenLabs(text, voiceId) {
+  const https = require('https');
+
+  const apiKey = process.env.ELEVENLABS_API_KEY;
+  const body = JSON.stringify({
+    text,
+    model_id: 'eleven_multilingual_v2',
+    voice_settings: {
+      stability: 0.5,
+      similarity_boost: 0.75,
+    },
+  });
+
+  return new Promise((resolve, reject) => {
+    const options = {
+      hostname: 'api.elevenlabs.io',
+      port: 443,
+      path: `/v1/text-to-speech/${voiceId}`,
+      method: 'POST',
+      headers: {
+        'xi-api-key': apiKey,
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(body),
+      },
+    };
+
+    const req = https.request(options, (res) => {
+      const chunks = [];
+
+      res.on('data', (chunk) => {
+        chunks.push(chunk);
+      });
+
+      res.on('end', () => {
+        if (res.statusCode >= 400) {
+          const errBody = Buffer.concat(chunks).toString();
+          reject(new Error(`ElevenLabs TTS 错误 (${res.statusCode}): ${errBody}`));
+          return;
+        }
+        resolve(Buffer.concat(chunks));
+      });
+    });
+
+    req.on('error', (err) => {
+      reject(new Error(`ElevenLabs TTS 请求失败: ${err.message}`));
+    });
+
+    req.setTimeout(30000, () => {
+      req.destroy();
+      reject(new Error('ElevenLabs TTS 请求超时'));
+    });
+
+    req.write(body);
+    req.end();
+  });
+}
 
 /**
  * 检查 Azure Speech 服务是否已配置
@@ -240,8 +314,10 @@ function escapeXml(text) {
 }
 
 module.exports = {
+  isElevenLabsConfigured,
   isSpeechConfigured,
   isWhisperConfigured,
+  textToSpeechElevenLabs,
   textToSpeech,
   speechToText,
 };

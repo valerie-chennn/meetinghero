@@ -55,6 +55,7 @@ function generateMeetingPrompt({ englishLevel, jobTitle, industry, userName, upl
 - 每个角色新增字段：
   - briefNote：一句话关系描述，中文，≤18字，基于具体场景（好例子："上次就质疑过你的排期，这次还会追"）
   - stance：ally（友善）| neutral（中立）| pressure（施压），整体至少 1 个 ally、1 个 pressure
+  - gender：角色性别，"male" 或 "female"，根据名字和职位判断
 
 ## NPC 消息约束
 - 长度：${npcLengthConstraint}（严格遵守）
@@ -143,7 +144,7 @@ NPC 先讨论，最后一条直接把球抛给用户。
   "briefing": {"topic":"","topicZh":"","status":"","statusZh":"","keyFacts":[],"keyFactsZh":[]},
   "userRole": {"backstory":"","goal":"","challenge":"","ally":""},
   "memo": [{"text":""}],
-  "roles": [{"name":"","title":"","type":"leader|collaborator|challenger","avatar":"","briefNote":"","stance":"ally|neutral|pressure"}],
+  "roles": [{"name":"","title":"","type":"leader|collaborator|challenger","avatar":"","briefNote":"","stance":"ally|neutral|pressure","gender":"male|female"}],
   "dialogue": [
     {"speaker":"NPC名","text":"","textZh":"","isKeyNode":false},
     {"speaker":"narrator","text":"","textZh":"","isKeyNode":false},

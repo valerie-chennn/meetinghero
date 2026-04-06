@@ -238,6 +238,7 @@ ${themeContext}
 - roles[].title：点将局（同世界）留空字符串——角色身份已定，不需要适配头衔；乱炖局（跨世界）非主场角色给适配头衔，主场角色留空
 - briefNote：一句话关系描述，中文，≤18字，基于该角色的性格特点（如"天生反骨，这次会议可能直接掀桌"）
 - stance：根据角色性格设定：ally（友善）| neutral（中立）| pressure（施压），整体至少 1 个 ally、1 个 pressure
+- gender：角色性别，"male" 或 "female"，根据角色原著判断
 - 如有必要可额外生成 1 个符合世界观的配角 NPC（总 NPC 数不超过 4 个）
 
 ## textZh 翻译风格规则（必须严格遵守）
@@ -404,7 +405,7 @@ NPC 在英文对话中称呼用户时使用用户的花名（userName：${userNa
   "briefing": {"topic":"","topicZh":"","status":"","statusZh":"","keyFacts":[],"keyFactsZh":[]},
   "userRole": {"title":"","backstory":"","goal":""},
   "memo": [{"text":""}],
-  "roles": [{"name":"","title":"","type":"leader|collaborator|challenger","avatar":"","briefNote":"","stance":"ally|neutral|pressure"}],
+  "roles": [{"name":"","title":"","type":"leader|collaborator|challenger","avatar":"","briefNote":"","stance":"ally|neutral|pressure","gender":"male|female"}],
   "dialogue": [
     {"speaker":"NPC名","text":"","textZh":"","isKeyNode":false},
     {"speaker":"system","text":"","isKeyNode":true,"nodeIndex":0,"nodeType":"explain","prompt":"","actionGoal":"","inputPlaceholder":"","keyData":[{"label":"","value":""}]}

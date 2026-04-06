@@ -167,13 +167,14 @@ export async function submitPractice(meetingId, nodeIndex, userInput) {
  * 文字转语音
  * @param {string} text - 要转换的文字
  * @param {string} language - 语言：'en' | 'zh'
+ * @param {string} [voiceId] - ElevenLabs 音色 ID（传入时优先使用 ElevenLabs）
  * @returns {Blob} 音频 Blob
  */
-export async function textToSpeech(text, language = 'en') {
+export async function textToSpeech(text, language = 'en', voiceId) {
   const response = await fetch(`${API_BASE}/speech/tts`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text, language }),
+    body: JSON.stringify({ text, language, ...(voiceId ? { voiceId } : {}) }),
   });
 
   if (response.status === 501) {

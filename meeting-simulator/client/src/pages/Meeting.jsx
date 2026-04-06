@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
-import { respondToNode, completeMeeting } from '../api/index.js';
+import { respondToNode, completeMeeting, textToSpeech } from '../api/index.js';
 import UserInput from '../components/UserInput.jsx';
 import Reference from '../components/Reference.jsx';
 import BriefingCard from '../components/BriefingCard.jsx';
@@ -84,6 +84,34 @@ function findRecentNpcNames(messages, count) {
     }
   }
   return names;
+}
+
+/**
+ * ElevenLabs 音色 ID 映射
+ * 根据角色 gender + type 分配对应音色
+ */
+const VOICE_IDS = {
+  maleLeaderChallenger: 'XDbDbPfT1aN6oA1pIwp7',   // David：成熟男声
+  maleOther: 'pryQZVlVLGYIhlqSYsGW',               // Ray：年轻男声（默认 fallback）
+  femaleLeaderChallenger: 'Xv0dcEcXkcJWrXSQREue',  // Natasia：成熟女声
+  femaleOther: 'XiPS9cXxAVbaIWtGDHDh',             // Brittney：年轻女声
+};
+
+/**
+ * 根据角色 gender + type 分配 ElevenLabs 音色 ID
+ * gender 缺失时默认视为 male（大多数 NPC 是男性名字）
+ * @param {object|null} role - roles 数组中匹配到的角色对象
+ * @returns {string} ElevenLabs voice_id
+ */
+function getVoiceId(role) {
+  if (!role) return VOICE_IDS.maleOther;
+  const gender = role.gender || 'male';
+  const type = role.type || role.roleType || '';
+  const isLeaderOrChallenger = type === 'leader' || type === 'challenger';
+  if (gender === 'female') {
+    return isLeaderOrChallenger ? VOICE_IDS.femaleLeaderChallenger : VOICE_IDS.femaleOther;
+  }
+  return isLeaderOrChallenger ? VOICE_IDS.maleLeaderChallenger : VOICE_IDS.maleOther;
 }
 
 // 角色颜色映射
@@ -312,6 +340,12 @@ function Meeting() {
   const playTimerRef = useRef(null);
   // 标记是否已启动过播放（解决 StrictMode 双重 effect 问题）
   const hasStartedRef = useRef(false);
+  // TTS 音频播放队列：每个元素为 { text, voiceId }
+  const audioQueueRef = useRef([]);
+  // 当前正在播放的 Audio 对象（用于中断）
+  const currentAudioRef = useRef(null);
+  // 是否正在播放音频（防止队列并发处理）
+  const isPlayingAudioRef = useRef(false);
   // 第二层控制器所需的段计数 ref（用户发言时归零）
   // segmentNpcCountRef：当前段（两次用户发言之间）已播放的 NPC 消息数，上限 3
   const segmentNpcCountRef = useRef(0);
@@ -362,6 +396,89 @@ function Meeting() {
     }
     return () => clearTimeout(noDataTimerRef.current);
   }, [meetingData, navigate]);
+
+  /**
+   * 立即停止当前音频播放，并清空待播队列
+   * 在用户发言时调用，避免 NPC 音频继续干扰
+   */
+  const stopAndClearAudio = useCallback(() => {
+    // 停止并销毁当前正在播放的 Audio 对象
+    if (currentAudioRef.current) {
+      currentAudioRef.current.pause();
+      currentAudioRef.current.src = '';
+      currentAudioRef.current = null;
+    }
+    // 清空队列和播放状态
+    audioQueueRef.current = [];
+    isPlayingAudioRef.current = false;
+  }, []);
+
+  /**
+   * 处理下一条待播音频（内部递归调用）
+   * 从队列头取出一条，请求 TTS 并播放，播完继续处理下一条
+   */
+  const processAudioQueue = useCallback(async () => {
+    // 队列为空或已有播放任务在跑，直接返回
+    if (audioQueueRef.current.length === 0 || isPlayingAudioRef.current) return;
+
+    isPlayingAudioRef.current = true;
+    const { text, voiceId } = audioQueueRef.current.shift();
+
+    try {
+      const blob = await textToSpeech(text, 'en', voiceId);
+      if (!blob) {
+        // TTS 未配置（501），静默跳过，继续处理队列
+        isPlayingAudioRef.current = false;
+        processAudioQueue();
+        return;
+      }
+
+      // 创建 Audio 对象并播放
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      currentAudioRef.current = audio;
+
+      audio.onended = () => {
+        URL.revokeObjectURL(url);
+        currentAudioRef.current = null;
+        isPlayingAudioRef.current = false;
+        // 播放完毕，继续处理队列中的下一条
+        processAudioQueue();
+      };
+
+      audio.onerror = () => {
+        URL.revokeObjectURL(url);
+        currentAudioRef.current = null;
+        isPlayingAudioRef.current = false;
+        processAudioQueue();
+      };
+
+      audio.play().catch(() => {
+        // 浏览器自动播放策略拦截：静默失败，继续队列
+        URL.revokeObjectURL(url);
+        currentAudioRef.current = null;
+        isPlayingAudioRef.current = false;
+        processAudioQueue();
+      });
+    } catch (err) {
+      // TTS 请求失败：静默跳过，不影响对话播放
+      console.warn('[TTS] 音频请求失败，已跳过：', err.message);
+      isPlayingAudioRef.current = false;
+      processAudioQueue();
+    }
+  }, []);
+
+  /**
+   * 将一条 NPC 消息加入 TTS 播放队列
+   * @param {string} text - NPC 消息文本（英文）
+   * @param {string} voiceId - 对应的 ElevenLabs 音色 ID
+   */
+  const enqueueTts = useCallback((text, voiceId) => {
+    if (!text || !text.trim()) return;
+    audioQueueRef.current.push({ text: text.trim(), voiceId });
+    // 若当前没有播放任务，触发处理
+    processAudioQueue();
+  }, [processAudioQueue]);
 
   /**
    * 会议结束处理：显示"会议结束"系统消息，2 秒后展示"查看会议复盘"按钮
@@ -580,6 +697,12 @@ function Meeting() {
           return [...prev, { ...msg, id: msgId, isNew: true }];
         });
 
+        // NPC 消息插入后触发 TTS（narrator/keyNode/user/system 不触发）
+        if (msg.text && !msg.isKeyNode && msg.speaker !== 'narrator') {
+          const speakingRole = findRoleBySpeaker(roles, msg.speaker);
+          enqueueTts(msg.text, getVoiceId(speakingRole));
+        }
+
         // 打字机效果时长：等打完再调度下一条消息
         const typewriterDuration = msgLength * 35;
 
@@ -632,7 +755,7 @@ function Meeting() {
         }, typewriterDuration);
       }, typingDuration);
     }, gapDelay);
-  }, [handleMeetingEnd]);
+  }, [handleMeetingEnd, enqueueTts]);
 
   // 初始化：从 processedDialogue[0] 开始播放
   // React StrictMode 下 effect 会执行两次（mount→unmount→mount），
@@ -680,6 +803,9 @@ function Meeting() {
    */
   const handleSubmit = async (text) => {
     if (isWaiting || activeNodeIndex === null) return;
+
+    // 用户发言时立即停止当前 TTS 播放，清空队列
+    stopAndClearAudio();
 
     // 用户已发言，解除 keyNode 等待锁（同步，立即生效）
     isWaitingForUserRef.current = false;
@@ -813,6 +939,11 @@ function Meeting() {
                   // 快速弹入：根据消息长度动态调整间隔
                   const rMsgId = `resp-msg-invalid-${idx}`;
                   setDisplayedMessages(prev => [...prev, { ...rMsg, id: rMsgId, isNew: true }]);
+                  // NPC 回应消息也触发 TTS（非 narrator/system）
+                  if (rMsg.text && rMsg.speaker && rMsg.speaker !== 'narrator') {
+                    const rRole = findRoleBySpeaker(roles, rMsg.speaker);
+                    enqueueTts(rMsg.text, getVoiceId(rRole));
+                  }
                   const rMsgLength = (rMsg.text || '').length;
                   playTimerRef.current = setTimeout(appendNext, rMsgLength < 50 ? 1800 : rMsgLength <= 120 ? 3000 : 4200);
                 } else {
@@ -855,6 +986,11 @@ function Meeting() {
             // 快速弹入：根据消息长度动态调整间隔
             const rMsgId = `resp-msg-${idx}`;
             setDisplayedMessages(prev => [...prev, { ...rMsg, id: rMsgId, isNew: true }]);
+            // NPC 回应消息也触发 TTS（非 narrator/system）
+            if (rMsg.text && rMsg.speaker && rMsg.speaker !== 'narrator') {
+              const rRole = findRoleBySpeaker(roles, rMsg.speaker);
+              enqueueTts(rMsg.text, getVoiceId(rRole));
+            }
             const rMsgLength = (rMsg.text || '').length;
             playTimerRef.current = setTimeout(appendNext, rMsgLength < 50 ? 1800 : rMsgLength <= 120 ? 3000 : 4200);
           } else {

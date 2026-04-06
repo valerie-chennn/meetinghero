@@ -6,7 +6,14 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const { textToSpeech, speechToText, isSpeechConfigured, isWhisperConfigured } = require('../services/speech');
+const {
+  textToSpeech,
+  textToSpeechElevenLabs,
+  speechToText,
+  isElevenLabsConfigured,
+  isSpeechConfigured,
+  isWhisperConfigured,
+} = require('../services/speech');
 
 // 配置 multer 使用内存存储，限制文件大小 10MB
 const upload = multer({
@@ -27,17 +34,13 @@ const upload = multer({
 /**
  * POST /api/speech/tts
  * 文字转语音，返回 MP3 音频流
+ * 优先使用 ElevenLabs，fallback 到 Azure
+ * Body: { text, language?, voice?, voiceId? }
+ *   voiceId - ElevenLabs 音色 ID（前端根据角色 gender+type 分配）
  */
 router.post('/tts', async (req, res) => {
   try {
-    // 检查 Azure Speech 是否配置
-    if (!isSpeechConfigured()) {
-      return res.status(501).json({
-        error: 'Azure Speech 服务未配置，请设置 AZURE_SPEECH_KEY 和 AZURE_SPEECH_REGION 环境变量',
-      });
-    }
-
-    const { text, language = 'en-US', voice } = req.body;
+    const { text, language = 'en-US', voice, voiceId } = req.body;
 
     // 参数校验
     if (!text || !text.trim()) {
@@ -49,16 +52,29 @@ router.post('/tts', async (req, res) => {
       return res.status(400).json({ error: '文本过长，最多 2000 个字符' });
     }
 
-    // 校验语言代码
-    const validLanguages = ['en-US', 'zh-CN'];
-    if (!validLanguages.includes(language)) {
-      return res.status(400).json({ error: 'language 必须为 en-US 或 zh-CN' });
+    let audioBuffer;
+
+    // 优先使用 ElevenLabs（需要传入 voiceId）
+    if (isElevenLabsConfigured() && voiceId) {
+      console.log(`[Speech/TTS] 使用 ElevenLabs，voiceId=${voiceId}, textLength=${text.trim().length}`);
+      audioBuffer = await textToSpeechElevenLabs(text.trim(), voiceId);
+    } else {
+      // Fallback：使用 Azure TTS
+      if (!isSpeechConfigured()) {
+        return res.status(501).json({
+          error: 'TTS 服务未配置：ElevenLabs 未配置 voiceId，Azure Speech 也未配置',
+        });
+      }
+
+      // Azure 需要校验语言代码
+      const validLanguages = ['en-US', 'zh-CN'];
+      if (!validLanguages.includes(language)) {
+        return res.status(400).json({ error: 'language 必须为 en-US 或 zh-CN' });
+      }
+
+      console.log(`[Speech/TTS] 使用 Azure TTS，language=${language}, textLength=${text.trim().length}`);
+      audioBuffer = await textToSpeech(text.trim(), language, voice);
     }
-
-    console.log(`[Speech/TTS] 生成语音，language=${language}, textLength=${text.trim().length}`);
-
-    // 调用 Azure TTS
-    const audioBuffer = await textToSpeech(text.trim(), language, voice);
 
     // 返回音频流
     res.setHeader('Content-Type', 'audio/mpeg');

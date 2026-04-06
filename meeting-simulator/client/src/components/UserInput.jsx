@@ -42,13 +42,14 @@ function UserInput({ placeholder = '输入你要说的话...', onSubmit, onVoice
     ta.style.height = Math.min(ta.scrollHeight, 120) + 'px';
   };
 
-  // 语音识别结果回调
+  // 语音识别结果回调 — 直接发送，不进输入框
   const handleVoiceResult = (result) => {
-    setText(result.text || '');
+    const voiceText = (result.text || '').trim();
     setIsVoiceMode(false);
     setIsTranscribing(false);
-    // 自动聚焦输入框，方便用户确认
-    setTimeout(() => textareaRef.current?.focus(), 100);
+    if (voiceText) {
+      onSubmit?.(voiceText);
+    }
     onVoiceResult?.(result);
   };
 

@@ -5,8 +5,9 @@ import styles from './TtsButton.module.css';
 /**
  * TTS 播放按钮组件
  * 支持后端 TTS API，失败时使用浏览器 Web Speech API 作为 fallback
+ * @param {string} voiceId - 可选，指定 ElevenLabs 音色 ID（传入时与自动播放保持一致）
  */
-function TtsButton({ text, language = 'en' }) {
+function TtsButton({ text, language = 'en', voiceId }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef(null);
 
@@ -48,7 +49,7 @@ function TtsButton({ text, language = 'en' }) {
     }
 
     try {
-      const audioBlob = await textToSpeech(text, language);
+      const audioBlob = await textToSpeech(text, language, voiceId);
 
       if (!audioBlob) {
         // 后端未配置，使用 Web Speech API fallback

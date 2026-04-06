@@ -340,12 +340,14 @@ function Meeting() {
   const playTimerRef = useRef(null);
   // 标记是否已启动过播放（解决 StrictMode 双重 effect 问题）
   const hasStartedRef = useRef(false);
-  // TTS 音频播放队列：每个元素为 { text, voiceId }
+  // TTS 音频播放队列：每个元素为 { promise: Promise<Blob> }（已是预加载好的 Promise）
   const audioQueueRef = useRef([]);
   // 当前正在播放的 Audio 对象（用于中断）
   const currentAudioRef = useRef(null);
   // 是否正在播放音频（防止队列并发处理）
   const isPlayingAudioRef = useRef(false);
+  // TTS 预加载缓存：key 为消息在 processedDialogue 中的 index，value 为 Promise<Blob|null>
+  const ttsCacheRef = useRef(new Map());
   // 第二层控制器所需的段计数 ref（用户发言时归零）
   // segmentNpcCountRef：当前段（两次用户发言之间）已播放的 NPC 消息数，上限 3
   const segmentNpcCountRef = useRef(0);
@@ -408,26 +410,26 @@ function Meeting() {
       currentAudioRef.current.src = '';
       currentAudioRef.current = null;
     }
-    // 清空队列和播放状态
+    // 清空播放队列和播放状态（缓存保留，避免重复请求）
     audioQueueRef.current = [];
     isPlayingAudioRef.current = false;
   }, []);
 
   /**
    * 处理下一条待播音频（内部递归调用）
-   * 从队列头取出一条，请求 TTS 并播放，播完继续处理下一条
+   * 从队列头取出一条已预加载的 Promise，await 后播放，播完继续处理下一条
    */
   const processAudioQueue = useCallback(async () => {
     // 队列为空或已有播放任务在跑，直接返回
     if (audioQueueRef.current.length === 0 || isPlayingAudioRef.current) return;
 
     isPlayingAudioRef.current = true;
-    const { text, voiceId } = audioQueueRef.current.shift();
+    const { promise } = audioQueueRef.current.shift();
 
     try {
-      const blob = await textToSpeech(text, 'en', voiceId);
+      const blob = await promise;
       if (!blob) {
-        // TTS 未配置（501），静默跳过，继续处理队列
+        // TTS 未配置（501）或返回空，静默跳过，继续处理队列
         isPlayingAudioRef.current = false;
         processAudioQueue();
         return;
@@ -469,13 +471,58 @@ function Meeting() {
   }, []);
 
   /**
-   * 将一条 NPC 消息加入 TTS 播放队列
-   * @param {string} text - NPC 消息文本（英文）
+   * 预加载指定范围内的 NPC 消息 TTS 音频
+   * 将 TTS 请求 Promise 存入缓存，供播放时直接 await
+   *
+   * @param {Array} dialogueArray - 预处理后的对话数组
+   * @param {number} startIndex - 从哪条开始预加载
+   * @param {number} count - 最多预加载几条（通常 2-3）
+   * @param {Array} rolesArray - 角色列表（用于查 voiceId）
+   */
+  const prefetchTts = useCallback((dialogueArray, startIndex, count, rolesArray) => {
+    let fetched = 0;
+    for (let i = startIndex; i < dialogueArray.length && fetched < count; i++) {
+      const msg = dialogueArray[i];
+      // 只预加载普通 NPC 消息（排除 narrator、keyNode、空文本）
+      if (
+        msg.speaker &&
+        msg.speaker !== 'narrator' &&
+        !msg.isKeyNode &&
+        msg.text &&
+        !ttsCacheRef.current.has(i)
+      ) {
+        const role = findRoleBySpeaker(rolesArray, msg.speaker);
+        const voiceId = getVoiceId(role);
+        // 发起请求并存 Promise（不 await，真正预加载）
+        ttsCacheRef.current.set(i, textToSpeech(msg.text.trim(), 'en', voiceId));
+        fetched++;
+      }
+    }
+  }, []);
+
+  /**
+   * 将一条 NPC 消息加入 TTS 播放队列（基于预加载缓存）
+   * 若缓存中已有该条消息的 Promise，直接入队；否则临时发起请求
+   *
+   * @param {number} msgIndex - 消息在 processedDialogue 中的 index
+   * @param {string} text - NPC 消息文本（缓存未命中时用于发起请求）
    * @param {string} voiceId - 对应的 ElevenLabs 音色 ID
    */
-  const enqueueTts = useCallback((text, voiceId) => {
+  const enqueueTts = useCallback((msgIndex, text, voiceId) => {
     if (!text || !text.trim()) return;
-    audioQueueRef.current.push({ text: text.trim(), voiceId });
+
+    let promise;
+    if (ttsCacheRef.current.has(msgIndex)) {
+      // 缓存命中：直接取已预加载的 Promise
+      promise = ttsCacheRef.current.get(msgIndex);
+      // 播放后清理缓存，释放内存
+      ttsCacheRef.current.delete(msgIndex);
+    } else {
+      // 缓存未命中（理论上极少发生）：临时发起请求
+      promise = textToSpeech(text.trim(), 'en', voiceId);
+    }
+
+    audioQueueRef.current.push({ promise });
     // 若当前没有播放任务，触发处理
     processAudioQueue();
   }, [processAudioQueue]);
@@ -700,7 +747,9 @@ function Meeting() {
         // NPC 消息插入后触发 TTS（narrator/keyNode/user/system 不触发）
         if (msg.text && !msg.isKeyNode && msg.speaker !== 'narrator') {
           const speakingRole = findRoleBySpeaker(roles, msg.speaker);
-          enqueueTts(msg.text, getVoiceId(speakingRole));
+          enqueueTts(startIndex, msg.text, getVoiceId(speakingRole));
+          // 每次播放一条，向后预加载 2 条缓冲，保持预读窗口
+          prefetchTts(processedDialogueRef.current, startIndex + 1, 2, roles);
         }
 
         // 打字机效果时长：等打完再调度下一条消息
@@ -755,7 +804,7 @@ function Meeting() {
         }, typewriterDuration);
       }, typingDuration);
     }, gapDelay);
-  }, [handleMeetingEnd, enqueueTts]);
+  }, [handleMeetingEnd, enqueueTts, prefetchTts]);
 
   // 初始化：从 processedDialogue[0] 开始播放
   // React StrictMode 下 effect 会执行两次（mount→unmount→mount），
@@ -765,6 +814,10 @@ function Meeting() {
     if (hasStartedRef.current) return;
 
     hasStartedRef.current = true;
+
+    // 页面启动时立即预加载前 3 条 NPC 消息，确保第一条消息出现时语音已就绪
+    prefetchTts(processedDialogue, 0, 3, meetingData?.roles || []);
+
     playDialogueFrom(0);
 
     return () => {
@@ -774,6 +827,8 @@ function Meeting() {
         playTimerRef.current = null;
       }
       hasStartedRef.current = false;
+      // 清理 TTS 预加载缓存，释放内存
+      ttsCacheRef.current.clear();
     };
   // playDialogueFrom 是稳定引用（依赖 handleMeetingEnd，后者依赖稳定的 meetingId/navigate）
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -940,9 +995,10 @@ function Meeting() {
                   const rMsgId = `resp-msg-invalid-${idx}`;
                   setDisplayedMessages(prev => [...prev, { ...rMsg, id: rMsgId, isNew: true }]);
                   // NPC 回应消息也触发 TTS（非 narrator/system）
+                  // responseDialogue 来自 API 动态响应，无预加载缓存，用 -1 触发临时请求
                   if (rMsg.text && rMsg.speaker && rMsg.speaker !== 'narrator') {
                     const rRole = findRoleBySpeaker(roles, rMsg.speaker);
-                    enqueueTts(rMsg.text, getVoiceId(rRole));
+                    enqueueTts(-1, rMsg.text, getVoiceId(rRole));
                   }
                   const rMsgLength = (rMsg.text || '').length;
                   playTimerRef.current = setTimeout(appendNext, rMsgLength < 50 ? 1800 : rMsgLength <= 120 ? 3000 : 4200);
@@ -987,9 +1043,10 @@ function Meeting() {
             const rMsgId = `resp-msg-${idx}`;
             setDisplayedMessages(prev => [...prev, { ...rMsg, id: rMsgId, isNew: true }]);
             // NPC 回应消息也触发 TTS（非 narrator/system）
+            // responseDialogue 来自 API 动态响应，无预加载缓存，用 -1 触发临时请求
             if (rMsg.text && rMsg.speaker && rMsg.speaker !== 'narrator') {
               const rRole = findRoleBySpeaker(roles, rMsg.speaker);
-              enqueueTts(rMsg.text, getVoiceId(rRole));
+              enqueueTts(-1, rMsg.text, getVoiceId(rRole));
             }
             const rMsgLength = (rMsg.text || '').length;
             playTimerRef.current = setTimeout(appendNext, rMsgLength < 50 ? 1800 : rMsgLength <= 120 ? 3000 : 4200);
@@ -1290,9 +1347,9 @@ function Meeting() {
                             </p>
                           </div>
                         )}
-                        {/* TTS 按钮 */}
+                        {/* TTS 按钮：传入角色专属音色，与自动播放保持一致 */}
                         <div className={styles.ttsRow}>
-                          <TtsButton text={msg.text} language="en" />
+                          <TtsButton text={msg.text} language="en" voiceId={getVoiceId(matchedRole)} />
                         </div>
                       </div>
                     </Message.CustomContent>

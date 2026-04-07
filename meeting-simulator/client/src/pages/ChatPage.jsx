@@ -140,9 +140,6 @@ function ChatPage() {
   // ── 连续 NPC 发言计数（不超过3条不进入 user_cue 时强制暂停）──
   const consecutiveNpcRef = useRef(0);
 
-  // ── 首条 NPC 消息是否已自动显示过（第一条不需要点击）──
-  const firstNpcShownRef = useRef(false);
-
   // ── 等待用户点击推进的标志（不用 state 避免闭包陷阱）──
   const waitingTapRef = useRef(false);
 
@@ -314,23 +311,19 @@ function ChatPage() {
         // 连续3条强制暂停（即使下一条不是 user_cue）
         const forcePause = consecutiveNpcRef.current >= 3 && !isNextUserCue;
 
-        // 第一条 NPC 消息：自动播放，不等用户点击
-        const isFirstNpc = !firstNpcShownRef.current;
-        firstNpcShownRef.current = true;
+        // "第一条自动出现"指 dots+打字机自动启动（不需要点击触发），
+        // 但播完后仍需等用户点击才进下一条。所以每条 NPC 消息都要等 tap。
+        // 唯一例外：下一条是 user_cue 时直接进发言模式，不需要 tap。
+        const needTap = !isNextUserCue && i < script.length;
 
-        const needTap = !isFirstNpc && (forcePause || (!isNextUserCue && i < script.length));
-
-        if (needTap) {
-          // 需要等用户点击（用户点击时 TTS 可能还没播完，没关系）
+        if (needTap || forcePause) {
+          // 等 TTS 播完再显示"点击屏幕继续"提示
+          await ttsPromise;
+          if (!shouldContinueRef.current) break;
+          // 等用户点击
           await waitTap();
           if (!shouldContinueRef.current) break;
           setTaps(t => t + 1);
-        } else if (isFirstNpc && i < script.length) {
-          // 第一条消息自动推进：必须等 TTS 播完再进下一条
-          await ttsPromise;
-          if (!shouldContinueRef.current) break;
-          await sleep(300); // TTS 播完后短暂停顿
-          if (!shouldContinueRef.current) break;
         }
 
         if (forcePause) {

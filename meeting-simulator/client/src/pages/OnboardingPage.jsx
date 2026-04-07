@@ -44,7 +44,7 @@ function OnboardingPage() {
         {/* 标题区 */}
         <div className={styles.header}>
           <div className={styles.logo}>💬</div>
-          <h1 className={styles.title}>加入歪报</h1>
+          <h1 className={styles.title}>加入每日胡说</h1>
           <p className={styles.desc}>起一个花名，让大家记住你</p>
         </div>
 
@@ -86,7 +86,7 @@ function OnboardingPage() {
             <span className={styles.loadingDots}>
               <span></span><span></span><span></span>
             </span>
-          ) : '进入歪报'}
+          ) : '进入每日胡说'}
         </button>
 
         {/* 错误提示 */}

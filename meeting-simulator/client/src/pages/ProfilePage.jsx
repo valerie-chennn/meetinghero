@@ -65,7 +65,7 @@ function ProfilePage() {
             <span className={styles.settingsArrow}>›</span>
           </div>
           <div className={styles.settingsItem}>
-            <span>关于歪报</span>
+            <span>关于每日胡说</span>
             <span className={styles.settingsArrow}>›</span>
           </div>
         </div>

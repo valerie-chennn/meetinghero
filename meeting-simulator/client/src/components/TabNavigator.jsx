@@ -6,7 +6,7 @@ import styles from './TabNavigator.module.css';
 const TABS = [
   {
     path: '/feed',
-    label: '歪报',
+    label: '每日胡说',
     icon: '🏠',
   },
   {

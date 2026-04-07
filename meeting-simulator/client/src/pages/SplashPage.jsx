@@ -6,56 +6,53 @@ import styles from './SplashPage.module.css';
 function SplashPage() {
   const navigate = useNavigate();
   const { state } = useApp();
-  // 动画阶段：0=初始 → 1=装饰线+日期+logo → 2=英文名+装饰线 → 3=slogan+滚动条 → 4=淡出
+  // 动画阶段：0=初始 → 1=英文大字+装饰线 → 2=中文名+分隔符 → 3=slogan
   const [phase, setPhase] = useState(0);
 
   useEffect(() => {
-    const t1 = setTimeout(() => setPhase(1), 300);
-    const t2 = setTimeout(() => setPhase(2), 900);
-    const t3 = setTimeout(() => setPhase(3), 1500);
-    const t4 = setTimeout(() => setPhase(4), 2600);
-    // 淡出后跳转
-    const t5 = setTimeout(() => {
+    const t1 = setTimeout(() => setPhase(1), 200);
+    const t2 = setTimeout(() => setPhase(2), 700);
+    const t3 = setTimeout(() => setPhase(3), 1200);
+    // 3.5 秒后硬切跳转，无过渡动画
+    const t4 = setTimeout(() => {
       if (state.userName) {
         navigate('/feed', { replace: true });
       } else {
         navigate('/onboarding', { replace: true });
       }
-    }, 3200);
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); clearTimeout(t5); };
+    }, 3500);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); };
   }, [navigate, state.userName]);
 
   return (
-    <div className={`${styles.container} ${phase === 4 ? styles.fadeOut : ''}`}>
+    <div className={styles.container}>
       {/* 背景纹理：细点阵 */}
       <div className={styles.bgTexture} />
 
       {/* 顶部装饰双线 */}
-      <div className={`${styles.topRuleThick} ${phase >= 1 ? styles.visible : ''}`} />
-      <div className={`${styles.topRuleThin} ${phase >= 1 ? styles.visible : ''}`} />
+      <div className={`${styles.topLines} ${phase >= 1 ? styles.visible : ''}`}>
+        <div className={styles.lineThick} />
+        <div className={styles.lineThin} />
+      </div>
 
       {/* 主内容 */}
       <div className={styles.content}>
-        {/* 日期行 */}
-        <div className={`${styles.dateLine} ${phase >= 1 ? styles.slideIn : ''}`}>
-          EST. 2026 · THE DAILY NONSENSE
+        {/* 英文名 — 视觉主体 */}
+        <div className={`${styles.englishName} ${phase >= 1 ? styles.stampIn : ''}`}>
+          <span className={styles.englishLine}>The Daily</span>
+          <span className={styles.englishLine}>Nonsense</span>
         </div>
 
-        {/* Logo「歪报」 */}
-        <div className={`${styles.logoWrap} ${phase >= 1 ? styles.stampIn : ''}`}>
-          <span className={styles.logo}>歪报</span>
-        </div>
-
-        {/* 英文名 */}
-        <div className={`${styles.englishName} ${phase >= 2 ? styles.slideUp : ''}`}>
-          The Daily Nonsense
-        </div>
-
-        {/* 装饰分隔线 */}
+        {/* 装饰分隔符 */}
         <div className={`${styles.ruler} ${phase >= 2 ? styles.visible : ''}`}>
           <span className={styles.rulerLine} />
           <span className={styles.rulerDot} />
           <span className={styles.rulerLine} />
+        </div>
+
+        {/* 中文名 */}
+        <div className={`${styles.chineseName} ${phase >= 2 ? styles.slideUp : ''}`}>
+          每日胡说
         </div>
 
         {/* Slogan */}
@@ -64,20 +61,10 @@ function SplashPage() {
         </div>
       </div>
 
-      {/* 底部滚动新闻条 */}
-      <div className={`${styles.ticker} ${phase >= 3 ? styles.visible : ''}`}>
-        <div className={styles.tickerTrack}>
-          BREAKING: 东海三太子闲鱼被拍 · 灭霸入职首日提裁员 · 孙悟空述职仅三字 · 白雪公主职场PUA案开庭 · 甘道夫年会冻住舞台 · 辛巴IPO路演遭砸场
-        </div>
-      </div>
-
       {/* 底部装饰双线 */}
-      <div className={`${styles.bottomRuleThin} ${phase >= 1 ? styles.visible : ''}`} />
-      <div className={`${styles.bottomRuleThick} ${phase >= 1 ? styles.visible : ''}`} />
-
-      {/* 加载提示 */}
-      <div className={`${styles.loadingHint} ${phase >= 3 ? styles.pulse : ''}`}>
-        正在排版今日头条...
+      <div className={`${styles.bottomLines} ${phase >= 1 ? styles.visible : ''}`}>
+        <div className={styles.lineThin} />
+        <div className={styles.lineThick} />
       </div>
     </div>
   );

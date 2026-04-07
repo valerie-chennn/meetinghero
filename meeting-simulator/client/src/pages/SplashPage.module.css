@@ -1,4 +1,4 @@
-/* ===== SplashPage — 歪报开屏页 ===== */
+/* ===== SplashPage — 每日胡说开屏页 ===== */
 
 .container {
   max-width: 430px;
@@ -13,14 +13,9 @@
   justify-content: center;
   position: relative;
   overflow: hidden;
-  transition: opacity 0.6s ease;
 }
 
-.fadeOut {
-  opacity: 0;
-}
-
-/* 背景纹理 */
+/* 背景纹理：细点阵 */
 .bgTexture {
   position: absolute;
   inset: 0;
@@ -29,50 +24,33 @@
   z-index: 0;
 }
 
-/* ===== 顶部装饰双线 ===== */
-.topRuleThick {
+/* ===== 装饰双线（顶部+底部共用）===== */
+.topLines,
+.bottomLines {
   position: absolute;
-  top: 70px;
   left: 30px;
   right: 30px;
-  height: 3px;
-  background: #1a1a1a;
   opacity: 0;
   transition: opacity 0.4s ease;
 }
 
-.topRuleThin {
-  position: absolute;
-  top: 75px;
-  left: 30px;
-  right: 30px;
-  height: 1px;
-  background: #1a1a1a;
-  opacity: 0;
-  transition: opacity 0.4s ease 0.1s;
+.topLines {
+  top: 80px;
 }
 
-/* ===== 底部装饰双线 ===== */
-.bottomRuleThin {
-  position: absolute;
+.bottomLines {
   bottom: 88px;
-  left: 30px;
-  right: 30px;
-  height: 1px;
-  background: #1a1a1a;
-  opacity: 0;
-  transition: opacity 0.4s ease 0.1s;
 }
 
-.bottomRuleThick {
-  position: absolute;
-  bottom: 85px;
-  left: 30px;
-  right: 30px;
+.lineThick {
   height: 3px;
   background: #1a1a1a;
-  opacity: 0;
-  transition: opacity 0.4s ease;
+}
+
+.lineThin {
+  height: 1px;
+  background: #1a1a1a;
+  margin-top: 2px;
 }
 
 .visible {
@@ -87,67 +65,32 @@
   padding: 0 30px;
 }
 
-/* 日期行 */
-.dateLine {
-  font-size: 11px;
-  font-family: var(--font-sans);
-  color: #999;
-  letter-spacing: 3px;
-  margin-bottom: 24px;
-  opacity: 0;
-  transform: translateY(-10px);
-  transition: all 0.5s ease;
-}
-
-.slideIn {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-/* Logo「歪报」 */
-.logoWrap {
+/* 英文名 — 视觉主体，大字 */
+.englishName {
   opacity: 0;
 }
 
 .stampIn {
-  animation: stampIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation: stampIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
-.logo {
-  font-size: 72px;
-  font-family: var(--font-serif);
+.englishLine {
+  display: block;
+  font-size: 42px;
+  font-family: 'Playfair Display', var(--font-serif);
   font-weight: 900;
   color: #1a1a1a;
   line-height: 1.1;
-  letter-spacing: 8px;
+  letter-spacing: 3px;
 }
 
-/* 英文名 */
-.englishName {
-  font-size: 16px;
-  font-family: 'Playfair Display', var(--font-serif);
-  font-weight: 700;
-  color: #B8372A;
-  letter-spacing: 8px;
-  margin-top: 8px;
-  text-transform: uppercase;
-  opacity: 0;
-  transform: translateY(10px);
-  transition: all 0.5s ease;
-}
-
-.slideUp {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-/* 装饰分隔线 */
+/* 装饰分隔符 */
 .ruler {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  margin-top: 20px;
+  margin-top: 16px;
   opacity: 0;
   transition: opacity 0.4s ease;
 }
@@ -165,75 +108,38 @@
   background: #B8372A;
 }
 
+/* 中文名 */
+.chineseName {
+  font-size: 28px;
+  font-family: 'Noto Serif SC', var(--font-serif);
+  font-weight: 900;
+  color: #1a1a1a;
+  letter-spacing: 6px;
+  margin-top: 12px;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.5s ease;
+}
+
 /* Slogan */
 .slogan {
-  font-size: 15px;
+  font-size: 14px;
   font-family: var(--font-sans);
-  color: #666;
-  margin-top: 20px;
-  line-height: 1.8;
+  color: #888;
+  margin-top: 16px;
   opacity: 0;
-  transform: translateY(15px);
-  transition: all 0.6s ease;
+  transform: translateY(10px);
+  transition: all 0.5s ease;
 }
 
-/* ===== 底部滚动新闻条 ===== */
-.ticker {
-  position: absolute;
-  bottom: 110px;
-  left: 0;
-  right: 0;
-  height: 28px;
-  overflow: hidden;
-  border-top: 1px solid rgba(0, 0, 0, 0.08);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-  background: rgba(255, 255, 255, 0.5);
-  opacity: 0;
-  transition: opacity 0.5s ease;
-}
-
-.tickerTrack {
-  display: flex;
-  align-items: center;
-  height: 100%;
-  font-size: 11px;
-  font-family: var(--font-sans);
-  color: #999;
-  white-space: nowrap;
-  animation: tickerScroll 15s linear infinite;
-}
-
-/* ===== 加载提示 ===== */
-.loadingHint {
-  position: absolute;
-  bottom: 50px;
-  font-size: 11px;
-  font-family: var(--font-sans);
-  color: #bbb;
-  letter-spacing: 2px;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.pulse {
+.slideUp {
   opacity: 1;
-  animation: subtlePulse 1.5s infinite;
+  transform: translateY(0);
 }
 
 /* ===== 动画 ===== */
 @keyframes stampIn {
-  0% { transform: scale(2.5) rotate(-8deg); opacity: 0; }
-  60% { transform: scale(0.95) rotate(-3deg); opacity: 1; }
-  80% { transform: scale(1.05) rotate(-2.5deg); opacity: 1; }
-  100% { transform: scale(1) rotate(-3deg); opacity: 1; }
-}
-
-@keyframes tickerScroll {
-  from { transform: translateX(100%); }
-  to { transform: translateX(-200%); }
-}
-
-@keyframes subtlePulse {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
+  0% { transform: scale(2) rotate(-3deg); opacity: 0; }
+  60% { transform: scale(0.97) rotate(-1deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
 }

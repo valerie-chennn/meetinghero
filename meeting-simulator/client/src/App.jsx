@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider, useApp } from './context/AppContext.jsx';
 import { ToastProvider } from './context/ToastContext.jsx';
@@ -34,33 +34,45 @@ function RootRedirect() {
   return <Navigate to="/onboarding" replace />;
 }
 
-// AppShell：包含 Tab 导航栏的外层容器
+// AppShell：手机壳容器 + Tab 导航栏
 function AppShell() {
+  const [splashDone, setSplashDone] = useState(false);
+  const handleSplashDone = useCallback(() => setSplashDone(true), []);
+
   return (
-    <>
-      <Routes>
-        {/* 根路由：开屏页（2-3秒后自动跳转） */}
-        <Route path="/" element={<SplashPage />} />
-        {/* Onboarding：简化版，只填花名 */}
-        <Route path="/onboarding" element={<OnboardingPage />} />
-        {/* Feed 主页 */}
-        <Route path="/feed" element={<FeedPage />} />
-        {/* 群聊页：全屏，无 Tab 栏 */}
-        <Route path="/chat/:roomId" element={<ChatPage />} />
-        {/* 结算页：全屏，无 Tab 栏 */}
-        <Route path="/settlement/:sessionId" element={<SettlementPage />} />
-        {/* 表达本 */}
-        <Route path="/expressions" element={<ExpressionsPage />} />
-        {/* 我的 */}
-        <Route path="/profile" element={<ProfilePage />} />
-        {/* 重置路由：清除所有数据，恢复新用户（开发用）*/}
-        <Route path="/reset" element={<ResetPage />} />
-        {/* 兜底重定向到 Feed */}
-        <Route path="*" element={<Navigate to="/feed" replace />} />
-      </Routes>
-      {/* Tab 导航栏：在 /chat 和 /settlement 路由时自动隐藏 */}
-      <TabNavigator />
-    </>
+    <div className="phone-wrapper">
+      <div className="phone-frame">
+        <div className="phone-screen">
+          {/* 状态栏 + 刘海 */}
+          <div className="phone-status-bar">
+            <span>9:41</span>
+            <div className="phone-notch" />
+            <span style={{ fontSize: 12 }}>5G</span>
+          </div>
+
+          {/* 开屏覆盖层 */}
+          {!splashDone && <SplashPage onDone={handleSplashDone} />}
+
+          {/* 页面内容 */}
+          <div className="phone-content">
+            <Routes>
+              <Route path="/" element={<RootRedirect />} />
+              <Route path="/onboarding" element={<OnboardingPage />} />
+              <Route path="/feed" element={<FeedPage />} />
+              <Route path="/chat/:roomId" element={<ChatPage />} />
+              <Route path="/settlement/:sessionId" element={<SettlementPage />} />
+              <Route path="/expressions" element={<ExpressionsPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/reset" element={<ResetPage />} />
+              <Route path="*" element={<Navigate to="/feed" replace />} />
+            </Routes>
+          </div>
+
+          {/* Tab 导航栏 */}
+          <TabNavigator />
+        </div>
+      </div>
+    </div>
   );
 }
 

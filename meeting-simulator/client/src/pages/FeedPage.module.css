@@ -14,7 +14,7 @@
 /* ===== 滑动容器：监听拖拽和 wheel 事件 ===== */
 .feedContainer {
   width: 100%;
-  height: calc(100dvh - 60px); /* 减去 Tab 栏高度 */
+  height: calc(100% - 60px); /* 减去 Tab 栏高度 */
   overflow: hidden;
   user-select: none;
   -webkit-user-select: none;
@@ -257,7 +257,7 @@
 
 /* ===== 加载骨架屏（暖色版）===== */
 .skeletonFullScreen {
-  height: calc(100dvh - 60px);
+  height: calc(100% - 60px);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -366,7 +366,7 @@
 
 /* ===== 错误状态 ===== */
 .errorState {
-  height: calc(100dvh - 60px);
+  height: calc(100% - 60px);
   display: flex;
   flex-direction: column;
   align-items: center;

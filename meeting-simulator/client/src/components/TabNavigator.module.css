@@ -1,21 +1,15 @@
 /* ===== 底部 Tab 导航栏 ===== */
 
 .tabBar {
-  position: fixed;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
   width: 100%;
-  max-width: 430px;
   height: 60px;
+  flex-shrink: 0;
   /* 报纸暖色系 */
   background: #FFFFFF;
   border-top: 1px solid rgba(0, 0, 0, 0.08);
   display: flex;
   align-items: stretch;
   z-index: 100;
-  /* iOS 安全区域适配 */
-  padding-bottom: env(safe-area-inset-bottom);
 }
 
 /* 单个 Tab 按钮 */

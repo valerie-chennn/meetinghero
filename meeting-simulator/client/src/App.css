@@ -209,7 +209,7 @@ body {
   font-size: var(--font-base);
   font-weight: 400;
   line-height: 1.6;
-  background: var(--bg-base);
+  background: #E8E2D8;
   color: var(--text-primary);
   min-height: 100vh;
   min-height: 100dvh;
@@ -238,7 +238,81 @@ body {
   min-height: 100vh;
   min-height: 100dvh;
   display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ===================================================
+   手机壳容器 — Demo 展示用，模拟 iPhone 15 Pro (393×852)
+   =================================================== */
+.phone-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.phone-frame {
+  width: 393px;
+  height: 852px;
+  border-radius: 48px;
+  border: 8px solid #1A1A1A;
+  background: #1A1A1A;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.phone-screen {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
   flex-direction: column;
+  background: #F5F0EB;
+  overflow: hidden;
+}
+
+/* 状态栏 */
+.phone-status-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 54px;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1A1A1A;
+  background: linear-gradient(to bottom, rgba(245,240,235,0.95), rgba(245,240,235,0));
+  pointer-events: none;
+}
+
+/* 刘海 */
+.phone-notch {
+  width: 120px;
+  height: 34px;
+  border-radius: 17px;
+  background: #1A1A1A;
+}
+
+/* 页面内容区：填满状态栏以下、Tab 栏以上的空间 */
+.phone-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* 页面容器适配：在手机壳内不用 100vh，改为填满容器 */
+.phone-content > * {
+  height: 100% !important;
+  min-height: 100% !important;
+  max-width: 100% !important;
 }
 
 /* ===================================================
@@ -609,3 +683,4 @@ textarea:focus {
 .toast.info {
   border-left: 3px solid var(--color-brand);
 }
+

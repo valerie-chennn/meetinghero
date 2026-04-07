@@ -1,35 +1,23 @@
 /* ===== SplashPage — 每日胡说开屏页 ===== */
 
 .container {
-  max-width: 430px;
-  margin: 0 auto;
-  width: 100%;
-  height: 100vh;
-  height: 100dvh;
+  position: absolute;
+  inset: 0;
+  z-index: 100;
   background: #F5F0EB;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  position: relative;
   overflow: hidden;
-}
-
-/* 背景纹理：细点阵 */
-.bgTexture {
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(circle, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
-  background-size: 16px 16px;
-  z-index: 0;
 }
 
 /* ===== 装饰双线（顶部+底部共用）===== */
 .topLines,
 .bottomLines {
   position: absolute;
-  left: 30px;
-  right: 30px;
+  left: 28px;
+  right: 28px;
   opacity: 0;
   transition: opacity 0.4s ease;
 }
@@ -39,7 +27,7 @@
 }
 
 .bottomLines {
-  bottom: 88px;
+  bottom: 80px;
 }
 
 .lineThick {
@@ -62,7 +50,8 @@
   position: relative;
   z-index: 1;
   text-align: center;
-  padding: 0 30px;
+  padding: 0 24px;
+  margin-top: -40px;
 }
 
 /* 英文名 — 视觉主体，大字 */
@@ -76,12 +65,12 @@
 
 .englishLine {
   display: block;
-  font-size: 42px;
+  font-size: 48px;
   font-family: 'Playfair Display', var(--font-serif);
   font-weight: 900;
   color: #1a1a1a;
-  line-height: 1.1;
-  letter-spacing: 3px;
+  line-height: 1.05;
+  letter-spacing: 1px;
 }
 
 /* 装饰分隔符 */
@@ -89,57 +78,58 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  margin-top: 16px;
+  gap: 10px;
+  margin: 14px 0;
   opacity: 0;
   transition: opacity 0.4s ease;
 }
 
 .rulerLine {
-  width: 40px;
+  width: 50px;
   height: 1px;
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.15);
 }
 
 .rulerDot {
-  width: 6px;
-  height: 6px;
-  border-radius: 3px;
+  width: 7px;
+  height: 7px;
+  border-radius: 4px;
   background: #B8372A;
 }
 
 /* 中文名 */
 .chineseName {
-  font-size: 28px;
+  font-size: 46px;
   font-family: 'Noto Serif SC', var(--font-serif);
   font-weight: 900;
   color: #1a1a1a;
-  letter-spacing: 6px;
-  margin-top: 12px;
+  letter-spacing: 10px;
+  line-height: 1.1;
   opacity: 0;
-  transform: translateY(10px);
-  transition: all 0.5s ease;
+}
+
+.fadeUp {
+  animation: fadeUp 0.5s ease forwards;
 }
 
 /* Slogan */
 .slogan {
-  font-size: 14px;
-  font-family: var(--font-sans);
+  font-size: 16px;
+  font-family: 'Noto Sans SC', var(--font-sans);
   color: #888;
   margin-top: 16px;
+  letter-spacing: 2px;
   opacity: 0;
-  transform: translateY(10px);
-  transition: all 0.5s ease;
-}
-
-.slideUp {
-  opacity: 1;
-  transform: translateY(0);
 }
 
 /* ===== 动画 ===== */
 @keyframes stampIn {
-  0% { transform: scale(2) rotate(-3deg); opacity: 0; }
-  60% { transform: scale(0.97) rotate(-1deg); opacity: 1; }
-  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+  0% { transform: scale(1.8); opacity: 0; }
+  60% { transform: scale(0.97); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
 }

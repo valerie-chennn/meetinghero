@@ -1,4 +1,5 @@
-/* ===== ChatPage — 群聊全屏页（无 Tab 栏）===== */
+/* ===== ChatPage — 群聊全屏页 ===== */
+/* 背景色 #F5F0EB 全程不变 */
 
 .container {
   max-width: 430px;
@@ -8,121 +9,142 @@
   height: 100dvh;
   display: flex;
   flex-direction: column;
-  /* 报纸暖色系 */
-  background: var(--bg-base);
+  background: #F5F0EB;
   overflow: hidden;
+  font-family: 'Noto Sans SC', 'PingFang SC', sans-serif;
+  cursor: default;
+}
+
+/* 点击推进时整页可点击 */
+.containerTappable {
+  cursor: pointer;
 }
 
 /* ===== 顶部导航栏 ===== */
 .header {
+  height: 48px;
   display: flex;
   align-items: center;
-  padding: var(--space-3) var(--space-4);
-  /* 报纸暖色系 */
-  background: var(--bg-surface);
-  border-bottom: 1px solid var(--border);
+  padding: 0 16px;
+  background: #F5F0EB;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
   flex-shrink: 0;
+  gap: 10px;
   /* iOS 安全区域适配 */
-  padding-top: max(var(--space-3), env(safe-area-inset-top));
+  padding-top: max(0px, env(safe-area-inset-top));
+  height: calc(48px + max(0px, env(safe-area-inset-top)));
 }
 
 .backButton {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  /* 深色主题 */
-  background: var(--bg-elevated);
-  color: var(--text-secondary);
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: background 200ms var(--ease-out),
-              color 200ms var(--ease-out);
-}
-
-.backButton:hover {
-  background: var(--color-brand-light);
-  color: var(--color-brand);
+  color: #1a1a1a;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
 }
 
 .headerCenter {
   flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 1px;
-  overflow: hidden;
-  padding: 0 var(--space-2);
+  gap: 0;
 }
 
 .groupName {
-  font-size: var(--font-base);
-  font-weight: 600;
-  color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a1a1a;
+  line-height: 1.2;
 }
 
-.memberCount {
+.memberList {
+  font-size: 10px;
+  color: #999;
+  line-height: 1.2;
+}
+
+.liveTag {
   font-size: 11px;
-  color: var(--text-muted);
-}
-
-.headerRight {
-  width: 40px;
+  font-weight: 700;
+  color: #B8372A;
+  background: rgba(184, 55, 42, 0.08);
+  padding: 3px 10px;
+  border-radius: 10px;
   flex-shrink: 0;
 }
 
-/* ===== 消息列表 ===== */
+/* ===== 消息列表区（非发言模式：占满剩余空间）===== */
 .messageList {
   flex: 1;
   overflow-y: auto;
-  padding: var(--space-4);
+  padding: 12px 16px;
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: 6px;
+  /* 平滑滚动 */
+  scroll-behavior: smooth;
 }
 
-/* ===== 系统消息（居中灰色文字）===== */
+/* 发言模式：消息列表压缩到 42% */
+.messageListCompact {
+  flex: 0 0 auto;
+  max-height: 42%;
+  overflow-y: auto;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ===== 分割线（发言模式）===== */
+.divider {
+  height: 1px;
+  background: rgba(0, 0, 0, 0.06);
+  flex-shrink: 0;
+}
+
+/* ===== 系统消息 ===== */
 .systemMessage {
   display: flex;
   justify-content: center;
-  padding: var(--space-1) var(--space-4);
+  padding: 6px 0;
+  animation: fadeIn 0.3s ease;
 }
 
 .systemMessage span {
   font-size: 12px;
-  color: var(--text-muted);
-  /* 报纸暖色系 */
-  background: var(--bg-surface);
-  padding: 4px 12px;
-  border-radius: var(--radius-full);
-  border: 1px solid var(--border);
+  color: #999;
+  background: rgba(0, 0, 0, 0.04);
+  padding: 4px 14px;
+  border-radius: 20px;
 }
 
-/* ===== 消息行基础 ===== */
-.messageRow {
+.systemMessageError span {
+  color: #ef4444;
+}
+
+/* ===== NPC 消息行 ===== */
+.npcRow {
   display: flex;
-  align-items: flex-end;
-  gap: var(--space-2);
-  animation: bubbleIn 250ms var(--ease-out) both;
-}
-
-/* 用户消息右对齐 */
-.messageRowUser {
-  flex-direction: row-reverse;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 4px 0;
+  animation: fadeIn 0.3s ease;
 }
 
 /* ===== NPC 头像 ===== */
 .npcAvatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  color: #FFFFFF;
-  font-size: 13px;
+  width: 44px;
+  height: 44px;
+  border-radius: 22px;
+  color: #fff;
+  font-size: 16px;
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -130,246 +152,516 @@
   flex-shrink: 0;
 }
 
-/* ===== 用户头像 ===== */
-.userAvatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: var(--color-brand);
-  color: #FFFFFF;
-  font-size: 13px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-/* ===== NPC 气泡 ===== */
-.npcBubble {
-  max-width: 72%;
-  /* 报纸暖色系 */
-  background: var(--bg-surface);
-  border-radius: 4px var(--radius-lg) var(--radius-lg) var(--radius-lg);
-  padding: var(--space-3) var(--space-4);
-  box-shadow: var(--shadow-sm);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.npcMeta {
+  flex: 1;
+  max-width: 270px;
 }
 
 .speakerName {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-muted);
-  display: block;
-  margin-bottom: 2px;
-}
-
-/* ===== 用户气泡 ===== */
-.userBubble {
-  max-width: 72%;
-  /* 报纸暖色系 */
-  background: var(--user-bubble);
-  border-radius: var(--radius-lg) 4px var(--radius-lg) var(--radius-lg);
-  padding: var(--space-3) var(--space-4);
-  box-shadow: var(--shadow-sm);
-}
-
-/* ===== 气泡文字 ===== */
-.bubbleText {
-  font-size: var(--font-sm);
-  color: var(--text-primary);
-  line-height: 1.55;
-  word-break: break-word;
-}
-
-/* 中文翻译：稍小稍灰 */
-.bubbleTextZh {
   font-size: 12px;
-  color: var(--text-secondary);
-  line-height: 1.5;
-  margin-top: 2px;
-  word-break: break-word;
-}
-
-/* ===== NPC 正在输入指示 ===== */
-.typingIndicator {
-  display: flex;
-  align-items: flex-end;
-  gap: var(--space-2);
-  animation: bubbleIn 250ms var(--ease-out) both;
-}
-
-.typingAvatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #4F46E5 0%, #818CF8 100%);
-  color: #FFFFFF;
-  font-size: 13px;
   font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+  margin-bottom: 3px;
 }
 
-.typingBubble {
-  /* 报纸暖色系 */
-  background: var(--bg-surface);
-  border-radius: 4px var(--radius-lg) var(--radius-lg) var(--radius-lg);
-  padding: var(--space-3) var(--space-4);
-  box-shadow: var(--shadow-sm);
-  display: flex;
-  align-items: center;
-  gap: 5px;
+/* ===== NPC 气泡（已完成）===== */
+.npcBubble {
+  background: #fff;
+  border-radius: 4px 16px 16px 16px;
+  padding: 11px 14px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
-/* ===== 底部输入区 ===== */
-.inputArea {
-  flex-shrink: 0;
-  /* 报纸暖色系 */
-  background: var(--bg-surface);
-  border-top: 1px solid var(--border);
-  padding: var(--space-3) var(--space-4);
-  /* iOS 安全区域适配 */
-  padding-bottom: max(var(--space-3), env(safe-area-inset-bottom));
+/* ===== NPC 气泡（打字中，淡黄高亮）===== */
+.npcBubbleTyping {
+  background: #F5EDD8;
+  border-radius: 4px 16px 16px 16px;
+  padding: 11px 14px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  min-height: 40px;
 }
 
-/* ===== 发言次数提示 ===== */
-.turnHint {
-  font-size: 11px;
-  color: var(--text-muted);
-  text-align: center;
-  margin-bottom: var(--space-2);
+.bubbleEn {
+  font-size: 15px;
+  color: #1a1a1a;
+  line-height: 1.6;
+  font-weight: 500;
+  word-break: break-word;
 }
 
-/* ===== NPC 讨论中等待条 ===== */
-.waitingArea {
-  flex-shrink: 0;
-  /* 报纸暖色系 */
-  background: var(--bg-surface);
-  border-top: 1px solid var(--border);
-  padding: var(--space-3) var(--space-4);
-  padding-bottom: max(var(--space-3), env(safe-area-inset-bottom));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.waitingText {
+.bubbleZh {
   font-size: 12px;
-  color: var(--text-muted);
-  letter-spacing: 0.02em;
+  color: #999;
+  line-height: 1.5;
+  margin-top: 5px;
+  word-break: break-word;
 }
 
-/* ===== user_cue 节点的"轮到你了"提示 ===== */
-.cueTip {
-  font-size: 11px;
-  color: var(--color-brand);
-  font-weight: 600;
-  margin-top: 4px;
-}
-
-/* ===== TTS 按钮容器（放在气泡底部）===== */
-.ttsButtonWrapper {
-  margin-top: 4px;
+.ttsIconRow {
   display: flex;
-  justify-content: flex-start;
+  justify-content: flex-end;
+  margin-top: 3px;
 }
 
-/* ===== typing indicator 三个跳动点 ===== */
-.typingDot {
+.ttsIcon {
+  cursor: pointer;
+  color: #ccc;
+  transition: color 0.2s;
+}
+
+.ttsIcon:hover {
+  color: #7C5CBF;
+}
+
+/* ===== 用户消息行 ===== */
+.userRow {
+  display: flex;
+  justify-content: flex-end;
+  padding: 4px 0;
+  animation: fadeIn 0.4s ease;
+}
+
+.userMeta {
+  max-width: 260px;
+}
+
+.userSpeakerName {
+  font-size: 12px;
+  font-weight: 700;
+  color: #7C5CBF;
+  margin-bottom: 3px;
+  text-align: right;
+}
+
+.userBubble {
+  background: #7C5CBF;
+  border-radius: 16px 4px 16px 16px;
+  padding: 11px 14px;
+}
+
+.userBubbleText {
+  font-size: 15px;
+  color: #fff;
+  line-height: 1.6;
+  font-weight: 500;
+  word-break: break-word;
+}
+
+/* ===== 打字三个点（dots阶段）===== */
+.dotsRow {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 4px 0;
+  animation: fadeIn 0.2s ease;
+}
+
+.dotsBubble {
+  background: #fff;
+  border-radius: 4px 16px 16px 16px;
+  padding: 14px 18px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 4px;
+  background: #ccc;
+  animation: dotBounce 1s ease-in-out infinite;
+}
+
+.dot:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.dot:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+/* ===== 打字机光标 ===== */
+.cursor {
+  animation: blink 0.8s infinite;
+  color: #7C5CBF;
+}
+
+/* ===== 底部状态区（非发言模式）===== */
+.bottomStatus {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  padding-bottom: max(20px, env(safe-area-inset-bottom));
+  text-align: center;
+  background: #F5F0EB;
+}
+
+.statusText {
+  font-size: 12px;
+  color: #bbb;
+  padding: 8px 0;
+}
+
+/* 点击提示（第一次：手指+水波纹）*/
+.tapFirst {
+  padding: 8px 0;
+}
+
+.tapGestureWrap {
   display: inline-block;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--text-muted);
-  animation: typingBounce 1.2s ease-in-out infinite;
+  position: relative;
+  margin-bottom: 4px;
 }
 
-.typingDot:nth-child(2) {
-  animation-delay: 0.2s;
+.tapRipple {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+  border: 1.5px solid rgba(0, 0, 0, 0.1);
+  animation: ripple 1.8s ease-out infinite;
+  pointer-events: none;
 }
 
-.typingDot:nth-child(3) {
-  animation-delay: 0.4s;
+.tapFinger {
+  animation: tapGesture 1.8s ease-in-out infinite;
 }
 
-@keyframes typingBounce {
-  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
-  30% { transform: translateY(-6px); opacity: 1; }
+.tapHintText {
+  font-size: 12px;
+  color: #bbb;
+  animation: tapHint 2.5s ease-in-out infinite;
 }
 
-/* ===== 消息入场动画 ===== */
-@keyframes bubbleIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+/* 点击提示（后续：只有文字）*/
+.tapSubsequent {
+  padding: 8px 0;
 }
 
-/* ===== 加载中屏幕 ===== */
+/* ===== 发言模式 — 下半屏 ===== */
+.speakMode {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 24px 20px;
+  padding-bottom: max(20px, env(safe-area-inset-bottom));
+  animation: slideUp 0.4s ease;
+}
+
+/* 💡提示展开区（在麦克风上方）*/
+.hintArea {
+  width: 100%;
+  margin-bottom: 16px;
+  animation: slideUp 0.3s ease;
+}
+
+.hintPills {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.hintPill {
+  padding: 8px 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: #fff;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: #555;
+  transition: all 0.2s;
+}
+
+.hintPillActive {
+  border: 1.5px solid #7C5CBF;
+  background: rgba(124, 92, 191, 0.08);
+  color: #7C5CBF;
+}
+
+.exampleCard {
+  margin-top: 10px;
+  padding: 10px 14px;
+  background: rgba(124, 92, 191, 0.06);
+  border-radius: 10px;
+  border-left: 3px solid #7C5CBF;
+  animation: fadeIn 0.3s ease;
+}
+
+.exampleText {
+  font-size: 14px;
+  color: #1a1a1a;
+  font-weight: 500;
+  line-height: 1.5;
+  font-style: italic;
+}
+
+/* 麦克风按钮容器 */
+.micWrap {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.pulseRingOuter {
+  position: absolute;
+  inset: -20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.pulseRing {
+  width: 80px;
+  height: 80px;
+  border-radius: 40px;
+  border: 2px solid rgba(124, 92, 191, 0.12);
+  position: absolute;
+  animation: pulseRing 2s ease-out infinite;
+}
+
+.pulseRing2 {
+  animation-delay: 1s;
+}
+
+.micButton {
+  width: 76px;
+  height: 76px;
+  border-radius: 38px;
+  border: none;
+  background: #7C5CBF;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: breathe 2.5s ease-in-out infinite;
+  position: relative;
+  z-index: 1;
+  transition: background 0.2s;
+}
+
+.micButton:active {
+  background: #5a3fa0;
+  animation: recording 0.5s ease-in-out infinite;
+}
+
+/* 首次发言提示 */
+.firstHint {
+  font-size: 12px;
+  color: #bbb;
+  margin-bottom: 10px;
+}
+
+/* 底部操作行 */
+.speakBottomRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0 20px;
+  font-size: 12px;
+}
+
+.keyboardBtn {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+  color: #bbb;
+  background: none;
+  border: none;
+  font-size: 12px;
+  padding: 4px;
+}
+
+.bulbBtn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px;
+  transition: color 0.2s;
+}
+
+.bulbBtnOff {
+  color: #B8860B;
+}
+
+.bulbBtnOn {
+  color: #7C5CBF;
+}
+
+.bulbEmoji {
+  font-size: 16px;
+}
+
+.bulbEmojiIdle {
+  animation: bulbGlow 2s ease-in-out infinite;
+}
+
+/* 打字输入模式（替换麦克风区域）*/
+.typeInputArea {
+  width: 100%;
+  padding: 8px 0;
+  animation: slideUp 0.3s ease;
+}
+
+/* ===== 加载/错误屏幕 ===== */
 .loadingScreen {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-4);
+  gap: 16px;
 }
 
 .loadingSpinner {
   width: 32px;
   height: 32px;
-  border: 3px solid var(--border);
-  border-top-color: var(--color-brand);
+  border: 3px solid rgba(0, 0, 0, 0.1);
+  border-top-color: #7C5CBF;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
 .loadingText {
-  font-size: var(--font-sm);
-  color: var(--text-secondary);
+  font-size: 14px;
+  color: #999;
 }
 
-/* ===== 错误屏幕 ===== */
 .errorScreen {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-4);
-  padding: var(--space-6);
+  gap: 16px;
+  padding: 24px;
   text-align: center;
 }
 
 .errorText {
-  font-size: var(--font-sm);
-  color: var(--color-error, #EF4444);
+  font-size: 14px;
+  color: #ef4444;
   line-height: 1.6;
 }
 
 .errorBackButton {
-  background: var(--color-brand);
-  color: #FFFFFF;
-  padding: var(--space-2) var(--space-5);
-  border-radius: var(--radius-full);
-  font-size: var(--font-sm);
+  background: #7C5CBF;
+  color: #fff;
+  padding: 10px 24px;
+  border-radius: 24px;
+  font-size: 14px;
   font-weight: 600;
-  transition: opacity 200ms;
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.2s;
 }
 
 .errorBackButton:hover {
   opacity: 0.85;
 }
 
-/* ===== 错误类型的系统消息 ===== */
-.systemMessageError span {
-  color: var(--color-error, #EF4444);
-  border-color: var(--color-error, #EF4444);
+/* ===== 完成状态按钮 ===== */
+.doneButton {
+  width: 100%;
+  padding: 14px 0;
+  border-radius: 12px;
+  border: none;
+  background: #1a1a1a;
+  color: #F5F0EB;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.doneButton:hover {
+  opacity: 0.85;
+}
+
+/* ===== 动画定义 ===== */
+
+/* 消息入场 */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* 发言区入场 */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* 打字机光标闪烁 */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+/* 三个点弹跳 */
+@keyframes dotBounce {
+  0%, 80%, 100% { transform: translateY(0); }
+  40%           { transform: translateY(-4px); }
+}
+
+/* 手指点击动画 */
+@keyframes tapGesture {
+  0%   { transform: scale(1);    opacity: 0.8; }
+  30%  { transform: scale(0.85); opacity: 1; }
+  50%  { transform: scale(1);    opacity: 0.8; }
+  100% { transform: scale(1);    opacity: 0.6; }
+}
+
+/* 水波纹 */
+@keyframes ripple {
+  0%   { transform: translate(-50%, -50%) scale(0.5); opacity: 0.5; }
+  50%  { transform: translate(-50%, -50%) scale(1.5); opacity: 0.2; }
+  100% { transform: translate(-50%, -50%) scale(2.5); opacity: 0; }
+}
+
+/* 点击提示文字呼吸 */
+@keyframes tapHint {
+  0%, 100% { opacity: 0.3; }
+  50%       { opacity: 0.6; }
+}
+
+/* 麦克风呼吸 */
+@keyframes breathe {
+  0%, 100% { transform: scale(1);    box-shadow: 0 0 0 0   rgba(124, 92, 191, 0.3); }
+  50%       { transform: scale(1.06); box-shadow: 0 0 0 18px rgba(124, 92, 191, 0); }
+}
+
+/* 麦克风水波纹 */
+@keyframes pulseRing {
+  0%   { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+
+/* 录音中 */
+@keyframes recording {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.15); }
+}
+
+/* 灯泡发光 */
+@keyframes bulbGlow {
+  0%, 100% { filter: drop-shadow(0 0 0   rgba(255, 180, 0, 0)); }
+  50%       { filter: drop-shadow(0 0 6px rgba(255, 180, 0, 0.4)); }
+}
+
+/* 旋转加载 */
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }

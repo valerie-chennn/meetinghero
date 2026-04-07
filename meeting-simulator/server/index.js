@@ -60,6 +60,17 @@ app.use('/api/upload', uploadRouter);
 app.use('/api/history', historyRouter);
 app.use('/api/brainstorm', brainstormRouter);
 
+// ==================== v2 推流版路由 ====================
+const v2UsersRouter = require('./routes/v2-users');
+const v2FeedRouter = require('./routes/v2-feed');
+const v2ChatRouter = require('./routes/v2-chat');
+const v2ExpressionsRouter = require('./routes/v2-expressions');
+
+app.use('/api/v2/users', v2UsersRouter);
+app.use('/api/v2/feed', v2FeedRouter);
+app.use('/api/v2/chat', v2ChatRouter);
+app.use('/api/v2/expressions', v2ExpressionsRouter);
+
 // ==================== 生产环境静态文件 ====================
 
 // 生产环境下 serve 前端构建产物（client/dist）

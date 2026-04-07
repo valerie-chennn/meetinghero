@@ -189,6 +189,121 @@ function initSchema() {
     )
   `);
 
+  // ==================== v2 推流版新表 ====================
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS v2_users (
+      id TEXT PRIMARY KEY,
+      nickname TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS v2_rooms (
+      id TEXT PRIMARY KEY,
+      news_title TEXT NOT NULL,
+      npc_a_name TEXT NOT NULL,
+      npc_a_reaction TEXT NOT NULL,
+      npc_b_name TEXT NOT NULL,
+      npc_b_reaction TEXT NOT NULL,
+      news_title_en TEXT,          -- 新闻标题英文翻译
+      npc_a_reaction_en TEXT,      -- NPC A 反应英文翻译
+      npc_b_reaction_en TEXT,      -- NPC B 反应英文翻译
+      group_name TEXT NOT NULL,
+      group_notice TEXT,
+      user_role_name TEXT NOT NULL,
+      user_role_desc TEXT,
+      npc_profiles TEXT NOT NULL,
+      dialogue_script TEXT NOT NULL,
+      settlement_template TEXT NOT NULL,
+      tags TEXT,
+      difficulty TEXT DEFAULT 'A2',
+      is_active INTEGER DEFAULT 1,
+      sort_order INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS v2_feed_items (
+      id TEXT PRIMARY KEY,
+      room_id TEXT NOT NULL UNIQUE,
+      sort_order INTEGER DEFAULT 0,
+      is_visible INTEGER DEFAULT 1,
+      FOREIGN KEY (room_id) REFERENCES v2_rooms(id)
+    )
+  `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS v2_chat_sessions (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      room_id TEXT NOT NULL,
+      status TEXT DEFAULT 'active',
+      user_turn_count INTEGER DEFAULT 0,
+      npc_turn_count INTEGER DEFAULT 0,
+      dm_sent_count INTEGER DEFAULT 0,
+      started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      completed_at DATETIME,
+      FOREIGN KEY (user_id) REFERENCES v2_users(id),
+      FOREIGN KEY (room_id) REFERENCES v2_rooms(id)
+    )
+  `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS v2_user_messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      chat_session_id TEXT NOT NULL,
+      turn_index INTEGER NOT NULL,
+      user_input TEXT NOT NULL,
+      better_version TEXT,
+      context_note TEXT,
+      npc_reply TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (chat_session_id) REFERENCES v2_chat_sessions(id)
+    )
+  `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS v2_expression_cards (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL,
+      chat_session_id TEXT NOT NULL,
+      turn_index INTEGER NOT NULL,
+      user_said TEXT NOT NULL,
+      better_version TEXT NOT NULL,
+      context_note TEXT,
+      is_saved INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES v2_users(id),
+      FOREIGN KEY (chat_session_id) REFERENCES v2_chat_sessions(id)
+    )
+  `);
+
+  // v2 索引
+  try { db.exec(`CREATE INDEX IF NOT EXISTS idx_v2_chat_sessions_user ON v2_chat_sessions(user_id)`); } catch (e) {}
+  try { db.exec(`CREATE INDEX IF NOT EXISTS idx_v2_chat_sessions_room ON v2_chat_sessions(room_id)`); } catch (e) {}
+  try { db.exec(`CREATE INDEX IF NOT EXISTS idx_v2_expression_cards_user ON v2_expression_cards(user_id, is_saved)`); } catch (e) {}
+
+  // v2_rooms 补列：深色背景色、点赞数、评论数
+  const v2RoomsCols = [
+    `ALTER TABLE v2_rooms ADD COLUMN bg_color TEXT DEFAULT '#1a1028'`,
+    `ALTER TABLE v2_rooms ADD COLUMN likes INTEGER DEFAULT 0`,
+    `ALTER TABLE v2_rooms ADD COLUMN comment_count INTEGER DEFAULT 0`,
+  ];
+  v2RoomsCols.forEach(sql => { try { db.exec(sql); } catch (e) {} });
+
+  // v2_expression_cards 补列：是否已练习
+  try { db.exec(`ALTER TABLE v2_expression_cards ADD COLUMN is_practiced INTEGER DEFAULT 0`); } catch (e) {}
+
+  // v2_chat_sessions 补列：荒诞属性 JSON
+  try { db.exec(`ALTER TABLE v2_chat_sessions ADD COLUMN absurd_attributes TEXT`); } catch (e) {}
+
+  // 插入种子数据
+  const { seedRooms } = require('./data/seed-rooms');
+  seedRooms(db);
+
   console.log('数据库初始化完成，路径：', DB_PATH);
 }
 

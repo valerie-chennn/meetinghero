@@ -175,16 +175,7 @@
 /* ===================================================
    无障碍 — 减少动效（尊重用户系统偏好）
    =================================================== */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
-}
+/* prefers-reduced-motion 已移除：产品核心体验依赖动画（打字机、气泡、水波纹等） */
 
 /* ===================================================
    全局重置

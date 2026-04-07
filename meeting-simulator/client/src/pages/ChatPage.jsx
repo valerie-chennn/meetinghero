@@ -859,6 +859,7 @@ function ChatPage() {
                 <div className={styles.tapFirst}>
                   <div className={styles.tapGestureWrap}>
                     <div className={styles.tapRipple} />
+                    <div className={styles.tapRipple2} />
                     <div className={styles.tapFinger}>
                       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2" />

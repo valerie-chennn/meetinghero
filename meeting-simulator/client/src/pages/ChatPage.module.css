@@ -314,24 +314,46 @@
 }
 
 .tapGestureWrap {
-  display: inline-block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   position: relative;
-  margin-bottom: 4px;
+  width: 60px;
+  height: 60px;
+  margin: 0 auto 4px;
 }
 
+/* 水波纹：从手指中心向外扩散，循环 */
 .tapRipple {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 40px;
-  height: 40px;
-  border-radius: 20px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
   border: 1.5px solid rgba(0, 0, 0, 0.1);
+  transform: translate(-50%, -50%) scale(0.5);
   animation: ripple 1.8s ease-out infinite;
   pointer-events: none;
 }
 
+/* 第二圈水波纹，错开时间 */
+.tapRipple2 {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(0, 0, 0, 0.08);
+  transform: translate(-50%, -50%) scale(0.5);
+  animation: ripple 1.8s ease-out infinite 0.9s;
+  pointer-events: none;
+}
+
 .tapFinger {
+  position: relative;
+  z-index: 1;
   animation: tapGesture 1.8s ease-in-out infinite;
 }
 

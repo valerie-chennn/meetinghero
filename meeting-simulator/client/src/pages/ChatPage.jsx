@@ -278,7 +278,8 @@ function ChatPage() {
         setPhase('typing_en');
         // TTS 与打字机同步播放（必须在 typing_en 开始时触发，
         // 否则在 wait_tap 后才播会因浏览器 autoplay policy 被静默拦截）
-        playTts(turn.text, profile.voiceId);
+        // 保存 Promise，自动推进前需等 TTS 播完
+        const ttsPromise = playTts(turn.text, profile.voiceId);
         // 等打字机打完（通过 onEnDone 回调驱动）
         await waitForPhase('typing_zh');
         if (!shouldContinueRef.current) break;
@@ -320,13 +321,15 @@ function ChatPage() {
         const needTap = !isFirstNpc && (forcePause || (!isNextUserCue && i < script.length));
 
         if (needTap) {
-          // 需要等用户点击
+          // 需要等用户点击（用户点击时 TTS 可能还没播完，没关系）
           await waitTap();
           if (!shouldContinueRef.current) break;
           setTaps(t => t + 1);
         } else if (isFirstNpc && i < script.length) {
-          // 第一条消息自动推进，稍微停顿一下增加自然感
-          await sleep(600);
+          // 第一条消息自动推进：必须等 TTS 播完再进下一条
+          await ttsPromise;
+          if (!shouldContinueRef.current) break;
+          await sleep(300); // TTS 播完后短暂停顿
           if (!shouldContinueRef.current) break;
         }
 

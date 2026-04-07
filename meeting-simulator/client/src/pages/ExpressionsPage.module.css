@@ -1,0 +1,251 @@
+/* ===== ExpressionsPage — 表达本 ===== */
+
+.container {
+  max-width: 430px;
+  margin: 0 auto;
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  /* 报纸暖色系 */
+  background: var(--bg-elevated);
+}
+
+/* ===== 顶部标题 ===== */
+.header {
+  padding: var(--space-5) var(--space-5) var(--space-4);
+  /* 报纸暖色系 */
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.title {
+  font-size: var(--font-xl);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.desc {
+  font-size: var(--font-sm);
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* ===== 内容区 ===== */
+.content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== 空态 ===== */
+.emptyState {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-10) var(--space-6);
+  text-align: center;
+  gap: var(--space-3);
+}
+
+.emptyIcon {
+  font-size: 56px;
+  line-height: 1;
+  opacity: 0.6;
+}
+
+.emptyTitle {
+  font-size: var(--font-lg);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.emptyDesc {
+  font-size: var(--font-sm);
+  color: var(--text-muted);
+  line-height: 1.6;
+  max-width: 240px;
+}
+
+/* ===== 卡片列表 ===== */
+.cardList {
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.card {
+  /* 报纸暖色系 */
+  background: var(--bg-surface);
+  border-radius: var(--radius-xl);
+  padding: var(--space-4) var(--space-5);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.cardLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.cardLabelGreen {
+  color: var(--color-success);
+  margin-top: var(--space-2);
+}
+
+.userSaid {
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+  text-decoration: line-through;
+  text-decoration-color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.betterVersion {
+  font-size: var(--font-sm);
+  color: var(--text-primary);
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.contextNote {
+  font-size: 12px;
+  color: var(--text-secondary);
+  /* 报纸暖色系 */
+  background: var(--bg-elevated);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  border-left: 3px solid var(--color-brand-mid);
+  line-height: 1.55;
+}
+
+/* 底部 Tab 栏占位 */
+.bottomPadding {
+  height: 80px;
+  flex-shrink: 0;
+}
+
+/* ===== 加载状态 ===== */
+.loadingState {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-10) var(--space-6);
+  gap: var(--space-4);
+}
+
+.loadingSpinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border);
+  border-top-color: var(--color-brand);
+  border-radius: 50%;
+  animation: spin 700ms linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loadingText {
+  font-size: var(--font-sm);
+  color: var(--text-muted);
+}
+
+/* ===== 统计栏 ===== */
+.statsBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: var(--space-4) var(--space-5);
+  background: var(--bg-surface);
+  /* 报纸暖色系 */
+  border-bottom: 1px solid var(--border);
+}
+
+.statBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.statNumber {
+  font-size: var(--font-xl);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.statLabel {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.statDivider {
+  width: 1px;
+  height: 28px;
+  background: var(--border);
+}
+
+/* ===== 卡片头部行（标签 + 操作区）===== */
+.cardTopRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* 卡片右侧操作区（练习标记 + 取消收藏） */
+.cardActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* 练习状态标记 */
+.practiceTag {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+
+.practiceTagDone {
+  color: var(--color-success);
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.practiceTagPending {
+  color: var(--text-muted);
+  /* 报纸暖色系 */
+  background: rgba(0, 0, 0, 0.04);
+}
+
+/* 取消收藏按钮 */
+.unsaveButton {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-success);
+  /* 报纸暖色系：纯绿背景 */
+  background: #ECFDF5;
+  border: 1px solid var(--color-success);
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 200ms, color 200ms;
+}
+
+.unsaveButton:hover {
+  background: rgba(16, 185, 129, 0.2);
+}

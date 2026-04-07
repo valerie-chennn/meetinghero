@@ -1,0 +1,152 @@
+/* ===== ProfilePage — 我的（空壳占位）===== */
+
+.container {
+  max-width: 430px;
+  margin: 0 auto;
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  /* 报纸暖色系 */
+  background: var(--bg-elevated);
+}
+
+/* ===== 顶部标题 ===== */
+.header {
+  padding: var(--space-5) var(--space-5) var(--space-4);
+  /* 报纸暖色系 */
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.title {
+  font-size: var(--font-xl);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* ===== 内容区 ===== */
+.content {
+  flex: 1;
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+/* ===== 用户信息卡片 ===== */
+.userCard {
+  /* 报纸暖色系 */
+  background: var(--bg-surface);
+  border-radius: var(--radius-xl);
+  padding: var(--space-5);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.userAvatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-brand) 0%, var(--color-brand-mid) 100%);
+  color: #FFFFFF;
+  font-size: 22px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.userInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.userName {
+  font-size: var(--font-lg);
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.userId {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 3px;
+  font-family: monospace;
+}
+
+/* ===== 统计网格 ===== */
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+}
+
+.statsItem {
+  /* 报纸暖色系：白色卡片 */
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.statsNumber {
+  font-size: var(--font-2xl);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.statsLabel {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* ===== 设置列表 ===== */
+.settingsList {
+  /* 报纸暖色系：白色卡片 */
+  background: var(--bg-surface);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+}
+
+.settingsItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-5);
+  font-size: var(--font-sm);
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.settingsItem:last-child {
+  border-bottom: none;
+}
+
+.settingsValue {
+  color: var(--text-secondary);
+  font-size: var(--font-sm);
+}
+
+.settingsArrow {
+  color: var(--text-muted);
+  font-size: 18px;
+}
+
+/* 底部 Tab 栏占位 */
+.bottomPadding {
+  height: 80px;
+  flex-shrink: 0;
+}

@@ -1,20 +1,28 @@
+/* 加载报纸衬线字体（@import 必须在所有规则之前）*/
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&display=swap');
+
 /* ===================================================
-   MeetingHero — 全局设计系统 v3.0
-   风格方向：AI-Native UI + Soft UI Evolution
-   参考：Linear + Notion + ChatGPT 的高端简洁感
+   歪报 The Daily Nonsense — 全局设计系统 v3.0
+   风格方向：报纸质感米白色系
+   参考：The Guardian + 纸质杂志排版美感
    目标用户：中国职场人，鼓励感但不幼稚
    =================================================== */
 
-/* ===== 字体：使用系统字体栈，保证最佳渲染效果 ===== */
+/* ===== 字体：衬线体用于标题，系统字体用于正文 ===== */
 
 /* ===================================================
    设计 Token — CSS 变量
    =================================================== */
 :root {
 
-  /* ── 品牌色 ── */
-  --color-brand:       #4F46E5;   /* Indigo-600，深邃高级 */
-  --color-brand-light: #EEF2FF;   /* Indigo-50，极浅底色 */
+  /* ── 字体族（报纸衬线体）── */
+  --font-serif: 'Noto Serif SC', Georgia, 'Times New Roman', serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Display',
+               'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+
+  /* ── 品牌色（适配浅背景）── */
+  --color-brand:       #4F46E5;   /* Indigo-600 */
+  --color-brand-light: #EEF2FF;   /* Indigo-50，浅背景上的高亮版 */
   --color-brand-mid:   #818CF8;   /* Indigo-400，辅助高亮 */
   --color-brand-dark:  #4338CA;   /* Indigo-700，深色状态 */
 
@@ -36,22 +44,22 @@
   --role-challenger:   linear-gradient(135deg, #F97316, #EA580C);
   --role-supporter:    linear-gradient(135deg, #8B5CF6, #7C3AED);
 
-  /* ── 用户气泡渐变 ── */
+  /* ── 用户气泡渐变（浅色版）── */
   --user-bubble: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%);
 
-  /* ── 背景三层 ── */
-  --bg-base:     #FAFBFE;   /* 比纯白稍暖的极浅靛蓝，全局底色 */
-  --bg-surface:  #FFFFFF;   /* 卡片、面板表面 */
-  --bg-elevated: #F8FAFC;   /* Slate-50，略微提升的层级 */
+  /* ── 背景三层（报纸暖色）── */
+  --bg-base:     #F5F0EB;      /* 报纸米白主底色 */
+  --bg-surface:  #FFFFFF;      /* 卡片/面板白色 */
+  --bg-elevated: #F0EBE4;      /* 略深的暖灰 */
 
   /* ── 文字三层 ── */
-  --text-primary:   #1E1B4B;   /* Indigo-950，接近黑但带靛蓝调 */
-  --text-secondary: #64748B;   /* Slate-500，次要信息 */
-  --text-muted:     #94A3B8;   /* Slate-400，弱化信息 */
+  --text-primary:   #1A1A1A;   /* 近黑色 */
+  --text-secondary: #666666;   /* 中灰 */
+  --text-muted:     #999999;   /* 浅灰 */
 
   /* ── 边框 ── */
-  --border:         #E2E8F0;   /* Slate-200，标准边框 */
-  --border-subtle:  rgba(226, 232, 240, 0.6); /* 更轻的分割线 */
+  --border:         rgba(0, 0, 0, 0.08);
+  --border-subtle:  rgba(0, 0, 0, 0.04);
 
   /* ── 阴影系统（多层精致阴影）── */
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
@@ -74,10 +82,6 @@
   --radius-lg:   16px;
   --radius-xl:   20px;
   --radius-full: 9999px;
-
-  /* ── 字体族 ── */
-  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Display',
-               'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
 
   /* ── 字号系统（更精细的 8 级阶梯）── */
   --font-xs:   0.75rem;     /* 12px */
@@ -117,6 +121,12 @@
   --gold-text: rgba(255, 215, 0, 0.90);
   --gold-border: rgba(255, 215, 0, 0.25);
   --card-surface-dark: rgba(255, 255, 255, 0.08);
+
+  /* ── Feed 卡片背景轮换 Token ── */
+  --bg-card-teal:    #F0FDFA;   /* Teal-50，第2张卡片 */
+  --bg-card-orange:  #FFF7ED;   /* Orange-50，第3张卡片 */
+  --bg-card-violet:  #F5F3FF;   /* Violet-50，第4张卡片 */
+  --bg-card-emerald: #ECFDF5;   /* Emerald-50，第5张卡片 */
 
   /* ── 脑洞模式专用 Token ── */
   /* 紫色强调渐变（脑洞模式入口卡片） */
@@ -210,7 +220,7 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* ── 文字选中高亮（品牌色）── */
+/* ── 文字选中高亮（报纸版）── */
 ::selection {
   background-color: var(--color-brand-light);
   color: var(--color-brand);
@@ -244,7 +254,7 @@ body {
   flex-direction: column;
   position: relative;
   /* 防止超宽屏时两侧过于空旷 */
-  background: var(--bg-surface);
+  background: var(--bg-base);
 }
 
 /* ===================================================
@@ -550,8 +560,7 @@ textarea:focus {
   animation: fadeInDown var(--duration-normal) var(--ease-out);
   box-shadow: var(--shadow-lg);
   white-space: nowrap;
-  /* 细微边框增强层次感 */
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--border);
 }
 
 .toast.error {

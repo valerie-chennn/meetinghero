@@ -1,0 +1,393 @@
+/* ===== FeedPage — 报纸质感全屏卡片 ===== */
+
+/* ===== 外层容器：撑满视口，overflow: hidden ===== */
+.container {
+  max-width: 430px;
+  margin: 0 auto;
+  width: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--bg-base);
+  position: relative;
+}
+
+/* ===== 滑动容器：监听拖拽和 wheel 事件 ===== */
+.feedContainer {
+  width: 100%;
+  height: calc(100dvh - 60px); /* 减去 Tab 栏高度 */
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ===== 卡片轨道：通过 translateY 实现整体偏移 ===== */
+.feedTrack {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== 单张全屏卡片 ===== */
+.card {
+  width: 100%;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ===== 报纸顶部双线装饰 ===== */
+.topRule {
+  position: absolute;
+  top: 0;
+  left: 28px;
+  right: 28px;
+  height: 4px;
+  background: #1A1A1A;
+}
+
+.topRuleThin {
+  position: absolute;
+  top: 6px;
+  left: 28px;
+  right: 28px;
+  height: 1px;
+  background: #1A1A1A;
+}
+
+/* ===== 卡片内容区：垂直居中 ===== */
+.cardBody {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 28px;
+}
+
+/* ===== pill 标签 ===== */
+.pill {
+  display: inline-block;
+  align-self: flex-start;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 100px;
+  background: rgba(0, 0, 0, 0.06);
+  color: #666;
+  letter-spacing: 1px;
+  margin-bottom: 14px;
+}
+
+/* ===== 报纸来源名 ===== */
+.source {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+}
+
+/* ===== 标题上方粗线 ===== */
+.headlineRule {
+  height: 2px;
+  background: #1A1A1A;
+  margin-bottom: 16px;
+}
+
+/* ===== 大标题（衬线体）===== */
+.headline {
+  font-family: var(--font-serif);
+  font-size: 26px;
+  font-weight: 900;
+  line-height: 1.35;
+  color: #1A1A1A;
+  letter-spacing: 0.5px;
+  margin: 0 0 20px;
+}
+
+/* ===== 标题下方细线 ===== */
+.contentRule {
+  height: 1px;
+  background: #D4CFC8;
+  margin-bottom: 18px;
+}
+
+/* ===== 角色对话白卡片 ===== */
+.commentsCard {
+  background: #FFFFFF;
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.commentsLabel {
+  font-size: 10px;
+  color: #999;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+.commentsList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.commentItem {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+/* 头像圆形 */
+.commentAvatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 16px;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.commentContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.commentName {
+  font-size: 12px;
+  font-weight: 700;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.commentText {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #333;
+  margin: 0;
+}
+
+/* ===== 时间/围观数 ===== */
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  font-size: 12px;
+  color: #999;
+}
+
+.metaDot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #CCC;
+  flex-shrink: 0;
+}
+
+/* ===== 加入讨论按钮（深色）===== */
+.joinButton {
+  width: 100%;
+  padding: 15px 0;
+  border-radius: 14px;
+  background: #1A1A1A;
+  color: #FFFFFF;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin-top: 16px;
+  transition: transform 100ms;
+}
+
+.joinButton:active {
+  transform: scale(0.98);
+}
+
+/* ===== 上划提示 ===== */
+.swipeHint {
+  text-align: center;
+  margin-top: 10px;
+  font-size: 11px;
+  color: #BBB;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+/* ===== 右侧圆点指示器 ===== */
+.dotIndicator {
+  position: fixed;
+  right: calc((100vw - 430px) / 2 + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* 430px 以下（手机）直接靠右 8px */
+@media (max-width: 430px) {
+  .dotIndicator { right: 8px; }
+}
+
+.dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.15);
+  transition: all 0.3s;
+}
+
+/* 激活圆点：拉长为胶囊形 */
+.dotActive {
+  height: 18px;
+  background: #1A1A1A;
+}
+
+/* ===== 加载骨架屏（暖色版）===== */
+.skeletonFullScreen {
+  height: calc(100dvh - 60px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 28px;
+  background: #F7F2EC;
+}
+
+.skeletonInner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+@keyframes shimmer {
+  0%   { opacity: 0.3; }
+  50%  { opacity: 0.6; }
+  100% { opacity: 0.3; }
+}
+
+.skeletonTags {
+  height: 22px;
+  width: 80px;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 100px;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+.skeletonTitleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.skeletonTitle {
+  height: 24px;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 4px;
+  animation: shimmer 1.4s ease-in-out infinite 0.1s;
+}
+
+.skeletonTitleShort {
+  height: 24px;
+  width: 65%;
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 4px;
+  animation: shimmer 1.4s ease-in-out infinite 0.15s;
+}
+
+.skeletonReactionsBox {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+  background: #FFFFFF;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.skeletonReaction {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.skeletonAvatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.08);
+  flex-shrink: 0;
+  animation: shimmer 1.4s ease-in-out infinite 0.2s;
+}
+
+.skeletonLines {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.skeletonLine {
+  height: 14px;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 4px;
+  animation: shimmer 1.4s ease-in-out infinite 0.25s;
+}
+
+.skeletonLineShort {
+  height: 12px;
+  width: 60%;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 4px;
+  animation: shimmer 1.4s ease-in-out infinite 0.3s;
+}
+
+.skeletonButton {
+  height: 52px;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 14px;
+  animation: shimmer 1.4s ease-in-out infinite 0.35s;
+  margin-top: var(--space-4);
+}
+
+/* ===== 错误状态 ===== */
+.errorState {
+  height: calc(100dvh - 60px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  padding: var(--space-10) var(--space-6);
+  background: var(--bg-base);
+}
+
+.errorText {
+  font-size: var(--font-sm);
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.retryButton {
+  height: 40px;
+  padding: 0 var(--space-6);
+  background: #1A1A1A;
+  color: #FFFFFF;
+  border-radius: 14px;
+  font-size: var(--font-sm);
+  font-weight: 600;
+}

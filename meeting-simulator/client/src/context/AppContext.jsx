@@ -1,11 +1,23 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
+// 生成 uuid v4（不引入外部依赖，crypto.randomUUID 兼容现代浏览器）
+function generateUuid() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  // 降级方案：Math.random 实现
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 // 全局应用状态上下文
 const AppContext = createContext(null);
 
 // localStorage 中持久化的字段列表
-// sceneType 是会话级字段，不持久化（用户刷新后应重新选择模式）
-const PERSIST_KEYS = ['sessionId', 'userName', 'englishLevel', 'jobTitle', 'industry'];
+const PERSIST_KEYS = ['userId', 'userName'];
 
 // 从 localStorage 读取持久化状态
 function loadPersistedState() {
@@ -24,29 +36,47 @@ function loadPersistedState() {
   return persisted;
 }
 
+// 生成或恢复 userId（设备级 uuid，首次访问自动生成）
+function getOrCreateUserId() {
+  try {
+    const existing = localStorage.getItem('app_userId');
+    if (existing) return existing;
+    const newId = generateUuid();
+    localStorage.setItem('app_userId', newId);
+    return newId;
+  } catch (e) {
+    // localStorage 不可用时返回临时 uuid
+    return generateUuid();
+  }
+}
+
 // 初始状态（从 localStorage 恢复持久化字段）
 function buildInitialState() {
   const persisted = loadPersistedState();
+  // 确保 userId 始终存在：从 localStorage 读取或新建
+  if (!persisted.userId) {
+    persisted.userId = getOrCreateUserId();
+  }
   return {
-    sessionId: null,        // 会话 ID
-    userName: null,         // 用户名字
-    meetingId: null,        // 会议 ID
-    englishLevel: null,     // 英文水平（A1/A2/B1/B2）
-    jobTitle: null,         // 职位
-    industry: null,         // 行业
-    meetingData: null,      // 完整的会议数据（含 briefing、participants、conversations）
-    reviewData: null,       // 复盘数据
-    conversations: [],      // 用户在关键节点的输入记录
-    // ── 会话级字段（不持久化）──
-    pendingMode: null,          // 用户在首页选的模式，onboarding 完成后用于跳转：'brainstorm' | 'formal'
-    // ── 脑洞模式字段（会话级，不持久化）──
-    sceneType: null,            // 场景类型：'formal' | 'brainstorm-pick' | 'brainstorm-random'
-    brainstormWorld: null,      // 点将局：用户搜索的 IP/世界名称
-    brainstormCharacters: [],   // 已选角色对象数组（含 id/name/world/worldLabel/persona）
-    brainstormMainWorld: null,  // 确定的主场景世界 ID（ThemePreview 传给 generate）
-    themeRefreshCount: 0,       // 当前会话已换主题次数（0-3，不持久化）
-    brainstormTheme: null,      // AI 生成的主题数据
-    ...persisted,           // 覆盖持久化的字段
+    // ── 默认值（持久化字段会被 ...persisted 覆盖）──
+    userId: null,
+    userName: null,
+
+    // ── 会话级字段（不持久化，页面刷新后清空）──
+    currentRoomId: null,             // 当前进入的房间 ID
+    currentChatSessionId: null,      // 当前群聊会话 ID
+    chatDialogueScript: [],          // join 返回的完整对话脚本（内存中按顺序播放）
+    chatProgress: 0,                 // 当前播放到第几条脚本（光标）
+    userTurnCount: 0,                // 用户已发言次数
+    settlementData: null,            // 结算数据（complete 后拉取）
+
+    // ── Feed 状态（会话级）──
+    feedScrollIndex: 0,              // Feed 当前滚动位置（用于恢复）
+    cardsSinceLastChat: 0,           // 回到 Feed 后划过的卡片数（触发私信 Banner 用）
+    dmBannerShown: 0,                // 本 session 已显示的私信 Banner 数（最多 2 条）
+
+    // 持久化字段覆盖默认值（userId、userName 从 localStorage 恢复）
+    ...persisted,
   };
 }
 
@@ -71,23 +101,20 @@ export function AppProvider({ children }) {
   // 每次状态变化时同步持久化字段到 localStorage
   useEffect(() => {
     persistState(state);
-  }, [state.sessionId, state.userName, state.englishLevel, state.jobTitle, state.industry]);
+  }, [state.userId, state.userName]);
 
   // 更新单个或多个字段的工具函数
   const updateState = (updates) => {
     setState(prev => ({ ...prev, ...updates }));
   };
 
-  // 重置状态（开始新的会议流程，但保留用户信息）
+  // 重置状态（开始新的群聊流程，但保留用户信息）
   const resetState = () => {
     setState(prev => ({
       ...buildInitialState(),
       // 保留用户已有信息，避免重复填写
-      sessionId: prev.sessionId,
+      userId: prev.userId,
       userName: prev.userName,
-      englishLevel: prev.englishLevel,
-      jobTitle: prev.jobTitle,
-      industry: prev.industry,
     }));
   };
 
@@ -96,27 +123,27 @@ export function AppProvider({ children }) {
     try {
       PERSIST_KEYS.forEach(key => localStorage.removeItem(`app_${key}`));
     } catch (e) { /* ignore */ }
+    const newUserId = generateUuid();
+    try {
+      localStorage.setItem('app_userId', newUserId);
+    } catch (e) { /* ignore */ }
     setState({
-      sessionId: null, userName: null, meetingId: null,
-      englishLevel: null, jobTitle: null, industry: null,
-      meetingData: null, reviewData: null, conversations: [],
-      // 脑洞模式字段同步清除
-      pendingMode: null,
-      sceneType: null, brainstormWorld: null, brainstormCharacters: [],
-      brainstormMainWorld: null, themeRefreshCount: 0, brainstormTheme: null,
+      userId: newUserId,
+      userName: null,
+      currentRoomId: null,
+      currentChatSessionId: null,
+      chatDialogueScript: [],
+      chatProgress: 0,
+      userTurnCount: 0,
+      settlementData: null,
+      feedScrollIndex: 0,
+      cardsSinceLastChat: 0,
+      dmBannerShown: 0,
     });
   };
 
-  // 添加一条对话记录
-  const addConversation = (conversation) => {
-    setState(prev => ({
-      ...prev,
-      conversations: [...prev.conversations, conversation]
-    }));
-  };
-
   return (
-    <AppContext.Provider value={{ state, updateState, resetState, clearAll, addConversation }}>
+    <AppContext.Provider value={{ state, updateState, resetState, clearAll }}>
       {children}
     </AppContext.Provider>
   );

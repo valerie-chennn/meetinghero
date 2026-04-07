@@ -30,9 +30,13 @@
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
   flex-shrink: 0;
   gap: 10px;
-  /* iOS 安全区域适配 */
-  padding-top: max(0px, env(safe-area-inset-top));
-  height: calc(48px + max(0px, env(safe-area-inset-top)));
+  /* 固定在顶部，不跟随聊天内容滚动 */
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  /* 状态栏安全区域：避免和刘海/时间/信号重叠 */
+  padding-top: max(8px, env(safe-area-inset-top));
+  min-height: calc(48px + max(8px, env(safe-area-inset-top)));
 }
 
 .backButton {
@@ -123,6 +127,12 @@
   background: rgba(0, 0, 0, 0.04);
   padding: 4px 14px;
   border-radius: 20px;
+  /* 群公告等长文本：单行截断 */
+  max-width: 85%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-block;
 }
 
 .systemMessageError span {

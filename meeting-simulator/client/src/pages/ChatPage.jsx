@@ -324,6 +324,12 @@ function ChatPage() {
           await waitTap();
           if (!shouldContinueRef.current) break;
           setTaps(t => t + 1);
+        } else if (isNextUserCue) {
+          // 下一条是 user_cue：等 TTS 播完再进发言模式，避免气泡还在说话就弹麦克风
+          await ttsPromise;
+          if (!shouldContinueRef.current) break;
+          await sleep(500);
+          if (!shouldContinueRef.current) break;
         }
 
         if (forcePause) {

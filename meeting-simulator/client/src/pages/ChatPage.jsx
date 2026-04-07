@@ -276,6 +276,9 @@ function ChatPage() {
 
         // ── typing_en 阶段 ──
         setPhase('typing_en');
+        // TTS 与打字机同步播放（必须在 typing_en 开始时触发，
+        // 否则在 wait_tap 后才播会因浏览器 autoplay policy 被静默拦截）
+        playTts(turn.text, profile.voiceId);
         // 等打字机打完（通过 onEnDone 回调驱动）
         await waitForPhase('typing_zh');
         if (!shouldContinueRef.current) break;
@@ -298,9 +301,6 @@ function ChatPage() {
 
         // ── wait_tap 阶段 ──
         setPhase('wait_tap');
-
-        // 同时播放 TTS（不阻塞等待）
-        playTts(turn.text, profile.voiceId);
 
         // 连续 NPC 计数
         consecutiveNpcRef.current += 1;

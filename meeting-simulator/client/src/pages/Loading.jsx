@@ -185,6 +185,15 @@ function Loading() {
         }, 300);
       } catch (err) {
         console.error('生成会议失败:', err);
+        // 会话不存在（数据库已清或过期），清除本地数据重新 onboarding
+        if (err.status === 404) {
+          showError('会话已过期，正在重新初始化...');
+          localStorage.clear();
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 1500);
+          return;
+        }
         showError('会议生成失败，请重试');
         // 脑洞模式失败跳回脑洞入口，正经开会失败跳来源选择
         const isBrainstorm = state.sceneType && state.sceneType.startsWith('brainstorm');

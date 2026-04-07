@@ -281,11 +281,15 @@ function ChatPage() {
         await waitForPhase('typing_zh');
         if (!shouldContinueRef.current) break;
 
-        // ── typing_zh 阶段（已在 onEnDone 中 setPhase）──
-        await waitForPhase('wait_tap');
+        // ── typing_zh 阶段 → typing_done（打字完成，TTS 可能还在播）──
+        await waitForPhase('typing_done');
         if (!shouldContinueRef.current) break;
 
-        // 打完后，把消息推入历史列表
+        // 等 TTS 播完（气泡在 typing_done 阶段保持高亮色）
+        await ttsPromise;
+        if (!shouldContinueRef.current) break;
+
+        // TTS + 打字机都完成，推入历史列表（白色气泡）
         appendMessage({
           id: `npc-${i}`,
           type: 'npc',
@@ -388,8 +392,9 @@ function ChatPage() {
 
   // ── 打字机打完中文后的回调 ──
   const onZhDone = useCallback(() => {
-    // 通知 startPlayback 中的 waitForPhase('wait_tap')
-    setPhase('wait_tap');
+    // 打字机完成，但 TTS 可能还在播 → 进 typing_done 阶段（气泡保持高亮）
+    // 引擎会在 await ttsPromise 后再切到 wait_tap
+    setPhase('typing_done');
   }, []);
 
   // ── 整屏点击推进 ──
@@ -664,8 +669,8 @@ function ChatPage() {
           </div>
         )}
 
-        {/* ── typing 阶段：打字机气泡 ── */}
-        {(phase === 'typing_en' || phase === 'typing_zh') && typingSource && (
+        {/* ── typing/typing_done 阶段：打字机气泡（高亮色，TTS播完才消失）── */}
+        {(phase === 'typing_en' || phase === 'typing_zh' || phase === 'typing_done') && typingSource && (
           <div className={styles.npcRow}>
             <div
               className={styles.npcAvatar}
@@ -689,15 +694,19 @@ function ChatPage() {
                     className={styles.bubbleEn}
                   />
                 )}
-                {phase === 'typing_zh' && (
+                {(phase === 'typing_zh' || phase === 'typing_done') && (
                   <>
                     <div className={styles.bubbleEn}>{typingSource.en}</div>
-                    <Typewriter
-                      text={typingSource.zh || ''}
-                      speed={25}
-                      onDone={onZhDone}
-                      className={styles.bubbleZh}
-                    />
+                    {phase === 'typing_zh' ? (
+                      <Typewriter
+                        text={typingSource.zh || ''}
+                        speed={25}
+                        onDone={onZhDone}
+                        className={styles.bubbleZh}
+                      />
+                    ) : (
+                      <div className={styles.bubbleZh}>{typingSource.zh}</div>
+                    )}
                   </>
                 )}
               </div>
@@ -841,7 +850,7 @@ function ChatPage() {
             </button>
           ) : phase === 'dots' ? (
             <div className={styles.statusText}>对方正在输入...</div>
-          ) : (phase === 'typing_en' || phase === 'typing_zh') ? (
+          ) : (phase === 'typing_en' || phase === 'typing_zh' || phase === 'typing_done') ? (
             <div className={styles.statusText}>正在说话...</div>
           ) : phase === 'wait_tap' ? (
             <div>

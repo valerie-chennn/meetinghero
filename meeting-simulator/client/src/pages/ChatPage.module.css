@@ -395,14 +395,10 @@
   background: rgba(0, 0, 0, 0.15);
 }
 
-/* 麦克风区收起后底部悬浮条 */
+/* 麦克风区收起后底部悬浮条（相对于容器定位，不用 fixed）*/
 .micCollapseBar {
-  position: fixed;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
+  flex-shrink: 0;
   width: 100%;
-  max-width: 430px;
   height: 48px;
   background: rgba(245, 240, 235, 0.95);
   border-top: 1px solid rgba(0, 0, 0, 0.08);
@@ -411,8 +407,8 @@
   justify-content: center;
   gap: 8px;
   cursor: pointer;
-  z-index: 100;
-  backdrop-filter: blur(4px);
+  /* 贴在 flex column 底部 */
+  margin-top: auto;
 }
 
 .micCollapseBarText {

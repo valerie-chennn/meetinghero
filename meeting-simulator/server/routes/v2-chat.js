@@ -14,16 +14,25 @@ const { generateHintPrompt } = require('../prompts/generate-hint');
 const { generateSettlementPrompt } = require('../prompts/generate-settlement');
 
 /**
- * 从属性池中随机选取 2-3 个荒诞属性
- * @param {Array} pool - 属性池数组
- * @returns {Array} 随机选出的属性数组
+ * 统计英文词数
+ * 将文本按空白切分，保留含至少一个英文字母的 token
+ * @param {string} text - 待统计文本（可以是英文/中文混合）
+ * @returns {number} 英文词数
  */
-function pickAbsurdAttributes(pool) {
-  if (!pool || !Array.isArray(pool) || pool.length === 0) return [];
-  // 随机选 2 或 3 个，不超过池子大小
-  const count = Math.min(pool.length, 2 + Math.floor(Math.random() * 2));
-  const shuffled = [...pool].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, count);
+function countEnglishWords(text) {
+  if (!text || typeof text !== 'string') return 0;
+  const tokens = text.trim().split(/\s+/);
+  return tokens.filter(token => /[a-zA-Z]/.test(token)).length;
+}
+
+/**
+ * 格式化秒数为 m:ss 格式
+ * @param {number} sec - 秒数（非负整数）
+ * @returns {string} 如 "3:42"、"0:00"
+ */
+function formatDuration(sec) {
+  const s = Math.max(0, Math.floor(sec));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
 // NPC 私信 Banner 硬编码文案（避免 AI 调用延迟）
@@ -391,20 +400,17 @@ router.post('/complete', async (req, res) => {
       }
     });
 
-    // AI 调用：动态生成结算新闻和荒诞属性
+    // AI 调用：动态生成结算新闻（headline + epilogue + title）
     let dynamicNewsletter = null;
-    let absurdAttrs = null;
 
     try {
       const publisher = templateForComplete.newsletter?.publisher || '今日快报';
-      const absurdAttributesPool = templateForComplete.absurd_attributes_pool || [];
 
       const { systemPrompt, userPrompt } = generateSettlementPrompt({
         newsTopic: newsTitle,
         publisher,
         userMessages: userMsgTexts,
         npcReplies: npcReplyTexts,
-        absurdAttributesPool,
       });
 
       const aiResult = await callOpenAIJson(
@@ -415,39 +421,32 @@ router.post('/complete', async (req, res) => {
         { temperature: 0.8, maxTokens: 500 }
       );
 
-      // 组装 newsletter 对象（publisher 来自种子，headline/bullets 来自 AI）
-      if (aiResult && aiResult.headline && Array.isArray(aiResult.bullets)) {
+      // 组装 newsletter 对象（publisher 来自种子，headline/epilogue/title 来自 AI）
+      if (aiResult && aiResult.headline) {
+        // 硬切 epilogue 最多 2 条（防 AI 偶尔返回 3 条）
+        const epilogueArr = Array.isArray(aiResult.epilogue)
+          ? aiResult.epilogue.slice(0, 2)
+          : (aiResult.epilogue || '');
         dynamicNewsletter = {
           publisher,
           headline: aiResult.headline,
-          bullets: aiResult.bullets,
+          epilogue: epilogueArr,
+          title: aiResult.title || '',
         };
-        console.log(`[v2-chat/complete] AI 结算新闻生成成功：${aiResult.headline}`);
-      }
-
-      // 荒诞属性：AI 生成的优先，格式校验
-      if (aiResult && Array.isArray(aiResult.absurdAttributes) && aiResult.absurdAttributes.length > 0) {
-        absurdAttrs = aiResult.absurdAttributes;
-        console.log(`[v2-chat/complete] AI 荒诞属性生成成功：${JSON.stringify(absurdAttrs)}`);
+        console.log(`[v2-chat/complete] AI 结算新闻生成成功：${aiResult.headline}｜称号：${aiResult.title}`);
       }
     } catch (aiErr) {
-      // AI 调用失败，降级到种子模板
-      console.error('[v2-chat/complete] AI 结算生成失败，使用种子模板降级：', aiErr.message);
+      // AI 调用失败，降级：只写 publisher，其他字段为空
+      console.error('[v2-chat/complete] AI 结算生成失败，降级到空内容：', aiErr.message);
     }
 
-    // 降级处理：AI 没有生成有效内容时使用种子数据
-    if (!absurdAttrs) {
-      absurdAttrs = pickAbsurdAttributes(templateForComplete.absurd_attributes_pool);
-    }
-
-    // 更新会话状态为 completed，同时写入荒诞属性和动态结算新闻
+    // 更新会话状态为 completed，写入动态结算新闻（不再写 absurd_attributes）
     db.prepare(`
       UPDATE v2_chat_sessions
       SET status = 'completed', completed_at = CURRENT_TIMESTAMP,
-          absurd_attributes = ?, settlement_newsletter = ?
+          settlement_newsletter = ?
       WHERE id = ?
     `).run(
-      JSON.stringify(absurdAttrs),
       dynamicNewsletter ? JSON.stringify(dynamicNewsletter) : null,
       chatSessionId.trim()
     );
@@ -502,7 +501,7 @@ router.post('/complete', async (req, res) => {
 /**
  * GET /api/v2/chat/:chatSessionId/settlement
  * 获取结算数据
- * 出参: { eventResult, expressionCards }
+ * 出参: { newsletter, stats, expressionCards }
  */
 router.get('/:chatSessionId/settlement', (req, res) => {
   try {
@@ -516,15 +515,61 @@ router.get('/:chatSessionId/settlement', (req, res) => {
       return res.status(400).json({ error: '会话尚未完成，无法查看结算' });
     }
 
-    // 查询房间的结算模板（用于 fallback）
-    const room = db.prepare('SELECT settlement_template FROM v2_rooms WHERE id = ?').get(session.room_id);
+    // 查询房间信息：结算模板 + tags（用于取 ipName）
+    const room = db.prepare('SELECT settlement_template, tags FROM v2_rooms WHERE id = ?').get(session.room_id);
     const settlementTemplate = room ? JSON.parse(room.settlement_template) : {};
+
+    // 取 IP 名：从 tags JSON 数组取第一个元素
+    let ipName = '';
+    if (room && room.tags) {
+      try {
+        const tagsArr = JSON.parse(room.tags);
+        ipName = (Array.isArray(tagsArr) && tagsArr[0]) ? tagsArr[0] : '';
+      } catch (e) {
+        ipName = '';
+      }
+    }
 
     // 优先读 AI 动态生成的 newsletter，fallback 到种子模板
     const dynamicNewsletter = session.settlement_newsletter
       ? (() => { try { return JSON.parse(session.settlement_newsletter); } catch (e) { return null; } })()
       : null;
-    const newsletter = dynamicNewsletter || settlementTemplate.newsletter || null;
+    const rawNewsletter = dynamicNewsletter || settlementTemplate.newsletter || {};
+
+    // 组装 newsletter 对象，旧数据缺 epilogue/title 时降级为空字符串
+    const newsletter = {
+      publisher: rawNewsletter.publisher || '',
+      ipName,
+      headline: rawNewsletter.headline || '',
+      epilogue: rawNewsletter.epilogue || '',
+      title: rawNewsletter.title || '',
+    };
+
+    // 计算对话时长（completed_at - started_at，格式 m:ss）
+    // 注：两个时间戳都由 SQLite CURRENT_TIMESTAMP 写入，格式一致（无时区标识）。
+    // new Date() 解析时会按本地时区，但因为两值偏移量相同，差值不受时区影响。
+    let duration = '0:00';
+    if (session.completed_at && session.started_at) {
+      try {
+        const startMs = new Date(session.started_at).getTime();
+        const endMs = new Date(session.completed_at).getTime();
+        if (!isNaN(startMs) && !isNaN(endMs)) {
+          const sec = Math.max(0, Math.floor((endMs - startMs) / 1000));
+          duration = formatDuration(sec);
+        }
+      } catch (e) {
+        duration = '0:00';
+      }
+    }
+
+    // 计算用户英文词数（统计所有 user_input 里含字母的 token）
+    const userInputRows = db.prepare(`
+      SELECT user_input FROM v2_user_messages
+      WHERE chat_session_id = ?
+      ORDER BY turn_index ASC
+    `).all(chatSessionId);
+    const allUserText = userInputRows.map(r => r.user_input || '').join(' ');
+    const wordCount = countEnglishWords(allUserText);
 
     // 查询该会话的表达卡片
     const cards = db.prepare(`
@@ -552,11 +597,13 @@ router.get('/:chatSessionId/settlement', (req, res) => {
     }));
 
     return res.status(200).json({
-      // newsletter: 报纸风结算内容（publisher/headline/bullets）
-      // 优先使用 AI 动态生成，失败时 fallback 到种子模板
+      // 报纸风结算内容（publisher/ipName/headline/epilogue/title）
       newsletter,
-      // 荒诞属性：从 complete 阶段持久化的结果中读取
-      absurdAttributes: session.absurd_attributes ? JSON.parse(session.absurd_attributes) : [],
+      // 对话统计（时长+词数）
+      stats: {
+        duration,
+        wordCount,
+      },
       // 表达卡片
       expressionCards,
     });

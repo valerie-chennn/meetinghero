@@ -14,7 +14,8 @@
 
 /* ===== 顶部标题 ===== */
 .header {
-  padding: var(--space-5) var(--space-5) var(--space-4);
+  /* 手机壳状态栏高 54px，避开刘海/时间 */
+  padding: calc(54px + var(--space-4)) var(--space-5) var(--space-4);
   /* 报纸暖色系 */
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border);

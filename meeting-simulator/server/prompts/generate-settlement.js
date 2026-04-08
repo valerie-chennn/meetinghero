@@ -2,7 +2,7 @@
  * 生成结算页"新闻后续"Prompt
  * 根据用户在群聊中的实际发言，动态生成反映用户立场的结算内容
  *
- * 输出：headline（新闻标题）、bullets（2条后续故事点）、absurdAttributes（2-3条能力变化）
+ * 输出：headline（新闻标题）、epilogue（NPC 后续行为叙事）、title（用户称号）
  */
 
 /**
@@ -10,9 +10,8 @@
  * @param {object} params
  * @param {string} params.newsTopic - 房间新闻标题（原始种子标题）
  * @param {string} params.publisher - 报头，如"东海商报 · 后续"
- * @param {Array<string>} params.userMessages - 用户 3 次发言文本数组（按顺序）
+ * @param {Array<string>} params.userMessages - 用户发言文本数组（按顺序）
  * @param {Array<string>} params.npcReplies - NPC 对用户每次发言的回复文本数组
- * @param {Array<{name: string, delta: number}>} params.absurdAttributesPool - 种子属性池
  * @returns {{ systemPrompt: string, userPrompt: string }}
  */
 function generateSettlementPrompt({
@@ -20,7 +19,6 @@ function generateSettlementPrompt({
   publisher,
   userMessages,
   npcReplies,
-  absurdAttributesPool,
 }) {
   const systemPrompt = `你是一个荒诞新闻撰稿人，专门为英语学习 App 生成互动群聊的"事件结果"。
 
@@ -38,51 +36,41 @@ function generateSettlementPrompt({
   - 用户和稀泥 → "卖马风波平息，各方在审计员调解下握手言和"
 - 带具体情节，不要泛泛的总结
 
-### bullets（严格 2 条，每条类型固定，不能混淆）
+### epilogue（NPC 后续行为数组）
+- **数组格式，严格 2 条**，每条独立描写一个 NPC 的行为
+- 每条 ≤ 25 字
+- 每条只描写**一个具体行为**：动作、表情、一句话、发朋友圈等，不要在一条里塞多个 NPC
+- 两条之间不要重复同一个 NPC（尽量挑不同 NPC）
+- 描写对话中**实际出现过的 NPC** 因用户立场产生的后续反应，不要泛泛总结
 
-**bullet 1 = 用户立场的直接结果**
-- 描述因为用户的发言/表态，发生了什么
-- 格式：「你+动词+NPC/事件」
-- 必须基于用户实际说的话
-- 好的例子："你当场反对，挂牌连夜撤回"
-- 好的例子："你拍板支持，八戒连夜挂单成交"
-- 差的例子："你促成了和解"（太模糊）
-- 差的例子："卖家改口称只是气话试水"（不是用户的动作）
+**好例子**：
+- "八戒在群里发了一个红包，备注写'感谢大哥仗义执言'。"（一条一件事）
+- "甄嬛微微颔首，随后把你的发言截图置顶在群里。"（一条一件事）
 
-**bullet 2 = 对话中出现过的某个 NPC 的后续反应**
-- 必须选一个**在对话中实际出现过的 NPC**（根据下方对话记录）
-- 描述这个 NPC 的反应：肢体动作/表情/一句话/发朋友圈
-- 不能引入对话中未出现的新角色
-- 不能虚构对话里没提过的物品或事件
-- 好的例子："白龙马在群里发了一串感谢"
-- 好的例子："八戒尴尬地抠着钉耙嘟囔"
-- 好的例子："甄嬛微微颔首，未再言语"
-- 差的例子："卖家改口称只是气话试水"（"卖家"对话里没出现）
-- 差的例子："队里改卖贝壳周边补窟窿"（虚构新物品）
+**坏例子（不要这样写）**：
+- "白龙马发了好友申请，三太子说团建请你吃鱼。"（一条塞了两个 NPC 的两件事，应拆成两条）
+- "大家都很满意。"（太泛，没有具体行为）
+- "读者纷纷留言支持。"（引入了对话中不存在的新角色"读者"）
 
 **硬约束**：
-- 不允许引入对话中没有出现的新角色（"卖家"、"读者"、"路人"等）
-- 不允许虚构新物品、新地点
-- 所有细节必须能在对话记录里找到根据，或是直接描写 NPC 的肢体/表情反应
+- 只能写对话记录里出现过的 NPC，不能引入新角色（"卖家"、"读者"、"路人"等）
+- 不能虚构对话里没提过的新物品或新地点
+- 所有细节必须能在对话记录里找到根据，或直接描写 NPC 的肢体/表情反应
 
-### absurdAttributes（2-3条能力变化）
-- 从候选属性池中挑选最匹配用户立场的 2-3 个
-- 根据用户实际立场调整 delta 值（范围 -5 到 +5）
-- 如果属性池里没有特别匹配的，可以生成池外属性（自行创造有趣的属性名）
-- delta 为正表示提升，为负表示下降
+### title（用户称号）
+- 4-12 字，调侃称号，反映用户在本次对话中的立场
+- 报纸风+略带幽默，不要太正经也不要烂俗
+- 示例："动物保护协会荣誉会员"、"闲鱼挂牌挡路侠"、"和稀泥外交官"
 
 ## 输出格式
-必须返回严格的 JSON，不带 markdown 代码块：
+必须返回严格的 JSON，不带 markdown 代码块，epilogue 必须恰好 2 条：
 {
   "headline": "反映用户立场的标题（≤20字）",
-  "bullets": [
-    "用户立场的直接结果（≤20字）",
-    "对话中出现的NPC的后续反应（≤20字）"
+  "epilogue": [
+    "第一条 NPC 后续行为（≤25字，只写一个 NPC 一件事）",
+    "第二条 NPC 后续行为（≤25字，只写一个 NPC 一件事）"
   ],
-  "absurdAttributes": [
-    { "name": "属性名", "delta": 3 },
-    { "name": "属性名", "delta": -1 }
-  ]
+  "title": "用户称号（4-12字）"
 }`;
 
   // 格式化对话历史
@@ -97,11 +85,6 @@ function generateSettlementPrompt({
     }
   }
 
-  // 格式化属性池
-  const poolText = absurdAttributesPool && absurdAttributesPool.length > 0
-    ? absurdAttributesPool.map(a => `- ${a.name}（参考delta: ${a.delta}）`).join('\n')
-    : '（无候选池，请自行创造 2-3 个有趣属性）';
-
   const userPrompt = `## 新闻话题
 ${newsTopic}
 
@@ -110,9 +93,6 @@ ${publisher}
 
 ## 用户实际对话记录
 ${dialogueLines.length > 0 ? dialogueLines.join('\n') : '（用户未发言）'}
-
-## 候选属性池
-${poolText}
 
 请根据用户的实际发言立场，生成结算新闻内容。`;
 

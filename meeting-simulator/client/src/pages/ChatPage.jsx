@@ -346,7 +346,46 @@ function ChatPage() {
       } else if (turn.type === 'user_cue') {
         // 重置连续计数
         consecutiveNpcRef.current = 0;
-        // 进入发言模式
+
+        // ── 先播放 NPC 的 cue 话术（hint），让用户知道该回什么 ──
+        if (turn.hint) {
+          const cueProfile = nm[turn.speaker] || { name: turn.speaker, voiceId: null };
+          const cueColor = getNpcColor(turn.speaker);
+
+          // dots 阶段 + 预加载 TTS
+          setPhase('dots');
+          const cueKey = `${turn.hint}|${cueProfile.voiceId || ''}`;
+          prefetchTts(turn.hint, cueProfile.voiceId);
+          const cueDotsWait = sleep(800 + Math.random() * 300);
+          const cueTtsCache = ttsCache.get(cueKey) || Promise.resolve(null);
+          await Promise.all([cueDotsWait, cueTtsCache]);
+          if (!shouldContinueRef.current) break;
+
+          // 打字机 + TTS 同步播放
+          // 临时设置 typingSource 数据（通过 curIdx 指向 user_cue 节点）
+          setPhase('typing_en');
+          const cueTtsPromise = playTts(turn.hint, cueProfile.voiceId);
+          await waitForPhase('typing_zh');
+          if (!shouldContinueRef.current) break;
+          await waitForPhase('typing_done');
+          if (!shouldContinueRef.current) break;
+          await cueTtsPromise;
+          if (!shouldContinueRef.current) break;
+
+          // 推入历史消息
+          appendMessage({
+            id: `cue-${i}`,
+            type: 'npc',
+            speaker: turn.speaker,
+            speakerName: cueProfile.name,
+            speakerColor: cueColor,
+            en: turn.hint,
+            zh: turn.hintZh,
+            voiceId: cueProfile.voiceId,
+          });
+        }
+
+        // ── 进入发言模式 ──
         setPhase('mic');
         setHintOpen(false);
         setSelectedHint(null);
@@ -561,15 +600,30 @@ function ChatPage() {
   const typingSource = pendingNpcReply || dotsPreview || (() => {
     if (!sessionData?.dialogueScript) return null;
     const s = sessionData.dialogueScript[curIdx];
-    if (!s || s.type !== 'npc') return null;
-    const p = npcMapRef.current[s.speaker] || { name: s.speaker };
-    return {
-      speaker: s.speaker,
-      speakerName: p.name,
-      speakerColor: getNpcColor(s.speaker),
-      en: s.text,
-      zh: s.textZh,
-    };
+    if (!s) return null;
+    // NPC 消息：用 text/textZh
+    if (s.type === 'npc') {
+      const p = npcMapRef.current[s.speaker] || { name: s.speaker };
+      return {
+        speaker: s.speaker,
+        speakerName: p.name,
+        speakerColor: getNpcColor(s.speaker),
+        en: s.text,
+        zh: s.textZh,
+      };
+    }
+    // user_cue：用 hint/hintZh（NPC cue 用户的话术）
+    if (s.type === 'user_cue' && s.hint) {
+      const p = npcMapRef.current[s.speaker] || { name: s.speaker };
+      return {
+        speaker: s.speaker,
+        speakerName: p.name,
+        speakerColor: getNpcColor(s.speaker),
+        en: s.hint,
+        zh: s.hintZh,
+      };
+    }
+    return null;
   })();
 
   // ── 计算成员列表文字 ──

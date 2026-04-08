@@ -1,7 +1,7 @@
-/* ===== SettlementPage — 报纸风结算页 ===== */
+/* ===== SettlementPage — 报纸风结算页（v8 重构）===== */
 
-/* 引入 Noto Serif SC 衬线字体（标题用）*/
-@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&display=swap');
+/* 引入 Noto Serif SC + Noto Sans SC */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&family=Noto+Sans+SC:wght@400;500;700&display=swap');
 
 /* ===== 入场动画 ===== */
 @keyframes fadeUp {
@@ -19,7 +19,7 @@
   to { transform: rotate(360deg); }
 }
 
-/* ===== 页面容器 ===== */
+/* ===== 页面最外层容器 ===== */
 .container {
   width: 100%;
   height: 100%;
@@ -27,388 +27,238 @@
   font-family: 'Noto Sans SC', sans-serif;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
-/* ===== 滚动区 ===== */
-.scrollArea {
+/* ===== View 1：剧情结算 ===== */
+.settlementView {
   flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  /* 与参考文件对齐：20px 顶部，24px 左右，底部由 bottomPad 决定 */
-  padding: 20px 24px 0;
   display: flex;
   flex-direction: column;
-  gap: 0;
+  padding: 74px 28px 0; /* 54px 状态栏 + 20px 视觉间距 */
+  overflow-y: auto;
+  overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
-}
-
-/* ===== 块 1：事件结果卡片 ===== */
-.newsCard {
-  background: #fff;
-  border-radius: 16px;
-  /* 与参考文件对齐：padding 24px 20px */
-  padding: 24px 20px;
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  /* 与参考文件对齐：卡片之间 20px 间距 */
-  margin-bottom: 20px;
   animation: fadeUp 0.5s ease both;
 }
 
-/* 报头（报纸名称）*/
-.newsPublisher {
-  font-size: 12px;
-  font-weight: 700;
-  color: #B8372A;
-  letter-spacing: 2px;
-  margin-bottom: 6px;
-}
-
-/* 黑色粗横线 */
-.newsRule {
-  height: 2px;
-  background: #1a1a1a;
-  margin-bottom: 14px;
-}
-
-/* 大标题（Noto Serif SC 衬线体）*/
-.newsHeadline {
-  font-family: 'Noto Serif SC', serif;
-  font-size: 22px;
-  font-weight: 900;
-  color: #1a1a1a;
-  line-height: 1.4;
-  margin: 0 0 16px 0;
-}
-
-/* 故事点列表 */
-.newsBullets {
+/* ===== View 2：表达提升 ===== */
+.expressionView {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-bottom: 22px;
+  overflow: hidden;
+  animation: fadeUp 0.4s ease both;
 }
 
-.newsBulletItem {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-/* 4×4 黑色圆点 */
-.bulletDot {
-  width: 4px;
+/* ===== 报头双线（两个 view 共用）===== */
+.headerRuleFat {
   height: 4px;
-  border-radius: 2px;
-  background: #1a1a1a;
+  background: #1A1A1A;
+  margin-bottom: 6px;
   flex-shrink: 0;
 }
 
-.bulletText {
-  font-size: 14px;
-  color: #333;
-  line-height: 1.5;
-}
-
-/* 卡片内分隔线 */
-.divider {
+.headerRuleThin {
   height: 1px;
+  background: #1A1A1A;
+  margin-bottom: 14px;
+  flex-shrink: 0;
+}
+
+/* ===== 报头行：publisher + IP pill ===== */
+.publisherRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.publisherText {
+  font-size: 13px;
+  font-weight: 700;
+  color: #C41E1E;
+  letter-spacing: 2px;
+  font-family: 'Noto Serif SC', serif;
+}
+
+.ipPill {
+  font-size: 10px;
+  padding: 2px 10px;
+  border-radius: 100px;
   background: rgba(0, 0, 0, 0.06);
-  margin-bottom: 16px;
-}
-
-/* 能力值标签 */
-.statsLabel {
-  font-size: 12px;
-  color: #999;
-  margin-bottom: 10px;
-}
-
-/* 能力值横排：纯文字，gap 16px，可换行 */
-.statsRow {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-/* 单条能力值：名字 + 数值并排 */
-.statItem {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-/* 属性名：深灰色普通文字 */
-.statName {
-  font-size: 14px;
-  color: #333;
-}
-
-/* 正向数值：绿色 */
-.statValuePos {
-  font-size: 14px;
-  font-weight: 700;
-  color: #1A8A6E;
-}
-
-/* 负向数值：红色 */
-.statValueNeg {
-  font-size: 14px;
-  font-weight: 700;
-  color: #C84B31;
-}
-
-/* ===== 块 2：表达卡片外层白卡 ===== */
-/* 收紧 padding 以便单卡 + dots 一屏显示完 */
-.expressionCardWrapper {
-  background: #fff;
-  border-radius: 16px;
-  padding: 16px;
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  margin-bottom: 16px;
-  animation: fadeUp 0.5s ease 0.15s both;
-  /* overflow hidden 避免滑动时卡片超出圆角 */
-  overflow: hidden;
-}
-
-/* 卡片内部顶部标签：✨ 你的表达 */
-.expressionCardHeader {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 10px;
-  font-size: 15px;
-  font-weight: 700;
-  color: #1a1a1a;
-}
-
-.sparkle {
-  font-size: 16px;
-}
-
-/* ===== 单张表达卡片 ===== */
-.expressionCard {
-  display: flex;
-  flex-direction: column;
-}
-
-/* "你说的" 区块 */
-.userSaidBlock {
-  margin-bottom: 8px;
-}
-
-.labelSm {
-  font-size: 11px;
-  color: #999;
-  margin-bottom: 4px;
-}
-
-.userSaidText {
-  font-size: 14px;
   color: #666;
-  line-height: 1.5;
-  padding: 10px 12px;
-  background: rgba(0, 0, 0, 0.02);
-  border-radius: 10px;
-}
-
-/* 紫色向下箭头 */
-.arrow {
-  text-align: center;
-  font-size: 14px;
-  color: #7C5CBF;
-  margin: 2px 0 4px;
-}
-
-/* 改进版本区块 */
-.betterBlock {
-  margin-bottom: 8px;
-}
-
-/* feedbackType 标签（紫色）*/
-.feedbackLabel {
-  font-size: 11px;
   font-weight: 600;
-  color: #7C5CBF;
-  margin-bottom: 4px;
+  letter-spacing: 1px;
 }
 
-/* 改进版本文本：紫色淡背景 + 左边框 */
-.betterText {
-  font-size: 14px;
-  color: #1a1a1a;
-  line-height: 1.5;
-  font-weight: 500;
-  padding: 10px 12px;
-  background: rgba(124, 92, 191, 0.04);
-  border-radius: 10px;
-  border-left: 3px solid #7C5CBF;
-}
-
-/* ===== 核心句型 ===== */
-.patternBlock {
-  margin-top: 12px;
-}
-
-.patternLabel {
-  font-size: 12px;
-  color: #999;
-  margin-bottom: 6px;
-}
-
-.patternText {
-  font-size: 14px;
-  color: #1a1a1a;
-  font-weight: 500;
-  padding: 10px 14px;
-  background: rgba(0, 0, 0, 0.03);
-  border-radius: 8px;
-  font-family: inherit;
-  line-height: 1.5;
-}
-
-/* ===== 可迁移的搭配 ===== */
-.collocationsBlock {
-  margin-top: 12px;
-}
-
-.collocationsLabel {
-  font-size: 12px;
-  color: #999;
-  margin-bottom: 6px;
-}
-
-.collocationsList {
-  list-style: none;
-  padding: 0;
+/* ===== 大标题 ===== */
+.headline {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 28px;
+  font-weight: 900;
+  color: #1A1A1A;
+  line-height: 1.35;
+  letter-spacing: 0.5px;
   margin: 0;
 }
 
-.collocationItem {
+/* ===== 数据栏 ===== */
+.statsBar {
+  margin-top: 24px;
+  flex-shrink: 0;
+}
+
+.statsBarTop {
+  height: 1px;
+  background: #1A1A1A;
+}
+
+.statsBarInner {
   display: flex;
-  flex-direction: column;
-  margin-bottom: 8px;
+  border-bottom: 1px solid #1A1A1A;
 }
 
-.collocationItem:last-child {
-  margin-bottom: 0;
+/* 左栏 */
+.statBox {
+  flex: 1;
+  padding: 18px 0;
+  border-right: 1px solid #D4CFC8;
 }
 
-.collocationPhrase {
-  color: #7C5CBF;
-  font-weight: 600;
+/* 右栏（左侧留 padding 错开竖线）*/
+.statBoxRight {
+  flex: 1;
+  padding: 18px 0 18px 20px;
+}
+
+.statNumber {
+  font-size: 36px;
+  font-weight: 900;
+  color: #1A1A1A;
+  font-family: 'Noto Serif SC', serif;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.statWords {
   font-size: 14px;
+  font-weight: 500;
+  color: #999;
+  margin-left: 2px;
 }
 
-.collocationMeaning {
-  color: #888;
+.statTag {
   font-size: 12px;
-  margin-top: 2px;
+  color: #999;
+  letter-spacing: 1px;
 }
 
-/* 紫色加粗高亮 span */
-.highlight {
-  color: #7C5CBF;
+/* ===== 结局卡片 ===== */
+.epilogueCard {
+  background: #FFF;
+  border-radius: 14px;
+  padding: 20px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  margin-top: 32px;
+  flex-shrink: 0;
+}
+
+.epilogueLabel {
+  font-size: 10px;
+  color: #999;
   font-weight: 600;
+  letter-spacing: 1px;
+  margin-bottom: 10px;
 }
 
-/* ===== 左右滑动卡片组 ===== */
-.sliderWrapper {
+/* 旧字段：现在嵌在 li 内，去掉 margin-bottom（间距由 epilogueList gap 控制）*/
+.epilogueText {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 16px;
+  font-weight: 500;
+  color: #1A1A1A;
+  line-height: 1.8;
+}
+
+/* bullet 列表容器 */
+.epilogueList {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 16px 0;
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-/* 滑动容器：宽度 100%，超出部分隐藏 */
-.sliderContainer {
-  width: 100%;
-  overflow: hidden;
-  cursor: grab;
-  user-select: none;
-  /* 告诉浏览器横向触摸归 slider，纵向交给外层 scrollArea */
-  touch-action: pan-y;
-}
-
-.sliderContainer:active {
-  cursor: grabbing;
-}
-
-/* 滑动轨道：横向排列所有卡片 */
-.sliderTrack {
+/* 每条 bullet 行 */
+.epilogueItem {
   display: flex;
-  flex-direction: row;
-  will-change: transform;
+  align-items: flex-start;
+  gap: 10px;
 }
 
-/* 每个滑动卡片的容器（宽度 = 父容器宽度，flex-shrink 0 防止收缩）*/
-.sliderCardItem {
-  flex: 0 0 100%;
-  width: 100%;
+/* 小黑方块点 */
+.epilogueDot {
+  width: 4px;
+  height: 4px;
+  background: #1A1A1A;
+  flex-shrink: 0;
+  margin-top: 12px; /* 与首行文字垂直对齐 */
 }
 
-/* ===== 圆点指示器 + 计数器 ===== */
-.dotIndicator {
+.epilogueDivider {
+  height: 1px;
+  background: rgba(0, 0, 0, 0.06);
+  margin-bottom: 14px;
+}
+
+.titleLabel {
+  font-size: 10px;
+  color: #999;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+
+/* 称号方角边框（不圆角！）*/
+.titleBox {
+  display: inline-flex;
+  padding: 8px 16px;
+  border: 1.5px solid #1A1A1A;
+  /* 故意不写 border-radius */
+  font-family: 'Noto Serif SC', serif;
+  font-size: 15px;
+  font-weight: 900;
+  color: #1A1A1A;
+  letter-spacing: 1px;
+}
+
+/* ===== 双按钮区（两 view 共用）===== */
+.buttonArea {
+  flex: 1;
   display: flex;
+  flex-direction: column;
   justify-content: center;
-  align-items: center;
-  gap: 8px;
-  margin-top: 14px;
-  padding: 4px 0;
+  gap: 10px;
+  padding: 0 0 32px;
+  margin-top: 0;
+  min-height: 120px;
 }
 
-.dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: rgba(124, 92, 191, 0.35);
-  transition: background 0.2s ease, transform 0.2s ease;
+/* expressionView 里的 buttonArea 需要左右 padding（父级无 padding）*/
+.buttonAreaPadded {
+  padding: 0 28px 32px;
 }
 
-.dotActive {
-  background: #7C5CBF;
-  transform: scale(1.2);
-}
-
-/* 小计数器文字：1 / 3 */
-.dotCounter {
-  font-size: 11px;
-  color: #bbb;
-  text-align: center;
-  margin-top: 4px;
-  letter-spacing: 0.5px;
-}
-
-/* ===== 切换"查看全部"按钮 ===== */
-/* 位于表达卡片外面下方，与参考文件对齐：fontSize 13, color #7C5CBF, marginBottom 24px */
-.toggleAllButton {
-  text-align: center;
-  font-size: 13px;
-  font-weight: 500;
-  color: #7C5CBF;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  padding: 4px 0;
-  display: block;
+/* 主按钮：黑底白字 */
+.primaryButton {
   width: 100%;
-  margin-bottom: 24px;
-}
-
-/* ===== 已存入表达本提示 ===== */
-.savedHint {
-  font-size: 12px;
-  color: #bbb;
-  text-align: center;
-  margin: 0 0 16px;
-}
-
-/* ===== 回首页按钮 ===== */
-.backButton {
-  width: 100%;
-  padding: 16px 0;
+  padding: 15px 0;
   border-radius: 14px;
   border: none;
-  background: #1a1a1a;
-  color: #F5F0EB;
+  background: #1A1A1A;
+  color: #FFF;
   font-size: 16px;
   font-weight: 700;
   letter-spacing: 1px;
@@ -417,14 +267,269 @@
   transition: opacity 0.15s ease;
 }
 
-.backButton:active {
+.primaryButton:active {
   opacity: 0.8;
 }
 
-/* ===== 底部安全区域占位 ===== */
-.bottomPad {
-  height: 32px;
+/* 次按钮：透明底，1.5px 黑色描边 */
+.secondaryButton {
+  width: 100%;
+  padding: 15px 0;
+  border-radius: 14px;
+  border: 1.5px solid #1A1A1A;
+  background: transparent;
+  color: #1A1A1A;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  cursor: pointer;
+  font-family: 'Noto Sans SC', sans-serif;
+  transition: opacity 0.15s ease;
+}
+
+.secondaryButton:active {
+  opacity: 0.7;
+}
+
+/* ===== 表达 view 顶栏 ===== */
+.expressionTopBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 60px 28px 0; /* 54px 状态栏 + 6px 视觉间距 */
   flex-shrink: 0;
+}
+
+.backLink {
+  font-size: 14px;
+  color: #999;
+  cursor: pointer;
+  user-select: none;
+}
+
+.savedRight {
+  font-size: 11px;
+  color: #CCC;
+}
+
+/* 表达 view 报头双线的外层 wrap（加 padding 与两侧对齐）*/
+.expressionHeaderWrap {
+  padding: 12px 28px 0;
+  flex-shrink: 0;
+}
+
+/* 标题行：表达提升 + (1/3) */
+.expressionTitleRow {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 0 28px;
+  margin-bottom: 4px;
+  flex-shrink: 0;
+}
+
+.expressionTitle {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 22px;
+  font-weight: 900;
+  color: #1A1A1A;
+}
+
+.expressionCount {
+  font-size: 14px;
+  color: #CCC;
+  font-weight: 400;
+}
+
+/* 标题下方细灰线 */
+.expressionTitleRule {
+  height: 1px;
+  background: #D4CFC8;
+  margin: 0 28px;
+  flex-shrink: 0;
+}
+
+/* ===== 横滑卡片区域 ===== */
+.sliderArea {
+  padding: 18px 28px 0;
+  margin-top: 24px; /* 让卡片下移，减少与"回到首页"按钮间的留白 */
+  flex-shrink: 0;
+}
+
+.sliderOuter {
+  background: #FFF;
+  border-radius: 14px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+
+/* 滑动容器：overflow hidden 裁剪轨道 */
+.sliderContainer {
+  width: 100%;
+  overflow: hidden;
+  cursor: grab;
+  user-select: none;
+  touch-action: pan-y;
+}
+
+.sliderContainer:active {
+  cursor: grabbing;
+}
+
+/* 轨道：横向排列，transform 由 JS 控制 */
+.sliderTrack {
+  display: flex;
+  flex-direction: row;
+  transition: transform 0.3s ease;
+  will-change: transform;
+  touch-action: pan-y;
+  user-select: none;
+}
+
+/* 每张卡片容器：宽度固定 100% 父容器 */
+.sliderCardItem {
+  flex: 0 0 100%;
+  width: 100%;
+}
+
+/* ===== 单张表达卡片内容 ===== */
+.expressionCard {
+  display: flex;
+  flex-direction: column;
+  padding: 22px 20px;
+}
+
+/* "你说的" 小标签 */
+.labelSm {
+  font-size: 11px;
+  color: #CCC;
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+/* 用户原句：灰色，不加背景框，不加删除线 */
+.userSaidText {
+  font-size: 15px;
+  color: #888;
+  line-height: 1.6;
+  margin-bottom: 18px;
+}
+
+/* feedbackType 紫色标签 */
+.feedbackLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: #7C5CBF;
+  margin-bottom: 6px;
+}
+
+/* 改进版本文本 */
+.betterText {
+  font-size: 17px;
+  line-height: 1.7;
+  color: #1A1A1A;
+  font-weight: 500;
+  margin-bottom: 18px;
+}
+
+/* 紫色加粗高亮 */
+.highlight {
+  color: #7C5CBF;
+  font-weight: 700;
+}
+
+/* ===== 核心句型块 ===== */
+.patternBlock {
+  margin-top: 4px;
+}
+
+.patternLabel {
+  font-size: 11px;
+  color: #999;
+  margin-bottom: 6px;
+}
+
+.patternText {
+  font-size: 14px;
+  color: #1A1A1A;
+  font-weight: 500;
+  padding: 10px 14px;
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 8px;
+  line-height: 1.5;
+}
+
+/* ===== collocations pills ===== */
+.collocationsBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* 每个 pill：浅紫底，圆角 8px */
+.pillCollocation {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: rgba(124, 92, 191, 0.05);
+}
+
+.pillEn {
+  font-size: 14px;
+  font-weight: 600;
+  color: #7C5CBF;
+}
+
+.pillZh {
+  font-size: 12px;
+  color: #999;
+}
+
+/* ===== 胶囊式进度指示器 ===== */
+.progressBar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  margin-top: 16px;
+}
+
+/* 非当前页：6×6 小圆点 */
+.progressDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.12);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* 当前页：20×6 黑色胶囊 */
+.progressDotActive {
+  width: 20px;
+  height: 6px;
+  border-radius: 3px;
+  background: #1A1A1A;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* ===== 首次引导提示 ===== */
+.swipeHint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 10px;
+  font-size: 11px;
+  color: #CCC;
+  text-align: center;
 }
 
 /* ===== 加载状态 ===== */
@@ -473,7 +578,7 @@
 .retryButton {
   height: 40px;
   padding: 0 24px;
-  background: #1a1a1a;
+  background: #1A1A1A;
   color: #F5F0EB;
   border-radius: 10px;
   border: none;

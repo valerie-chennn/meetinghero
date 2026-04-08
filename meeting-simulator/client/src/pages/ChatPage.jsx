@@ -264,19 +264,20 @@ function ChatPage() {
         const profile = nm[turn.speaker] || { name: turn.speaker, voiceId: null };
         const color = getNpcColor(turn.speaker);
 
-        // ── dots 阶段 ──
+        // ── dots 阶段：显示三个跳动点，同时预加载 TTS ──
         setPhase('dots');
-        // 预加载当前消息 + 后续 2 条的 TTS（dots 阶段约 1 秒，足够预加载完成）
+        // 发起 TTS 预加载请求（存入缓存，不播放）
+        const ttsKey = `${turn.text}|${profile.voiceId || ''}`;
         prefetchTts(turn.text, profile.voiceId);
         prefetchUpcoming(script, i + 1, nm, 2);
-        await sleep(800 + Math.random() * 300);
+        // dots 最少显示 800ms，同时等 TTS 预加载完成（取两者较长的）
+        const dotsMinWait = sleep(800 + Math.random() * 300);
+        const ttsCachePromise = ttsCache.get(ttsKey) || Promise.resolve(null);
+        await Promise.all([dotsMinWait, ttsCachePromise]);
         if (!shouldContinueRef.current) break;
 
-        // ── typing_en 阶段 ──
+        // ── typing_en 阶段：TTS 已缓存，立即播放 ──
         setPhase('typing_en');
-        // TTS 与打字机同步播放（必须在 typing_en 开始时触发，
-        // 否则在 wait_tap 后才播会因浏览器 autoplay policy 被静默拦截）
-        // 保存 Promise，自动推进前需等 TTS 播完
         const ttsPromise = playTts(turn.text, profile.voiceId);
         // 等打字机打完（通过 onEnDone 回调驱动）
         await waitForPhase('typing_zh');

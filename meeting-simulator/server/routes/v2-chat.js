@@ -250,19 +250,30 @@ router.post('/respond', async (req, res) => {
     // 处理"更好说法"结果（失败时不影响主流程）
     let betterVersion = null;
     let feedbackType = null;
-    let highlights = null;   // 数组，高亮短语
-    let explanation = null;
+    let highlights = null;       // 数组，高亮短语（用于前端紫色加粗）
+    let intentAnalysis = null;   // 意图分析（内部用，不返回给前端）
+    let learningType = null;     // 'pattern' | 'collocations'
+    let pattern = null;          // 句型骨架字符串 | null
+    let collocations = null;     // [{phrase, meaning}] | null
     if (betterVersionResult.status === 'fulfilled') {
       const bvData = betterVersionResult.value;
       betterVersion = bvData.betterVersion || null;
       feedbackType = bvData.feedbackType || null;
-      // highlights 可能是数组，解析后存为字符串；返回给前端时仍为数组
-      if (Array.isArray(bvData.highlights)) {
+      intentAnalysis = bvData.intentAnalysis || null;
+      learningType = bvData.learningType || null;
+      pattern = bvData.pattern || null;
+      // collocations 必须是数组，最多 2 个
+      if (Array.isArray(bvData.collocations) && bvData.collocations.length > 0) {
+        collocations = bvData.collocations.slice(0, 2);
+      }
+      // highlights：后端已经填好，直接取；降级从 collocations 派生
+      if (Array.isArray(bvData.highlights) && bvData.highlights.length > 0) {
         highlights = bvData.highlights;
+      } else if (collocations) {
+        highlights = collocations.map(c => c.phrase);
       } else {
         highlights = [];
       }
-      explanation = bvData.explanation || null;
     } else {
       console.error('[v2-chat/respond] 更好说法生成失败：', betterVersionResult.reason?.message);
     }
@@ -276,18 +287,18 @@ router.post('/respond', async (req, res) => {
       turnNum,
       userInput.trim(),
       betterVersion || null,
-      explanation || null,   // context_note 字段复用为 explanation，向后兼容
+      null,   // context_note 字段废弃，不再写入
       JSON.stringify(npcReply)
     );
 
     // 同步写入 v2_expression_cards（包含新字段），让 complete 接口无需再次生成
-    // context_note 字段已废弃，统一用 explanation
     if (betterVersion) {
       db.prepare(`
         INSERT INTO v2_expression_cards
           (user_id, chat_session_id, turn_index, user_said, better_version,
-           feedback_type, highlighted_phrases, explanation, is_saved)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)
+           feedback_type, highlighted_phrases, intent_analysis,
+           learning_type, pattern, collocations_json, is_saved)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
       `).run(
         session.user_id,
         chatSessionId.trim(),
@@ -296,7 +307,10 @@ router.post('/respond', async (req, res) => {
         betterVersion,
         feedbackType || null,
         highlights ? JSON.stringify(highlights) : null,
-        explanation || null
+        intentAnalysis || null,
+        learningType || null,
+        pattern || null,
+        collocations ? JSON.stringify(collocations) : null
       );
     }
 
@@ -312,8 +326,10 @@ router.post('/respond', async (req, res) => {
       npcReply,
       betterVersion,
       feedbackType,
+      learningType,
+      pattern,
+      collocations,
       highlights,
-      explanation,
       isLastTurn,
     });
   } catch (err) {
@@ -523,10 +539,14 @@ router.get('/:chatSessionId/settlement', (req, res) => {
       userSaid: card.user_said,
       feedbackType: card.feedback_type || null,                    // 反馈类型
       betterVersion: card.better_version,
-      highlights: card.highlighted_phrases                         // 高亮短语数组
+      learningType: card.learning_type || null,                    // 'pattern' | 'collocations' | null（老数据为 null）
+      pattern: card.pattern || null,                               // 句型骨架（learningType=pattern 时有值）
+      collocations: card.collocations_json                         // 可迁移搭配（learningType=collocations 时有值）
+        ? (() => { try { return JSON.parse(card.collocations_json); } catch (e) { return null; } })()
+        : null,
+      highlights: card.highlighted_phrases                         // 高亮短语数组（用于紫色加粗）
         ? (() => { try { return JSON.parse(card.highlighted_phrases); } catch (e) { return []; } })()
         : [],
-      explanation: card.explanation || null,                       // 解释文字
       isFeatured: card.is_featured === 1,                         // 是否 featured
       isSaved: card.is_saved === 1,
     }));

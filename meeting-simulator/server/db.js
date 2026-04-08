@@ -312,6 +312,12 @@ function initSchema() {
   // v2_chat_sessions 补列：AI 动态生成的结算新闻（JSON字符串）
   try { db.exec(`ALTER TABLE v2_chat_sessions ADD COLUMN settlement_newsletter TEXT`); } catch (e) {}
 
+  // v2_expression_cards 补列：意图分析 + 学习类型 + 句型/搭配（增量迁移，列已存在时静默忽略）
+  try { db.exec(`ALTER TABLE v2_expression_cards ADD COLUMN intent_analysis TEXT`); } catch (e) {}
+  try { db.exec(`ALTER TABLE v2_expression_cards ADD COLUMN learning_type TEXT`); } catch (e) {}
+  try { db.exec(`ALTER TABLE v2_expression_cards ADD COLUMN pattern TEXT`); } catch (e) {}
+  try { db.exec(`ALTER TABLE v2_expression_cards ADD COLUMN collocations_json TEXT`); } catch (e) {}
+
   // 插入种子数据
   const { seedRooms } = require('./data/seed-rooms');
   seedRooms(db);

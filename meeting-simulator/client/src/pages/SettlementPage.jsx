@@ -35,21 +35,13 @@ function highlightText(text, highlights) {
   });
 }
 
-// 单张表达卡片（纯展示，无收藏按钮）
-// showHeader：是否在卡片内部顶部显示"✨ 你的表达"标签（默认 false，由外部控制）
-function ExpressionCard({ card, showHeader = false }) {
+// 单张表达卡片（纯展示，无收藏按钮；header 由外层 slider wrapper 渲染）
+function ExpressionCard({ card }) {
   const highlights = card.highlights || [];
+  const { learningType, pattern, collocations } = card;
 
   return (
     <div className={styles.expressionCard}>
-      {/* 卡片内部顶部标签：仅 featured 单卡展示时显示 */}
-      {showHeader && (
-        <div className={styles.expressionCardHeader}>
-          <span className={styles.sparkle}>✨</span>
-          <span>你的表达</span>
-        </div>
-      )}
-
       {/* 用户原句 */}
       <div className={styles.userSaidBlock}>
         <div className={styles.labelSm}>你说的</div>
@@ -73,10 +65,26 @@ function ExpressionCard({ card, showHeader = false }) {
         </div>
       </div>
 
-      {/* 底部解释 */}
-      {card.explanation && (
-        <div className={styles.explanation}>
-          {highlightText(card.explanation, highlights)}
+      {/* 核心句型（仅 learningType === 'pattern' 时显示）*/}
+      {learningType === 'pattern' && pattern && (
+        <div className={styles.patternBlock}>
+          <div className={styles.patternLabel}>📐 核心句型</div>
+          <div className={styles.patternText}>{pattern}</div>
+        </div>
+      )}
+
+      {/* 可迁移的搭配（仅 learningType === 'collocations' 时显示）*/}
+      {learningType === 'collocations' && Array.isArray(collocations) && collocations.length > 0 && (
+        <div className={styles.collocationsBlock}>
+          <div className={styles.collocationsLabel}>📚 可迁移的搭配</div>
+          <ul className={styles.collocationsList}>
+            {collocations.map((item, i) => (
+              <li key={i} className={styles.collocationItem}>
+                <span className={styles.collocationPhrase}>{item.phrase}</span>
+                <span className={styles.collocationMeaning}>{item.meaning}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </div>
@@ -176,16 +184,21 @@ function ExpressionCardSlider({ cards }) {
         </div>
       </div>
 
-      {/* 底部圆点指示器 */}
+      {/* 底部圆点指示器 + 计数器 */}
       {cards.length > 1 && (
-        <div className={styles.dotIndicator}>
-          {cards.map((_, i) => (
-            <span
-              key={i}
-              className={`${styles.dot} ${activeIndex === i ? styles.dotActive : ''}`}
-            />
-          ))}
-        </div>
+        <>
+          <div className={styles.dotIndicator}>
+            {cards.map((_, i) => (
+              <span
+                key={i}
+                className={`${styles.dot} ${activeIndex === i ? styles.dotActive : ''}`}
+              />
+            ))}
+          </div>
+          <div className={styles.dotCounter}>
+            {activeIndex + 1} / {cards.length} · 左右滑动切换
+          </div>
+        </>
       )}
     </div>
   );
@@ -199,8 +212,6 @@ function SettlementPage() {
   const [settlement, setSettlement] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
-  // 是否展开"查看全部表达"模式
-  const [showAll, setShowAll] = useState(false);
 
   // 页面加载时拉取结算数据
   useEffect(() => {
@@ -253,9 +264,11 @@ function SettlementPage() {
   const absurdAttributes = settlement?.absurdAttributes ?? [];
   const expressionCards = settlement?.expressionCards ?? [];
 
-  // 找出 featured 卡片，fallback 到第一张
+  // 找出 featured 卡片，fallback 到第一张；featured 放在滑动列表第一张
   const featuredCard = expressionCards.find(c => c.isFeatured) ?? expressionCards[0] ?? null;
-  const hasMultipleCards = expressionCards.length > 1;
+  const orderedCards = featuredCard
+    ? [featuredCard, ...expressionCards.filter(c => c !== featuredCard)]
+    : [];
 
   return (
     <div className={styles.container}>
@@ -326,33 +339,17 @@ function SettlementPage() {
               </div>
             </div>
 
-            {/* ===== 块 2：表达卡片 ===== */}
+            {/* ===== 块 2：表达卡片（始终用 slider + 底部 dots）===== */}
             {featuredCard && (
-              <>
-                {/* 默认模式：独立白卡，内部顶部含"✨ 你的表达"标签 */}
-                {!showAll && (
-                  <div className={styles.expressionCardWrapper}>
-                    <ExpressionCard card={featuredCard} showHeader={true} />
-                  </div>
-                )}
-
-                {/* 展开模式：左右滑动卡片组，外层同样白卡 */}
-                {showAll && (
-                  <div className={styles.expressionCardWrapper}>
-                    <ExpressionCardSlider cards={expressionCards} />
-                  </div>
-                )}
-
-                {/* 切换按钮：在卡片外面下方，紫色文字（有多张卡片才显示）*/}
-                {hasMultipleCards && (
-                  <button
-                    className={styles.toggleAllButton}
-                    onClick={() => setShowAll(v => !v)}
-                  >
-                    {showAll ? '收起' : '查看全部表达 >'}
-                  </button>
-                )}
-              </>
+              <div className={styles.expressionCardWrapper}>
+                {/* 卡片顶部标题 */}
+                <div className={styles.expressionCardHeader}>
+                  <span className={styles.sparkle}>✨</span>
+                  <span>你的表达</span>
+                </div>
+                {/* 左右滑动卡片组：单卡时无 dots，多卡时可滑动 */}
+                <ExpressionCardSlider cards={orderedCards} />
+              </div>
             )}
 
             {/* 已存入表达本提示 */}

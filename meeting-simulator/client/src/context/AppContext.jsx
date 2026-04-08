@@ -17,7 +17,11 @@ function generateUuid() {
 const AppContext = createContext(null);
 
 // localStorage 中持久化的字段列表
-const PERSIST_KEYS = ['userId', 'userName'];
+// completedRoomIds 持久化，刷新后保留已完成房间的过滤状态
+const PERSIST_KEYS = ['userId', 'userName', 'completedRoomIds'];
+
+// 需要 JSON 序列化的字段（值为非字符串类型）
+const JSON_KEYS = ['completedRoomIds'];
 
 // 从 localStorage 读取持久化状态
 function loadPersistedState() {
@@ -26,7 +30,16 @@ function loadPersistedState() {
     PERSIST_KEYS.forEach(key => {
       const val = localStorage.getItem(`app_${key}`);
       if (val !== null) {
-        persisted[key] = val;
+        // JSON_KEYS 里的字段需要反序列化
+        if (JSON_KEYS.includes(key)) {
+          try {
+            persisted[key] = JSON.parse(val);
+          } catch {
+            persisted[key] = [];
+          }
+        } else {
+          persisted[key] = val;
+        }
       }
     });
   } catch (e) {
@@ -75,7 +88,10 @@ function buildInitialState() {
     cardsSinceLastChat: 0,           // 回到 Feed 后划过的卡片数（触发私信 Banner 用）
     dmBannerShown: 0,                // 本 session 已显示的私信 Banner 数（最多 2 条）
 
-    // 持久化字段覆盖默认值（userId、userName 从 localStorage 恢复）
+    // ── 已完成的房间（持久化，过滤 Feed 已做过的卡片）──
+    completedRoomIds: [],            // roomId 数组，回到首页时追加，做完全部后清空
+
+    // 持久化字段覆盖默认值（userId、userName、completedRoomIds 从 localStorage 恢复）
     ...persisted,
   };
 }
@@ -85,7 +101,11 @@ function persistState(state) {
   try {
     PERSIST_KEYS.forEach(key => {
       if (state[key] !== null && state[key] !== undefined) {
-        localStorage.setItem(`app_${key}`, state[key]);
+        // JSON_KEYS 里的字段需要序列化后存储
+        const serialized = JSON_KEYS.includes(key)
+          ? JSON.stringify(state[key])
+          : state[key];
+        localStorage.setItem(`app_${key}`, serialized);
       } else {
         localStorage.removeItem(`app_${key}`);
       }
@@ -101,7 +121,7 @@ export function AppProvider({ children }) {
   // 每次状态变化时同步持久化字段到 localStorage
   useEffect(() => {
     persistState(state);
-  }, [state.userId, state.userName]);
+  }, [state.userId, state.userName, state.completedRoomIds]);
 
   // 更新单个或多个字段的工具函数
   const updateState = (updates) => {
@@ -139,6 +159,7 @@ export function AppProvider({ children }) {
       feedScrollIndex: 0,
       cardsSinceLastChat: 0,
       dmBannerShown: 0,
+      completedRoomIds: [],
     });
   };
 

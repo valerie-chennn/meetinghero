@@ -1065,7 +1065,7 @@ function ChatPage() {
                 e.stopPropagation();
                 if (!sessionData?.chatSessionId || isCompleting) return;
                 // complete 已在 handleUserSubmit 里 await 完成，这里只跳转
-                navigate(`/settlement/${sessionData.chatSessionId}`, { replace: true });
+                navigate(`/settlement/${sessionData.chatSessionId}`, { replace: true, state: { roomId } });
               }}
             >
               {isCompleting ? '正在结算中...' : '查看结算'}

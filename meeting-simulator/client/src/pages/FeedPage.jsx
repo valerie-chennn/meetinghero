@@ -96,6 +96,25 @@ function FeedPage() {
     fetchFeeds();
   }, [fetchFeeds]);
 
+  // 过滤已完成的房间，让用户在 Feed 看到"新"卡片
+  const completedIds = state.completedRoomIds || [];
+  const rawFeed = feeds;
+  const filteredFeed = rawFeed.filter(item => !completedIds.includes(item.roomId));
+
+  // 兜底：如果全部做完（过滤后为空但原始列表非空），清空已完成列表让所有房间重新出现
+  useEffect(() => {
+    if (rawFeed.length > 0 && filteredFeed.length === 0) {
+      updateState({ completedRoomIds: [] });
+    }
+  }, [rawFeed.length, filteredFeed.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // filteredFeed 长度变化时，确保 cardIndex 不越界（例如过滤后列表变短）
+  useEffect(() => {
+    if (filteredFeed.length > 0 && cardIndex >= filteredFeed.length) {
+      setCardIndex(0);
+    }
+  }, [filteredFeed.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // 检查是否应该显示 DmBanner，并请求接口
   const checkDmBanner = useCallback(async () => {
     // 条件：卡片计数 >= 2，banner 展示次数 < 2，有已完成的 chatSessionId，未在请求中
@@ -132,20 +151,20 @@ function FeedPage() {
 
   // cardIndex 变化时触发卡片计数（替代 IntersectionObserver）
   useEffect(() => {
-    if (feeds.length === 0) return;
-    const currentCard = feeds[cardIndex];
+    if (filteredFeed.length === 0) return;
+    const currentCard = filteredFeed[cardIndex];
     if (currentCard && !countedCardsRef.current.has(currentCard.roomId)) {
       countedCardsRef.current.add(currentCard.roomId);
       const current = cardsSinceLastChatRef.current;
       updateState({ cardsSinceLastChat: current + 1 });
     }
-  }, [cardIndex, feeds]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [cardIndex, filteredFeed]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 切换到指定方向的卡片（dir: +1 下一张，-1 上一张）
   const goToCard = useCallback((dir) => {
     if (animating) return;
     const next = cardIndex + dir;
-    if (next < 0 || next >= feeds.length) return;
+    if (next < 0 || next >= filteredFeed.length) return;
     setAnimating(true);
     setDragY(-dir * cardHeight);
     setTimeout(() => {
@@ -153,7 +172,7 @@ function FeedPage() {
       setDragY(0);
       setAnimating(false);
     }, 300);
-  }, [animating, cardIndex, feeds.length, cardHeight]);
+  }, [animating, cardIndex, filteredFeed.length, cardHeight]);
 
   // 拖拽/触摸事件处理
   const onStart = (y) => {
@@ -282,7 +301,7 @@ function FeedPage() {
                 transition: dragging ? 'none' : 'transform 0.3s cubic-bezier(0.25,0.46,0.45,0.94)',
               }}
             >
-              {feeds.map((item) => {
+              {filteredFeed.map((item) => {
                 const { source, headline } = parseNewsTitle(item.newsTitle);
                 const sourceColor = getSourceColor(item.tags);
                 return (
@@ -403,9 +422,9 @@ function FeedPage() {
           </div>
 
           {/* 右侧圆点指示器 */}
-          {feeds.length > 1 && (
+          {filteredFeed.length > 1 && (
             <div className={styles.dotIndicator}>
-              {feeds.map((_, i) => (
+              {filteredFeed.map((_, i) => (
                 <span
                   key={i}
                   className={`${styles.dot} ${cardIndex === i ? styles.dotActive : ''}`}

@@ -379,6 +379,49 @@
   animation: slideUp 0.4s ease;
 }
 
+/* 麦克风区顶部拖拽把手 */
+.dragHandle {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 8px 0 4px;
+  flex-shrink: 0;
+  cursor: grab;
+}
+
+.dragHandleBar {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.15);
+}
+
+/* 麦克风区收起后底部悬浮条 */
+.micCollapseBar {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 430px;
+  height: 48px;
+  background: rgba(245, 240, 235, 0.95);
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  z-index: 100;
+  backdrop-filter: blur(4px);
+}
+
+.micCollapseBarText {
+  font-size: 14px;
+  font-weight: 500;
+  color: #7C5CBF;
+}
+
 /* 💡提示展开区（在麦克风上方）*/
 .hintArea {
   width: 100%;

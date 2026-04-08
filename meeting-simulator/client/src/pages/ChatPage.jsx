@@ -134,6 +134,16 @@ function ChatPage() {
   // ── 发言模式：是否切换到打字输入 ──
   const [typeMode, setTypeMode] = useState(false);
 
+  // ── 发言模式：麦克风区收起状态 ──
+  const [micCollapsed, setMicCollapsed] = useState(false);
+
+  // ── 发言模式：拖拽过程中的 Y 偏移量（px）──
+  const [micDragY, setMicDragY] = useState(0);
+
+  // ── 拖拽起始 Y 坐标（ref，避免异步闭包问题）──
+  const dragStartYRef = useRef(null);
+  const isDraggingRef = useRef(false);
+
   // ── 用户提交防重复 ──
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -641,6 +651,56 @@ function ChatPage() {
   const isMicMode = phase === 'mic';
   const isDone = phase === 'done';
 
+  // ── 进入 mic 模式时重置收起状态 ──
+  useEffect(() => {
+    if (isMicMode) {
+      setMicCollapsed(false);
+      setMicDragY(0);
+    }
+  }, [isMicMode]);
+
+  // ── 拖拽开始（touch / mouse）──
+  function handleDragStart(e) {
+    e.stopPropagation();
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    dragStartYRef.current = clientY;
+    isDraggingRef.current = true;
+  }
+
+  // ── 拖拽移动 ──
+  function handleDragMove(e) {
+    if (!isDraggingRef.current || dragStartYRef.current === null) return;
+    e.stopPropagation();
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const delta = clientY - dragStartYRef.current;
+    // 只允许往下拖（正值），负值不生效
+    setMicDragY(delta > 0 ? delta : 0);
+  }
+
+  // ── 拖拽结束，判断是否超过阈值收起 ──
+  function handleDragEnd(e) {
+    if (!isDraggingRef.current) return;
+    e.stopPropagation();
+    isDraggingRef.current = false;
+    dragStartYRef.current = null;
+
+    if (micDragY > 80) {
+      // 超过 80px 阈值：收起
+      setMicCollapsed(true);
+      setMicDragY(0);
+    } else {
+      // 未超过：弹回原位
+      setMicDragY(0);
+    }
+  }
+
+  // ── 展开麦克风区 ──
+  function handleExpandMic(e) {
+    e.stopPropagation();
+    setMicCollapsed(false);
+    setMicDragY(0);
+  }
+
   // ── 加载/错误屏幕 ──
   if (isLoading) {
     return (
@@ -699,9 +759,10 @@ function ChatPage() {
       </header>
 
       {/* ===== 消息列表区 ===== */}
+      {/* 收起状态下用 messageList（全屏），正常发言模式用 messageListCompact（42%）*/}
       <div
         ref={chatAreaRef}
-        className={isMicMode ? styles.messageListCompact : styles.messageList}
+        className={(isMicMode && !micCollapsed) ? styles.messageListCompact : styles.messageList}
       >
         {/* 已完成消息 */}
         {messages.map(msg => (
@@ -774,16 +835,50 @@ function ChatPage() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* ===== 发言模式分割线 ===== */}
-      {isMicMode && <div className={styles.divider} />}
+      {/* ===== 发言模式分割线（收起时隐藏）===== */}
+      {isMicMode && !micCollapsed && <div className={styles.divider} />}
 
       {/* ===== 底部区域 ===== */}
       {isMicMode ? (
         /* ── 发言模式下半屏 ── */
+        <>
+        {/* 收起状态：隐藏麦克风区，底部显示悬浮条 */}
+        {micCollapsed ? (
+          <div
+            className={styles.micCollapseBar}
+            onClick={handleExpandMic}
+          >
+            {/* 紫色麦克风图标 */}
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7C5CBF" strokeWidth="2" strokeLinecap="round">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+              <line x1="12" y1="19" x2="12" y2="23" />
+              <line x1="8" y1="23" x2="16" y2="23" />
+            </svg>
+            <span className={styles.micCollapseBarText}>准备好了，点击发言</span>
+          </div>
+        ) : (
+        /* 正常发言模式：显示麦克风区 */
         <div
           className={styles.speakMode}
+          style={{
+            transform: `translateY(${micDragY}px)`,
+            // 拖拽中无 transition，松手后弹回/收起有动画
+            transition: isDraggingRef.current ? 'none' : 'transform 0.3s ease',
+          }}
           onClick={(e) => e.stopPropagation()}
+          onTouchStart={handleDragStart}
+          onTouchMove={handleDragMove}
+          onTouchEnd={handleDragEnd}
+          onMouseDown={handleDragStart}
+          onMouseMove={handleDragMove}
+          onMouseUp={handleDragEnd}
+          onMouseLeave={handleDragEnd}
         >
+          {/* 顶部拖拽把手 */}
+          <div className={styles.dragHandle}>
+            <div className={styles.dragHandleBar} />
+          </div>
           {/* 💡提示展开区 */}
           {hintOpen && currentUserCue?.options && (
             <div className={styles.hintArea}>
@@ -888,6 +983,8 @@ function ChatPage() {
             </>
           )}
         </div>
+        )}
+        </>
       ) : (
         /* ── 非发言模式底部状态区 ── */
         <div className={styles.bottomStatus}>

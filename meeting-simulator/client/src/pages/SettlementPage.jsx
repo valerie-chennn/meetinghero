@@ -1,8 +1,171 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
-import { getSettlement, saveExpression, deleteExpression } from '../api/index.js';
+import { getSettlement } from '../api/index.js';
 import styles from './SettlementPage.module.css';
+
+/**
+ * 高亮函数：在文本中找到 highlights 数组里的每个短语，用紫色加粗 span 包裹
+ * @param {string} text - 原文
+ * @param {string[]} highlights - 需要高亮的短语列表
+ * @returns {React.ReactNode[]} - React elements 数组
+ */
+function highlightText(text, highlights) {
+  // highlights 为空或 text 为空时直接返回原文
+  if (!text) return null;
+  if (!highlights || highlights.length === 0) return text;
+
+  // 用 highlights 构建正则，转义特殊字符，按短语长度降序（避免短词先匹配掉长词的一部分）
+  const sorted = [...highlights].sort((a, b) => b.length - a.length);
+  const escaped = sorted.map(h => h.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  const regex = new RegExp(`(${escaped.join('|')})`, 'gi');
+
+  const parts = text.split(regex);
+  return parts.map((part, i) => {
+    // 判断是否属于高亮词（大小写不敏感对比）
+    const isHighlight = sorted.some(h => h.toLowerCase() === part.toLowerCase());
+    if (isHighlight) {
+      return (
+        <span key={i} className={styles.highlight}>
+          {part}
+        </span>
+      );
+    }
+    return part;
+  });
+}
+
+// 单张表达卡片（纯展示，无收藏按钮）
+function ExpressionCard({ card }) {
+  const highlights = card.highlights || [];
+
+  return (
+    <div className={styles.expressionCard}>
+      {/* 用户原句 */}
+      <div className={styles.userSaidBlock}>
+        <div className={styles.labelSm}>你说的</div>
+        <div className={styles.userSaidText}>{card.userSaid}</div>
+      </div>
+
+      {/* 向下箭头 */}
+      <div className={styles.arrow}>↓</div>
+
+      {/* 改进版本 */}
+      <div className={styles.betterBlock}>
+        {/* feedbackType 标签 */}
+        <div className={styles.feedbackLabel}>
+          {card.feedbackType || '更好的说法'}
+        </div>
+        <div className={styles.betterText}>
+          {highlightText(card.betterVersion, highlights)}
+        </div>
+      </div>
+
+      {/* 底部解释 */}
+      {card.explanation && (
+        <div className={styles.explanation}>
+          {highlightText(card.explanation, highlights)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// 左右滑动卡片组（查看全部模式）
+function ExpressionCardSlider({ cards }) {
+  // 当前显示的卡片索引
+  const [activeIndex, setActiveIndex] = useState(0);
+  // 拖拽偏移量（px）
+  const [dragX, setDragX] = useState(0);
+  // 是否正在拖拽（拖拽中不加 transition）
+  const [dragging, setDragging] = useState(false);
+
+  const startXRef = useRef(0);
+  const containerRef = useRef(null);
+  // 卡片宽度（动态读取容器宽度）
+  const cardWidthRef = useRef(0);
+
+  // 读取容器宽度
+  useEffect(() => {
+    if (containerRef.current) {
+      cardWidthRef.current = containerRef.current.offsetWidth;
+    }
+  }, []);
+
+  const onStart = (x) => {
+    startXRef.current = x;
+    setDragging(true);
+  };
+
+  const onMove = (x) => {
+    if (!dragging) return;
+    setDragX(x - startXRef.current);
+  };
+
+  const onEnd = () => {
+    if (!dragging) return;
+    setDragging(false);
+
+    const cardW = cardWidthRef.current || 300;
+    const threshold = cardW * 0.2;
+
+    if (dragX < -threshold && activeIndex < cards.length - 1) {
+      // 左滑，切到下一张
+      setActiveIndex(i => i + 1);
+    } else if (dragX > threshold && activeIndex > 0) {
+      // 右滑，切到上一张
+      setActiveIndex(i => i - 1);
+    } else {
+      // 未达到阈值，弹回（dragX 归零后 transition 自动完成动画）
+    }
+    setDragX(0);
+  };
+
+  const translateX = -activeIndex * (cardWidthRef.current || 300) + dragX;
+
+  return (
+    <div className={styles.sliderWrapper}>
+      {/* 滑动轨道 */}
+      <div
+        ref={containerRef}
+        className={styles.sliderContainer}
+        onTouchStart={(e) => onStart(e.touches[0].clientX)}
+        onTouchMove={(e) => onMove(e.touches[0].clientX)}
+        onTouchEnd={onEnd}
+        onMouseDown={(e) => onStart(e.clientX)}
+        onMouseMove={(e) => { if (dragging) onMove(e.clientX); }}
+        onMouseUp={onEnd}
+        onMouseLeave={onEnd}
+      >
+        <div
+          className={styles.sliderTrack}
+          style={{
+            transform: `translateX(${translateX}px)`,
+            transition: dragging ? 'none' : 'transform 0.3s ease',
+          }}
+        >
+          {cards.map((card, i) => (
+            <div key={card.id ?? i} className={styles.sliderCardItem}>
+              <ExpressionCard card={card} />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 底部圆点指示器 */}
+      {cards.length > 1 && (
+        <div className={styles.dotIndicator}>
+          {cards.map((_, i) => (
+            <span
+              key={i}
+              className={`${styles.dot} ${activeIndex === i ? styles.dotActive : ''}`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function SettlementPage() {
   const navigate = useNavigate();
@@ -12,6 +175,8 @@ function SettlementPage() {
   const [settlement, setSettlement] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  // 是否展开"查看全部表达"模式
+  const [showAll, setShowAll] = useState(false);
 
   // 页面加载时拉取结算数据
   useEffect(() => {
@@ -38,36 +203,41 @@ function SettlementPage() {
     fetchSettlement();
   }, [sessionId]);
 
+  // 重试加载
+  const handleRetry = async () => {
+    setError('');
+    setIsLoading(true);
+    try {
+      const data = await getSettlement(sessionId);
+      setSettlement(data);
+    } catch (err) {
+      console.error('重试加载结算数据失败:', err);
+      setError('加载失败，请重试');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // 点击"回首页"
   const handleBackToFeed = () => {
-    // 重置 Feed 相关计数
     updateState({ cardsSinceLastChat: 0 });
     navigate('/feed', { replace: true });
   };
 
-  // 重试加载
-  const handleRetry = () => {
-    setError('');
-    setIsLoading(true);
-    getSettlement(sessionId)
-      .then(data => setSettlement(data))
-      .catch(err => {
-        console.error('重试加载结算数据失败:', err);
-        setError('加载失败，请重试');
-      })
-      .finally(() => setIsLoading(false));
-  };
+  // 解析 newsletter / expressionCards
+  const newsletter = settlement?.newsletter ?? null;
+  const absurdAttributes = settlement?.absurdAttributes ?? [];
+  const expressionCards = settlement?.expressionCards ?? [];
+
+  // 找出 featured 卡片，fallback 到第一张
+  const featuredCard = expressionCards.find(c => c.isFeatured) ?? expressionCards[0] ?? null;
+  const hasMultipleCards = expressionCards.length > 1;
 
   return (
     <div className={styles.container}>
-      {/* 顶部标题 */}
-      <header className={styles.header}>
-        <div className={styles.headerBadge}>本轮结算</div>
-        <h1 className={styles.headerTitle}>讨论收官</h1>
-      </header>
-
       <div className={styles.scrollArea}>
-        {/* 加载状态 */}
+
+        {/* ===== 加载状态 ===== */}
         {isLoading && (
           <div className={styles.loadingState}>
             <div className={styles.loadingSpinner} />
@@ -75,7 +245,7 @@ function SettlementPage() {
           </div>
         )}
 
-        {/* 错误状态 */}
+        {/* ===== 错误状态 ===== */}
         {!isLoading && error && (
           <div className={styles.errorState}>
             <p className={styles.errorText}>{error}</p>
@@ -85,182 +255,98 @@ function SettlementPage() {
           </div>
         )}
 
-        {/* 正常内容 */}
+        {/* ===== 正常内容 ===== */}
         {!isLoading && !error && settlement && (
           <>
-            {/* 事件结果区块 */}
-            <section className={styles.section}>
-              <h2 className={styles.sectionTitle}>
-                <span className={styles.sectionIcon}>💬</span>
-                事件结果
-              </h2>
-
-              {/* 根据结算类型渲染不同形式，structuredResult 为 null 时降级显示纯文本 */}
-              {settlement.structuredResult ? (
+            {/* ===== 块 1：事件结果卡片（报纸风）===== */}
+            <div className={styles.newsCard}>
+              {newsletter ? (
                 <>
-                  {/* 新闻后续 */}
-                  {settlement.settlementType === 'news' && (
-                    <div className={styles.newsResult}>
-                      <div className={styles.newsMedia}>
-                        {settlement.structuredResult.mediaName}
+                  {/* 报头 */}
+                  <div className={styles.newsPublisher}>{newsletter.publisher}</div>
+                  {/* 黑色横线 */}
+                  <div className={styles.newsRule} />
+                  {/* 大标题 */}
+                  <h1 className={styles.newsHeadline}>{newsletter.headline}</h1>
+                  {/* 故事点 bullets */}
+                  <div className={styles.newsBullets}>
+                    {(newsletter.bullets || []).map((b, i) => (
+                      <div key={i} className={styles.newsBulletItem}>
+                        <span className={styles.bulletDot} />
+                        <span className={styles.bulletText}>{b}</span>
                       </div>
-                      <h3 className={styles.newsHeadline}>{settlement.structuredResult.headline}</h3>
-                      <ul className={styles.newsBullets}>
-                        {settlement.structuredResult.bullets?.map((b, i) => (
-                          <li key={i} className={styles.newsBullet}>· {b}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* 朋友圈 */}
-                  {settlement.settlementType === 'moments' && (
-                    <div className={styles.momentsResult}>
-                      <div className={styles.momentsHeader}>
-                        <div className={styles.momentsAvatar}>
-                          {settlement.structuredResult.character?.[0]}
-                        </div>
-                        <span className={styles.momentsName}>{settlement.structuredResult.character}</span>
-                      </div>
-                      <p className={styles.momentsPost}>{settlement.structuredResult.post}</p>
-                      <div className={styles.momentsLikers}>
-                        ❤️ {settlement.structuredResult.likers?.join('、')} 等{settlement.structuredResult.likeCount}人觉得很赞
-                      </div>
-                    </div>
-                  )}
-
-                  {/* 群公告 */}
-                  {settlement.settlementType === 'announcement' && (
-                    <div className={styles.announcementResult}>
-                      <div className={styles.announcementBadge}>群公告</div>
-                      <h3 className={styles.announcementTitle}>{settlement.structuredResult.title}</h3>
-                      <p className={styles.announcementContent}>{settlement.structuredResult.content}</p>
-                    </div>
-                  )}
+                    ))}
+                  </div>
                 </>
               ) : (
-                /* 降级：显示纯文本 eventResult */
-                <div className={styles.eventResultCard}>
-                  <p className={styles.eventResultText}>{settlement.eventResult}</p>
-                </div>
+                /* newsletter 为 null 时的降级提示 */
+                <div className={styles.loadingText}>事件结果加载中…</div>
               )}
 
-              {/* 荒诞属性变化 */}
-              {settlement.absurdAttributes && settlement.absurdAttributes.length > 0 && (
-                <div className={styles.absurdSection}>
-                  {settlement.absurdAttributes.map((attr, i) => (
-                    <div key={i} className={styles.absurdItem}>
-                      <span className={styles.absurdName}>{attr.name}</span>
-                      <span className={attr.delta > 0 ? styles.absurdPlus : styles.absurdMinus}>
-                        {attr.delta > 0 ? '+' : ''}{attr.delta}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
+              {/* 分隔线 */}
+              <div className={styles.divider} />
 
-            {/* 表达卡片区块 */}
-            {settlement.expressionCards && settlement.expressionCards.length > 0 && (
-              <section className={styles.section}>
-                <h2 className={styles.sectionTitle}>
-                  <span className={styles.sectionIcon}>✨</span>
-                  你的表达
-                </h2>
-                <div className={styles.expressionCards}>
-                  {settlement.expressionCards.map((card, index) => (
-                    <ExpressionCard
-                      key={card.id}
-                      card={card}
-                      index={index}
-                      userId={state.userId}
-                    />
-                  ))}
+              {/* 你的能力值 */}
+              <div className={styles.statsLabel}>你的能力值</div>
+              <div className={styles.statsRow}>
+                {absurdAttributes.map((attr, i) => (
+                  <div key={i} className={styles.statItem}>
+                    <span className={styles.statName}>{attr.name}</span>
+                    <span className={attr.delta > 0 ? styles.statPlus : styles.statMinus}>
+                      {attr.delta > 0 ? '+' : ''}{attr.delta}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* ===== 块 2：表达卡片区 ===== */}
+            {featuredCard && (
+              <>
+                {/* 卡片容器 */}
+                <div className={styles.expressionSection}>
+                  {/* 标题行 */}
+                  <div className={styles.expressionTitle}>
+                    <span className={styles.sparkle}>✨</span>
+                    <span>你的表达</span>
+                  </div>
+
+                  {/* 默认模式：只展示 featured 卡片 */}
+                  {!showAll && (
+                    <ExpressionCard card={featuredCard} />
+                  )}
+
+                  {/* 展开模式：左右滑动卡片组 */}
+                  {showAll && (
+                    <ExpressionCardSlider cards={expressionCards} />
+                  )}
                 </div>
-                {/* 已收藏提示 */}
-                <p className={styles.savedHint}>点击「收藏」可将表达存入表达本</p>
-              </section>
+
+                {/* 切换按钮（有多张卡片才显示）*/}
+                {hasMultipleCards && (
+                  <button
+                    className={styles.toggleAllButton}
+                    onClick={() => setShowAll(v => !v)}
+                  >
+                    {showAll ? '收起' : '查看全部表达 >'}
+                  </button>
+                )}
+              </>
             )}
+
+            {/* 已存入表达本提示 */}
+            <p className={styles.savedHint}>已存入表达本</p>
           </>
         )}
 
-        {/* 回首页按钮（始终显示，不依赖数据加载结果） */}
-        <div className={styles.actions}>
-          <button
-            className={styles.backToFeedButton}
-            onClick={handleBackToFeed}
-          >
-            回首页继续刷 →
-          </button>
-        </div>
+        {/* 回首页按钮（始终显示）*/}
+        <button className={styles.backButton} onClick={handleBackToFeed}>
+          回到首页
+        </button>
 
         {/* 底部安全区域占位 */}
-        <div className={styles.bottomPadding} />
+        <div className={styles.bottomPad} />
       </div>
-    </div>
-  );
-}
-
-// 单张表达卡片
-function ExpressionCard({ card, index, userId }) {
-  const [saved, setSaved] = React.useState(card.isSaved);
-  const [isSaving, setIsSaving] = React.useState(false);
-
-  // 收藏 / 取消收藏
-  const handleSave = async () => {
-    if (isSaving) return;
-    setIsSaving(true);
-    try {
-      if (saved) {
-        await deleteExpression(card.id, userId);
-        setSaved(false);
-      } else {
-        await saveExpression(card.id, userId);
-        setSaved(true);
-      }
-    } catch (err) {
-      console.error('收藏操作失败:', err);
-      // 操作失败不更新 UI，让用户可以重试
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  return (
-    <div
-      className={styles.expressionCard}
-      style={{ animationDelay: `${index * 100}ms` }}
-    >
-      {/* 发言轮次标签 */}
-      <div className={styles.cardHeader}>
-        <span className={styles.turnBadge}>第 {card.turnIndex} 次发言</span>
-        <button
-          className={`${styles.saveButton} ${saved ? styles.saveButtonActive : ''}`}
-          onClick={handleSave}
-          disabled={isSaving}
-          aria-label={saved ? '取消收藏' : '收藏到表达本'}
-        >
-          {isSaving ? '…' : saved ? '已收藏 ★' : '收藏 ☆'}
-        </button>
-      </div>
-
-      {/* 对比：你说的 vs 更好的说法 */}
-      <div className={styles.comparison}>
-        <div className={styles.comparisonItem}>
-          <span className={styles.comparisonLabel}>你说的</span>
-          <p className={`${styles.comparisonText} ${styles.userSaid}`}>{card.userSaid}</p>
-        </div>
-        <div className={styles.comparisonDivider}>→</div>
-        <div className={styles.comparisonItem}>
-          <span className={styles.comparisonLabel}>更好的说法</span>
-          <p className={`${styles.comparisonText} ${styles.betterVersion}`}>{card.betterVersion}</p>
-        </div>
-      </div>
-
-      {/* 语境说明 */}
-      {card.contextNote && (
-        <p className={styles.contextNote}>{card.contextNote}</p>
-      )}
     </div>
   );
 }

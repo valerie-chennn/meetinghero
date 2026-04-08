@@ -1,253 +1,352 @@
-/* ===== SettlementPage — 一屏结算（无 Tab 栏）===== */
+/* ===== SettlementPage — 报纸风结算页 ===== */
 
+/* 引入 Noto Serif SC 衬线字体（标题用）*/
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&display=swap');
+
+/* ===== 入场动画 ===== */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ===== 页面容器 ===== */
 .container {
-  max-width: 430px;
-  margin: 0 auto;
   width: 100%;
-  height: 100vh;
-  height: 100dvh;
+  height: 100%;
+  background: #F5F0EB;
+  font-family: 'Noto Sans SC', sans-serif;
   display: flex;
   flex-direction: column;
-  /* 报纸暖色系 */
-  background: var(--bg-elevated);
-  overflow: hidden;
-}
-
-/* ===== 顶部标题区 ===== */
-.header {
-  flex-shrink: 0;
-  padding: var(--space-6) var(--space-5) var(--space-4);
-  /* 报纸暖色系 */
-  background: var(--bg-surface);
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  /* iOS 安全区域适配 */
-  padding-top: max(var(--space-6), env(safe-area-inset-top));
-}
-
-.headerBadge {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--color-success);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.headerTitle {
-  font-size: var(--font-2xl);
-  font-weight: 700;
-  color: var(--text-primary);
-  line-height: 1.2;
 }
 
 /* ===== 滚动区 ===== */
 .scrollArea {
   flex: 1;
   overflow-y: auto;
-  padding: var(--space-5) var(--space-4) 0;
+  overflow-x: hidden;
+  padding: 20px 20px 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: 16px;
+  -webkit-overflow-scrolling: touch;
 }
 
-/* ===== 区块 ===== */
-.section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
+/* ===== 块 1：事件结果卡片 ===== */
+.newsCard {
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px 20px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  animation: fadeUp 0.5s ease both;
 }
 
-.sectionTitle {
-  font-size: var(--font-base);
-  font-weight: 700;
-  color: var(--text-primary);
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.sectionIcon {
-  font-size: 18px;
-}
-
-/* ===== 事件结果卡片 ===== */
-.eventResultCard {
-  /* 报纸暖色系 */
-  background: var(--bg-surface);
-  border-radius: var(--radius-xl);
-  padding: var(--space-5);
-  box-shadow: var(--shadow-sm);
-  border-left: 4px solid var(--color-brand);
-}
-
-.eventResultText {
-  font-size: var(--font-sm);
-  color: var(--text-primary);
-  line-height: 1.7;
-}
-
-/* ===== 表达卡片列表 ===== */
-.expressionCards {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-/* 单张表达卡片 */
-.expressionCard {
-  /* 报纸暖色系 */
-  background: var(--bg-surface);
-  border-radius: var(--radius-xl);
-  padding: var(--space-4) var(--space-5);
-  box-shadow: var(--shadow-sm);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  animation: fadeInUp 400ms var(--ease-out) both;
-  opacity: 0;
-  animation-fill-mode: both;
-}
-
-/* 卡片头部：轮次标签 + 收藏按钮 */
-.cardHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.turnBadge {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--color-brand);
-  background: var(--color-brand-light);
-  padding: 3px 8px;
-  border-radius: var(--radius-full);
-}
-
-.saveButton {
+/* 报头（报纸名称）*/
+.newsPublisher {
   font-size: 12px;
-  font-weight: 500;
-  color: var(--text-muted);
-  background: transparent;
-  padding: 4px 8px;
-  border-radius: var(--radius-sm);
-  /* 深色版边框 */
-  border: 1px solid var(--border);
-  transition: color 200ms, border-color 200ms, background 200ms;
+  font-weight: 700;
+  color: #B8372A;
+  letter-spacing: 2px;
+  margin-bottom: 6px;
 }
 
-.saveButton:hover {
-  color: var(--color-brand);
-  border-color: var(--color-brand);
-  background: var(--color-brand-light);
+/* 黑色粗横线 */
+.newsRule {
+  height: 2px;
+  background: #1a1a1a;
+  margin-bottom: 14px;
 }
 
-.saveButtonActive {
-  color: var(--color-success);
-  /* 报纸暖色系：纯绿背景 */
-  border-color: var(--color-success);
-  background: #ECFDF5;
+/* 大标题（Noto Serif SC 衬线体）*/
+.newsHeadline {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 22px;
+  font-weight: 900;
+  color: #1a1a1a;
+  line-height: 1.4;
+  margin: 0 0 16px 0;
 }
 
-.saveButtonActive:hover {
-  color: #059669;
-  border-color: #059669;
-}
-
-/* ===== 对比区域 ===== */
-.comparison {
+/* 故事点列表 */
+.newsBullets {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: 8px;
+  margin-bottom: 20px;
 }
 
-.comparisonItem {
+.newsBulletItem {
   display: flex;
-  flex-direction: column;
-  gap: 3px;
+  align-items: center;
+  gap: 8px;
 }
 
-.comparisonLabel {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+/* 4×4 黑色圆点 */
+.bulletDot {
+  width: 4px;
+  height: 4px;
+  border-radius: 2px;
+  background: #1a1a1a;
+  flex-shrink: 0;
 }
 
-.comparisonText {
-  font-size: var(--font-sm);
-  line-height: 1.55;
-  word-break: break-word;
+.bulletText {
+  font-size: 14px;
+  color: #333;
+  line-height: 1.5;
 }
 
-.userSaid {
-  color: var(--text-secondary);
-  text-decoration: line-through;
-  text-decoration-color: var(--text-muted);
+/* 卡片内分隔线 */
+.divider {
+  height: 1px;
+  background: rgba(0, 0, 0, 0.06);
+  margin-bottom: 14px;
 }
 
-.betterVersion {
-  color: var(--text-primary);
-  font-weight: 500;
+/* 能力值标签 */
+.statsLabel {
+  font-size: 12px;
+  color: #999;
+  margin-bottom: 8px;
 }
 
-/* 箭头分隔符 */
-.comparisonDivider {
+/* 能力值横排 */
+.statsRow {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.statItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.statName {
+  font-size: 14px;
+  color: #333;
+}
+
+.statPlus {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1A8A6E;
+}
+
+.statMinus {
+  font-size: 14px;
+  font-weight: 700;
+  color: #C84B31;
+}
+
+/* ===== 块 2：表达卡片区域 ===== */
+.expressionSection {
+  background: #fff;
+  border-radius: 16px;
+  padding: 20px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  animation: fadeUp 0.5s ease 0.15s both;
+  /* overflow hidden 避免滑动时卡片超出圆角 */
+  overflow: hidden;
+}
+
+/* 标题行 */
+.expressionTitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 14px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.sparkle {
   font-size: 16px;
-  color: var(--color-brand);
-  font-weight: 700;
-  padding-left: var(--space-1);
 }
 
-/* ===== 语境说明 ===== */
-.contextNote {
-  font-size: 12px;
-  color: var(--text-secondary);
-  /* 报纸暖色系 */
-  background: var(--bg-elevated);
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-md);
-  line-height: 1.55;
-  border-left: 3px solid var(--color-brand-mid);
-}
-
-/* ===== 操作按钮区 ===== */
-.actions {
-  padding: 0 0 var(--space-2);
-}
-
-.backToFeedButton {
-  width: 100%;
-  height: 52px;
-  background: var(--color-success);
-  color: #FFFFFF;
-  border-radius: var(--radius-lg);
-  font-size: var(--font-md);
-  font-weight: 600;
+/* ===== 单张表达卡片 ===== */
+.expressionCard {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* "你说的" 区块 */
+.userSaidBlock {
+  margin-bottom: 4px;
+}
+
+.labelSm {
+  font-size: 11px;
+  color: #999;
+  margin-bottom: 4px;
+}
+
+.userSaidText {
+  font-size: 15px;
+  color: #666;
+  line-height: 1.5;
+  padding: 10px 14px;
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 10px;
+}
+
+/* 紫色向下箭头 */
+.arrow {
+  text-align: center;
+  font-size: 14px;
+  color: #7C5CBF;
+  margin: 4px 0;
+}
+
+/* 改进版本区块 */
+.betterBlock {
+  margin-bottom: 8px;
+}
+
+/* feedbackType 标签（紫色）*/
+.feedbackLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: #7C5CBF;
+  margin-bottom: 4px;
+}
+
+/* 改进版本文本：紫色淡背景 + 左边框 */
+.betterText {
+  font-size: 15px;
+  color: #1a1a1a;
+  line-height: 1.5;
+  font-weight: 500;
+  padding: 10px 14px;
+  background: rgba(124, 92, 191, 0.05);
+  border-radius: 10px;
+  border-left: 3px solid #7C5CBF;
+}
+
+/* 底部解释 */
+.explanation {
+  font-size: 12px;
+  color: #888;
+  line-height: 1.6;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 8px;
+}
+
+/* 紫色加粗高亮 span */
+.highlight {
+  color: #7C5CBF;
+  font-weight: 600;
+}
+
+/* ===== 左右滑动卡片组 ===== */
+.sliderWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 滑动容器：宽度 100%，超出部分隐藏 */
+.sliderContainer {
+  width: 100%;
+  overflow: hidden;
+  cursor: grab;
+  user-select: none;
+}
+
+.sliderContainer:active {
+  cursor: grabbing;
+}
+
+/* 滑动轨道：横向排列所有卡片 */
+.sliderTrack {
+  display: flex;
+  flex-direction: row;
+  will-change: transform;
+}
+
+/* 每个滑动卡片的容器（宽度 = 父容器宽度，flex-shrink 0 防止收缩）*/
+.sliderCardItem {
+  flex: 0 0 100%;
+  width: 100%;
+}
+
+/* ===== 圆点指示器 ===== */
+.dotIndicator {
+  display: flex;
   justify-content: center;
-  box-shadow: var(--shadow-success);
-  transition: background 200ms var(--ease-out),
-              transform 200ms var(--ease-out),
-              box-shadow 200ms var(--ease-out);
+  align-items: center;
+  gap: 6px;
 }
 
-.backToFeedButton:hover {
-  background: var(--color-success-hover);
-  transform: translateY(-1px);
-  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.32);
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(124, 92, 191, 0.25);
+  transition: background 0.2s ease;
 }
 
-.backToFeedButton:active {
-  transform: translateY(0) scale(0.98);
+.dotActive {
+  background: #7C5CBF;
 }
 
-/* 底部安全区域占位 */
-.bottomPadding {
+/* ===== 切换"查看全部"按钮 ===== */
+.toggleAllButton {
+  text-align: center;
+  font-size: 13px;
+  font-weight: 500;
+  color: #7C5CBF;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px 0;
+  display: block;
+  width: 100%;
+}
+
+/* ===== 已存入表达本提示 ===== */
+.savedHint {
+  font-size: 12px;
+  color: #bbb;
+  text-align: center;
+  margin: 0;
+}
+
+/* ===== 回首页按钮 ===== */
+.backButton {
+  width: 100%;
+  padding: 16px 0;
+  border-radius: 14px;
+  border: none;
+  background: #1a1a1a;
+  color: #F5F0EB;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  cursor: pointer;
+  font-family: 'Noto Sans SC', sans-serif;
+  transition: opacity 0.15s ease;
+}
+
+.backButton:active {
+  opacity: 0.8;
+}
+
+/* ===== 底部安全区域占位 ===== */
+.bottomPad {
   height: 32px;
   flex-shrink: 0;
 }
@@ -259,26 +358,23 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--space-10) var(--space-6);
-  gap: var(--space-4);
+  padding: 60px 24px;
+  gap: 16px;
 }
 
 .loadingSpinner {
   width: 36px;
   height: 36px;
-  border: 3px solid var(--border);
-  border-top-color: var(--color-brand);
+  border: 3px solid rgba(0, 0, 0, 0.08);
+  border-top-color: #7C5CBF;
   border-radius: 50%;
   animation: spin 700ms linear infinite;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
 .loadingText {
-  font-size: var(--font-sm);
-  color: var(--text-muted);
+  font-size: 14px;
+  color: #999;
+  text-align: center;
 }
 
 /* ===== 错误状态 ===== */
@@ -288,194 +384,24 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--space-10) var(--space-6);
-  gap: var(--space-4);
+  padding: 60px 24px;
+  gap: 16px;
 }
 
 .errorText {
-  font-size: var(--font-sm);
+  font-size: 14px;
   color: #EF4444;
   text-align: center;
 }
 
 .retryButton {
   height: 40px;
-  padding: 0 var(--space-6);
-  background: var(--color-brand);
-  color: #FFFFFF;
-  border-radius: var(--radius-lg);
-  font-size: var(--font-sm);
-  font-weight: 600;
-}
-
-/* ===== 动画 ===== */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(16px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* ===== 新闻后续结果 ===== */
-.newsResult {
-  background: var(--bg-surface);
-  box-shadow: var(--shadow-sm);
-  border-radius: var(--radius-xl);
-  padding: var(--space-5);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-.newsMedia {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-brand-mid);
-  letter-spacing: 0.05em;
-}
-
-.newsHeadline {
-  font-size: var(--font-lg);
-  font-weight: 700;
-  color: var(--text-primary);
-  line-height: 1.4;
-}
-
-.newsBullets {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.newsBullet {
-  font-size: var(--font-sm);
-  color: var(--text-secondary);
-  line-height: 1.5;
-}
-
-/* ===== 朋友圈结果 ===== */
-.momentsResult {
-  background: var(--bg-surface);
-  box-shadow: var(--shadow-sm);
-  border-radius: var(--radius-xl);
-  padding: var(--space-5);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-.momentsHeader {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.momentsAvatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--color-brand) 0%, var(--color-brand-mid) 100%);
-  color: #FFFFFF;
+  padding: 0 24px;
+  background: #1a1a1a;
+  color: #F5F0EB;
+  border-radius: 10px;
+  border: none;
   font-size: 14px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.momentsName {
-  font-size: var(--font-base);
   font-weight: 600;
-  color: var(--text-primary);
-}
-
-.momentsPost {
-  font-size: var(--font-sm);
-  color: var(--text-primary);
-  line-height: 1.6;
-}
-
-.momentsLikers {
-  font-size: 12px;
-  color: var(--text-muted);
-  padding-top: var(--space-2);
-  border-top: 1px solid var(--border);
-}
-
-/* ===== 群公告结果 ===== */
-.announcementResult {
-  background: var(--bg-surface);
-  box-shadow: var(--shadow-sm);
-  border-radius: var(--radius-xl);
-  padding: var(--space-5);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  border-left: 4px solid var(--color-brand);
-}
-
-.announcementBadge {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--color-brand-mid);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.announcementTitle {
-  font-size: var(--font-base);
-  font-weight: 700;
-  color: var(--text-primary);
-  line-height: 1.4;
-}
-
-.announcementContent {
-  font-size: var(--font-sm);
-  color: var(--text-secondary);
-  line-height: 1.6;
-}
-
-/* ===== 荒诞属性 ===== */
-.absurdSection {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2) var(--space-4);
-  padding: var(--space-3) 0;
-}
-
-.absurdItem {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.absurdName {
-  font-size: 13px;
-  color: var(--text-secondary);
-}
-
-.absurdPlus {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--color-success);
-}
-
-.absurdMinus {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--color-error);
-}
-
-/* ===== 表达本存入提示 ===== */
-.savedHint {
-  font-size: 13px;
-  color: var(--text-muted);
-  text-align: center;
-  padding: var(--space-2) 0;
+  cursor: pointer;
 }

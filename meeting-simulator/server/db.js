@@ -297,6 +297,15 @@ function initSchema() {
   // v2_expression_cards 补列：是否已练习
   try { db.exec(`ALTER TABLE v2_expression_cards ADD COLUMN is_practiced INTEGER DEFAULT 0`); } catch (e) {}
 
+  // v2_expression_cards 补列：结算页新字段（增量迁移，列已存在时静默忽略）
+  const expressionCardNewCols = [
+    `ALTER TABLE v2_expression_cards ADD COLUMN feedback_type TEXT`,          // 反馈类型："更地道的说法" / "进阶表达" / "同样好用的说法"
+    `ALTER TABLE v2_expression_cards ADD COLUMN highlighted_phrases TEXT`,    // 高亮短语 JSON 数组字符串
+    `ALTER TABLE v2_expression_cards ADD COLUMN explanation TEXT`,            // 针对高亮短语的详细解释
+    `ALTER TABLE v2_expression_cards ADD COLUMN is_featured INTEGER DEFAULT 0`, // AI 挑出的最有学习价值的一张（默认 0）
+  ];
+  expressionCardNewCols.forEach(sql => { try { db.exec(sql); } catch (e) {} });
+
   // v2_chat_sessions 补列：荒诞属性 JSON
   try { db.exec(`ALTER TABLE v2_chat_sessions ADD COLUMN absurd_attributes TEXT`); } catch (e) {}
 

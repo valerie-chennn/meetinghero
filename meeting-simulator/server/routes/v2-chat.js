@@ -247,16 +247,25 @@ router.post('/respond', async (req, res) => {
 
     // 处理"更好说法"结果（失败时不影响主流程）
     let betterVersion = null;
-    let contextNote = null;
+    let feedbackType = null;
+    let highlights = null;   // 数组，高亮短语
+    let explanation = null;
     if (betterVersionResult.status === 'fulfilled') {
       const bvData = betterVersionResult.value;
       betterVersion = bvData.betterVersion || null;
-      contextNote = bvData.contextNote || null;
+      feedbackType = bvData.feedbackType || null;
+      // highlights 可能是数组，解析后存为字符串；返回给前端时仍为数组
+      if (Array.isArray(bvData.highlights)) {
+        highlights = bvData.highlights;
+      } else {
+        highlights = [];
+      }
+      explanation = bvData.explanation || null;
     } else {
       console.error('[v2-chat/respond] 更好说法生成失败：', betterVersionResult.reason?.message);
     }
 
-    // 存入数据库（含 context_note）
+    // 存入 v2_user_messages（只存原有字段，新字段在 expression_cards 里存）
     const insertResult = db.prepare(`
       INSERT INTO v2_user_messages (chat_session_id, turn_index, user_input, better_version, context_note, npc_reply)
       VALUES (?, ?, ?, ?, ?, ?)
@@ -265,9 +274,29 @@ router.post('/respond', async (req, res) => {
       turnNum,
       userInput.trim(),
       betterVersion || null,
-      contextNote || null,
+      explanation || null,   // context_note 字段复用为 explanation，向后兼容
       JSON.stringify(npcReply)
     );
+
+    // 同步写入 v2_expression_cards（包含新字段），让 complete 接口无需再次生成
+    if (betterVersion) {
+      db.prepare(`
+        INSERT INTO v2_expression_cards
+          (user_id, chat_session_id, turn_index, user_said, better_version, context_note,
+           feedback_type, highlighted_phrases, explanation, is_saved)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+      `).run(
+        session.user_id,
+        chatSessionId.trim(),
+        turnNum,
+        userInput.trim(),
+        betterVersion,
+        explanation || null,
+        feedbackType || null,
+        highlights ? JSON.stringify(highlights) : null,
+        explanation || null
+      );
+    }
 
     // 更新会话的发言次数
     db.prepare('UPDATE v2_chat_sessions SET user_turn_count = user_turn_count + 1 WHERE id = ?').run(
@@ -280,7 +309,9 @@ router.post('/respond', async (req, res) => {
       messageId: insertResult.lastInsertRowid,
       npcReply,
       betterVersion,
-      contextNote,
+      feedbackType,
+      highlights,
+      explanation,
       isLastTurn,
     });
   } catch (err) {
@@ -329,34 +360,78 @@ router.post('/complete', (req, res) => {
       WHERE id = ?
     `).run(JSON.stringify(absurdAttrs), chatSessionId.trim());
 
-    // 查询该会话的所有用户消息
-    const messages = db.prepare(`
-      SELECT * FROM v2_user_messages
+    // 查询该会话已在 respond 阶段生成的表达卡片
+    const existingCards = db.prepare(`
+      SELECT * FROM v2_expression_cards
       WHERE chat_session_id = ?
       ORDER BY turn_index ASC
     `).all(chatSessionId.trim());
 
-    // 为每条消息生成表达卡片（betterVersion 已在 respond 阶段存入）
-    const insertCard = db.prepare(`
-      INSERT INTO v2_expression_cards (user_id, chat_session_id, turn_index, user_said, better_version, context_note, is_saved)
-      VALUES (?, ?, ?, ?, ?, ?, 0)
-    `);
+    // 兜底：如果 respond 阶段没写入卡片（旧数据或异常），从 v2_user_messages 补生成
+    if (existingCards.length === 0) {
+      const messages = db.prepare(`
+        SELECT * FROM v2_user_messages
+        WHERE chat_session_id = ?
+        ORDER BY turn_index ASC
+      `).all(chatSessionId.trim());
 
-    for (const msg of messages) {
-      // 只为有 better_version 的消息生成卡片
-      if (msg.better_version) {
-        insertCard.run(
-          session.user_id,
-          chatSessionId.trim(),
-          msg.turn_index,
-          msg.user_input,
-          msg.better_version,
-          msg.context_note || null
-        );
+      const insertCard = db.prepare(`
+        INSERT INTO v2_expression_cards (user_id, chat_session_id, turn_index, user_said, better_version, context_note, is_saved)
+        VALUES (?, ?, ?, ?, ?, ?, 0)
+      `);
+      for (const msg of messages) {
+        if (msg.better_version) {
+          insertCard.run(
+            session.user_id,
+            chatSessionId.trim(),
+            msg.turn_index,
+            msg.user_input,
+            msg.better_version,
+            msg.context_note || null
+          );
+        }
       }
     }
 
-    console.log(`[v2-chat/complete] 会话 ${chatSessionId} 完成，生成 ${messages.filter(m => m.better_version).length} 张表达卡片`);
+    // 重新查询卡片（包含兜底生成的）
+    const allCards = db.prepare(`
+      SELECT * FROM v2_expression_cards
+      WHERE chat_session_id = ?
+      ORDER BY turn_index ASC
+    `).all(chatSessionId.trim());
+
+    // 按优先级挑选 featured 卡片：
+    //   "更地道的说法" > "进阶表达" > "同样好用的说法" > 其他（无 feedback_type 的老数据）
+    // 同类型中取 turn_index 最小的
+    const feedbackPriority = { '更地道的说法': 1, '进阶表达': 2, '同样好用的说法': 3 };
+    let featuredCard = null;
+    for (const card of allCards) {
+      if (!featuredCard) {
+        featuredCard = card;
+        continue;
+      }
+      const currPri = feedbackPriority[card.feedback_type] || 99;
+      const bestPri = feedbackPriority[featuredCard.feedback_type] || 99;
+      if (currPri < bestPri) {
+        featuredCard = card;
+      }
+    }
+
+    // 所有卡片 is_saved 设为 1（自动收藏），featured 那张额外设 is_featured = 1
+    if (allCards.length > 0) {
+      db.prepare(`
+        UPDATE v2_expression_cards SET is_saved = 1 WHERE chat_session_id = ?
+      `).run(chatSessionId.trim());
+
+      if (featuredCard) {
+        db.prepare(`
+          UPDATE v2_expression_cards SET is_featured = 1 WHERE id = ?
+        `).run(featuredCard.id);
+      }
+    }
+
+    const cardCount = allCards.length;
+    console.log(`[v2-chat/complete] 会话 ${chatSessionId} 完成，共 ${cardCount} 张卡片，featured: ${featuredCard?.id || '无'}`);
 
     return res.status(200).json({ success: true });
   } catch (err) {
@@ -397,8 +472,13 @@ router.get('/:chatSessionId/settlement', (req, res) => {
       id: card.id,
       turnIndex: card.turn_index,
       userSaid: card.user_said,
+      feedbackType: card.feedback_type || null,                    // 新增：反馈类型
       betterVersion: card.better_version,
-      contextNote: card.context_note,
+      highlights: card.highlighted_phrases                         // 新增：高亮短语数组
+        ? (() => { try { return JSON.parse(card.highlighted_phrases); } catch (e) { return []; } })()
+        : [],
+      explanation: card.explanation || null,                       // 新增：解释文字
+      isFeatured: card.is_featured === 1,                         // 新增：是否 featured
       isSaved: card.is_saved === 1,
     }));
 

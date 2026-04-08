@@ -106,9 +106,8 @@ const SEED_ROOMS = [
     comment_count: 128,
     settlement_template: JSON.stringify({
       type: 'news',
-      event_result: '经天庭审计核实，白龙马贡献值排名第一，八戒挂出的闲鱼帖子被强制下架。白龙马荣获"最佳员工"称号，八戒被要求参加职业素养培训。',
-      structured_result: {
-        mediaName: '西域商报·后续',
+      newsletter: {
+        publisher: '东海商报 · 后续',
         headline: '白龙马闲鱼交易已撤回',
         bullets: [
           '你促成了双方和解',
@@ -122,11 +121,6 @@ const SEED_ROOMS = [
         { name: '取经团队稳定性', delta: 5 },
         { name: '闲鱼鉴赏力', delta: 2 },
         { name: '审计权威度', delta: 4 },
-      ],
-      expression_hints: [
-        { slot: 1, context: '当你想表达某件事很夸张时', example: "That is honestly a bit much." },
-        { slot: 2, context: '当你为某一方辩护时', example: "I think they deserve more credit than that." },
-        { slot: 3, context: '当你做出最终判断时', example: "Based on what I've heard, I think..." },
       ],
     }),
     tags: JSON.stringify(['西游记', '职场', '跨IP']),
@@ -232,11 +226,15 @@ const SEED_ROOMS = [
     likes: 4100,
     comment_count: 267,
     settlement_template: JSON.stringify({
-      type: 'announcement',
-      event_result: '灭霸的裁员方案被否决，但他凭借出色的预算报表留了下来。甄嬛指导他学习宫廷生存法则，钢铁侠悄悄收走了他的手套。职场新人守则第一条：先把手头的事做好。',
-      structured_result: {
-        title: '【群公告】本群已归档',
-        content: '经新入职HR专员建议，灭霸裁员方案已否决。手套权限已收回，预算报表获年度最佳格式奖。',
+      type: 'news',
+      newsletter: {
+        publisher: '复联内部通报 · 后续',
+        headline: '灭霸裁员方案被否决，预算报表获年度最佳格式奖',
+        bullets: [
+          '你的建议推动了最终决定',
+          '手套权限已永久收回',
+          '甄嬛表示愿意为灭霸提供宫廷生存培训',
+        ],
       },
       absurd_attributes_pool: [
         { name: '职场生存智慧', delta: 4 },
@@ -244,11 +242,6 @@ const SEED_ROOMS = [
         { name: '手套依赖度', delta: -2 },
         { name: '宫斗防御力', delta: 2 },
         { name: 'HR专业度', delta: 5 },
-      ],
-      expression_hints: [
-        { slot: 1, context: '当你对某人的提案持保留态度时', example: "The idea has merit, but I have some concerns." },
-        { slot: 2, context: '当你给出有条件的建议时', example: "I would suggest starting with something smaller first." },
-        { slot: 3, context: '当你评价一个复杂的人时', example: "They're talented, but they need clear boundaries." },
       ],
     }),
     tags: JSON.stringify(['漫威', '宫斗', '跨IP', '职场']),
@@ -354,14 +347,15 @@ const SEED_ROOMS = [
     likes: 1800,
     comment_count: 95,
     settlement_template: JSON.stringify({
-      type: 'moments',
-      event_result: '年会最终以"冰雪主题派对"的名义完美收场，意外成为当年最难忘的活动。甘道夫的法杖在第二天早上找到了。Elsa被正式邀请加入下届策划组。',
-      structured_result: {
-        character: 'Elsa',
-        avatarId: 'npc_b',
-        post: '今天年会舞台差点毁了，结果大家说冰雕比原来的PPT好看。有时候bug就是feature。❄️✨',
-        likers: ['诸葛亮', '甘道夫', '辛巴', '灰姑娘', '你', '白雪公主'],
-        likeCount: 6,
+      type: 'news',
+      newsletter: {
+        publisher: '联合年会快报 · 后续',
+        headline: '冰雪意外变主题，年会收视超历届',
+        bullets: [
+          '你的应急方案让晚宴顺利转场',
+          'Elsa 正式加入下届年会策划委员会',
+          '甘道夫已更新风险预案，播放列表已审查',
+        ],
       },
       absurd_attributes_pool: [
         { name: '冰雪抵抗力', delta: -3 },
@@ -369,11 +363,6 @@ const SEED_ROOMS = [
         { name: '年会存活率', delta: 4 },
         { name: '甘道夫信任度', delta: 2 },
         { name: '活动策划灵感', delta: 3 },
-      ],
-      expression_hints: [
-        { slot: 1, context: '当你描述一个突发情况时', example: "Something unexpected happened — let me explain." },
-        { slot: 2, context: '当你提出即兴应对方案时', example: "We can work with this — here's what I'm thinking." },
-        { slot: 3, context: '当你总结危机处理的教训时', example: "Next time, we should make sure to..." },
       ],
     }),
     tags: JSON.stringify(['迪士尼', '三国', '跨IP', '年会']),
@@ -480,9 +469,8 @@ const SEED_ROOMS = [
     comment_count: 186,
     settlement_template: JSON.stringify({
       type: 'news',
-      event_result: '经过激烈讨论，霍格沃茨决定保留AI作为辅助工具，但最终分院结果仍由分院帽拍板。马尔福的投诉被受理，重新分院，结果还是赫奇帕奇。他决定接受现实。',
-      structured_result: {
-        mediaName: '魔法日报·跟踪报道',
+      newsletter: {
+        publisher: '魔法日报 · 后续',
         headline: 'AI分院系统降为辅助工具，分院帽复职',
         bullets: [
           '你的技术分析推动了最终决策',
@@ -496,11 +484,6 @@ const SEED_ROOMS = [
         { name: '马尔福耐心值', delta: -2 },
         { name: '麻瓜科技推广力', delta: 5 },
         { name: '赫奇帕奇气质', delta: 1 },
-      ],
-      expression_hints: [
-        { slot: 1, context: '当你解释一个技术系统时', example: "Basically, what it does is..." },
-        { slot: 2, context: '当你表达对技术的有条件支持时', example: "I think it's useful, but only if we use it the right way." },
-        { slot: 3, context: '当你指出AI的局限性时', example: "The problem is that it can't really account for..." },
       ],
     }),
     tags: JSON.stringify(['哈利波特', '科技', '跨IP', 'AI']),
@@ -606,14 +589,15 @@ const SEED_ROOMS = [
     likes: 5600,
     comment_count: 342,
     settlement_template: JSON.stringify({
-      type: 'moments',
-      event_result: '经节目组调查，甘道夫确认为转椅事故责任方，被要求录制道歉视频。咕噜获得"最具个性奖"特别奖项。总决赛最终收视率创节目历史新高。',
-      structured_result: {
-        character: '咕噜',
-        avatarId: 'npc_b',
-        post: '虽然没有拿到冠军，但宝贝们的支持让我感动。明年再来！冠军终究是我们的，precious。🏆',
-        likers: ['甘道夫', '精灵王', 'Bilbo', '你', '弗罗多', '萨鲁曼'],
-        likeCount: 6,
+      type: 'news',
+      newsletter: {
+        publisher: '中土娱乐快报 · 后续',
+        headline: '甘道夫转椅事故调查结案，咕噜获最具个性特别奖',
+        bullets: [
+          '你的采访还原了现场真相',
+          '甘道夫将录制道歉视频并赔偿蛋糕',
+          '决赛收视率创节目历史新高',
+        ],
       },
       absurd_attributes_pool: [
         { name: '转椅操控力', delta: -3 },
@@ -621,11 +605,6 @@ const SEED_ROOMS = [
         { name: '蛋糕挽救率', delta: -2 },
         { name: '咕噜好感度', delta: 3 },
         { name: '采访专业度', delta: 4 },
-      ],
-      expression_hints: [
-        { slot: 1, context: '当你采访某人请他们解释发生了什么时', example: "Can you walk me through exactly what happened?" },
-        { slot: 2, context: '当你对某人的解释表示怀疑时', example: "That's interesting — but it sounds a bit like..." },
-        { slot: 3, context: '当你总结一个混乱局面时', example: "So if I understand correctly, what happened was..." },
       ],
     }),
     tags: JSON.stringify(['指环王', '综艺', '跨IP', '选秀']),

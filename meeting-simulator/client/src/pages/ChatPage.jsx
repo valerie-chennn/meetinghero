@@ -1009,9 +1009,15 @@ function ChatPage() {
               查看结算
             </button>
           ) : phase === 'dots' ? (
-            <div className={styles.statusText}>对方正在输入...</div>
+            <div className={styles.statusText}>
+              {typingSource?.speakerName && <span style={{ color: typingSource.speakerColor, fontWeight: 600 }}>{typingSource.speakerName} </span>}
+              正在输入...
+            </div>
           ) : (phase === 'typing_en' || phase === 'typing_zh' || phase === 'typing_done') ? (
-            <div className={styles.statusText}>正在说话...</div>
+            <div className={styles.statusText}>
+              {typingSource?.speakerName && <span style={{ color: typingSource.speakerColor, fontWeight: 600 }}>{typingSource.speakerName} </span>}
+              正在说话...
+            </div>
           ) : phase === 'wait_tap' ? (
             <div>
               {/* 第一次：手指 + 水波纹 */}

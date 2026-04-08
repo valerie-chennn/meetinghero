@@ -42,64 +42,62 @@ const SEED_ROOMS = [
     ]),
     dialogue_script: JSON.stringify([
       { type: 'system', text: '你被拉入群聊「取经项目推进群（已解散待定）」' },
-      // 八戒先挑起话题，短平快
-      { type: 'npc', speaker: 'npc_a', text: "Someone posted the horse online. Two thousand dollars. I think it's a fair price.", textZh: '有人把马挂网上了。两千块。我觉得价格挺合理的。' },
-      // 白龙马立刻反应，委屈+刺
-      { type: 'npc', speaker: 'npc_b', text: "I am RIGHT HERE. And I have a name.", textZh: '我就在这里。我是有名字的。' },
-      // 八戒接住白龙马的话，然后@用户，问题具体：卖还是留
-      { type: 'npc', speaker: 'npc_a', text: "Name or not, the project is over. @{username} sell or keep? You decide.", textZh: '有没有名字，项目都结束了。@{username} 卖还是留？你来定。' },
+      // 核心冲突：卖白龙马 vs 不卖白龙马
+      // 八戒立场：应该卖，项目结束了留着没用
+      { type: 'npc', speaker: 'npc_a', text: "Project is over. We should sell the horse. He costs money every day.", textZh: '项目结束了。我们应该卖马。它每天都要花钱。' },
+      // 白龙马直接反驳：凭什么卖，我干了所有活
+      { type: 'npc', speaker: 'npc_b', text: "I carried bags for fourteen years. You want to SELL me for that?", textZh: '我驮了十四年行李。你要因为这个把我卖掉？' },
+      // 八戒接住白龙马"十四年"这个点，@用户站队
+      { type: 'npc', speaker: 'npc_a', text: "That was the job. Now the job is done. @{username} sell or keep? You decide.", textZh: '那是工作内容。现在工作结束了。@{username} 卖还是留？你来定。' },
       {
         type: 'user_cue',
         speaker: 'npc_a',
-        hint: "八戒问你：卖还是留？",
-        hintZh: '八戒问你：卖还是留？',
-        // 审计员初入群，被逼表态：卖马还是留下
+        hint: "八戒问你：白龙马该卖还是该留？",
+        hintZh: '八戒问你：白龙马该卖还是该留？',
         options: [
-          { label: '反对卖', example: "We should keep him. He did the work." },
-          { label: '支持卖', example: "The project is done. Maybe it's okay to sell." },
-          { label: '先缓缓', example: "Wait. I just got here. Tell me more." },
+          { label: '反对卖', example: "We should keep him. He worked hard for us." },
+          { label: '支持卖', example: "The project is over. Keeping him costs money." },
+          { label: '先缓缓', example: "Wait. Did anyone ask the horse?" },
         ],
       },
-      // 白龙马接住用户发言，列出自己的功劳（简短）
-      { type: 'npc', speaker: 'npc_b', text: "Thank you. I carried bags the whole trip. Ninety-nine percent of the road.", textZh: '谢谢你。我驮着行李走完了整段路。百分之九十九的路程。' },
-      // 八戒反驳：你是马，本来就该驮东西
-      { type: 'npc', speaker: 'npc_a', text: "You are a horse. That is your job. I handled the cooking and team mood.", textZh: '你是马。那本来就是你的工作。我负责做饭和团队氛围。' },
-      // 白龙马立刻拆穿八戒，然后@用户问谁贡献更大
-      { type: 'npc', speaker: 'npc_b', text: "You ate twenty peaches and called it team support. @{username} who worked more, me or him?", textZh: '你吃了二十个桃子叫做团队支持。@{username} 我和他谁贡献更大？' },
+      // 白龙马接住用户发言，提出新论据：卖也要给补偿
+      { type: 'npc', speaker: 'npc_b', text: "If you sell me, I need severance pay. Fourteen years of work.", textZh: '要卖我的话，我要遣散费。十四年的工龄。' },
+      // 八戒直接反驳：马不算员工，没有劳动合同
+      { type: 'npc', speaker: 'npc_a', text: "You are a horse. No contract. No severance. That is not how it works.", textZh: '你是马。没有合同。没有遣散费。规则不是这样的。' },
+      // 白龙马反驳那个"没有合同"的论据，@用户站队
+      { type: 'npc', speaker: 'npc_b', text: "I talked. I transformed. I fought. That is not normal horse work. @{username} do I count as a worker or not?", textZh: '我会说话。我能变形。我打过仗。这不是普通马的工作。@{username} 我算不算员工？' },
       {
         type: 'user_cue',
         speaker: 'npc_b',
-        hint: "白龙马问你：他俩谁贡献更大？",
-        hintZh: '白龙马问你：他俩谁贡献更大？',
-        // 白龙马要审计员比较贡献，站队问题
+        hint: "白龙马问你：他算不算员工？该不该有遣散费？",
+        hintZh: '白龙马问你：他算不算员工？该不该有遣散费？',
         options: [
-          { label: '挺白龙马', example: "The horse did more. Carrying bags is real work." },
-          { label: '挺八戒', example: "Cooking and morale are important too." },
-          { label: '两边各有', example: "Both helped. Hard to pick one." },
+          { label: '算员工', example: "He talked and fought. That's more than a horse." },
+          { label: '不算员工', example: "No contract means no rights. That's the rule." },
+          { label: '模糊地带', example: "It's complicated. Maybe ask the Jade Emperor." },
         ],
       },
-      // 八戒不服，反呛
-      { type: 'npc', speaker: 'npc_a', text: "Morale is a skill. You can't measure it, but everyone felt it.", textZh: '氛围是种能力。你量不出来，但大家都感受到了。' },
-      // 白龙马继续拆，带讽刺
-      { type: 'npc', speaker: 'npc_b', text: "You napped for three days straight. That's not morale. That's sleep.", textZh: '你连着睡了三天。那不叫维护氛围。那叫睡觉。' },
-      // 八戒@用户，问题具体：公不公平卖队友
-      { type: 'npc', speaker: 'npc_a', text: "Project ended, team disbanded. @{username} is selling a teammate after the job wrong or not?", textZh: '项目结束，团队解散了。@{username} 项目完了之后卖队友，这样对不对？' },
+      // 八戒让步：好吧，可以给点补偿，但要扣伙食费
+      { type: 'npc', speaker: 'npc_a', text: "Fine. Some pay. But we deduct fourteen years of food costs first.", textZh: '好吧。给点钱。但要先扣掉十四年的伙食费。' },
+      // 白龙马回应：伙食费正好可以抵掉，那就不卖了吧
+      { type: 'npc', speaker: 'npc_b', text: "Food cost equals my wages. So we are even. No sale needed.", textZh: '伙食费等于我的工资。那正好扯平了。不用卖了。' },
+      // 八戒逼用户做最终裁定：卖还是扯平
+      { type: 'npc', speaker: 'npc_a', text: "That math sounds wrong to me. @{username} you are the auditor. Final call — sell, keep, or something else?", textZh: '这个算法我觉得有问题。@{username} 你是审计员。最终裁定——卖、留、还是别的方案？' },
       {
         type: 'user_cue',
         speaker: 'npc_a',
-        hint: "八戒问你：项目完了卖队友，对不对？",
-        hintZh: '八戒问你：项目完了卖队友，对不对？',
-        // 八戒逼用户表态：卖队友公不公平
+        hint: "八戒要你做最终裁定：卖、留，还是其他？",
+        hintZh: '八戒要你做最终裁定：卖、留，还是其他？',
         options: [
-          { label: '明确反对', example: "No. That's not right. We don't sell teammates." },
-          { label: '有条件接受', example: "Maybe okay, but only if he agrees first." },
-          { label: '看合同', example: "It depends. What did you agree to before?" },
+          { label: '明确反对卖', example: "Don't sell. Give him a fair exit package." },
+          { label: '支持卖但要补偿', example: "Sell, but pay him something first." },
+          { label: '让他自由', example: "Let him go free. No sale, no pay. Just done." },
         ],
       },
-      // 白龙马表态：我不是商品
-      { type: 'npc', speaker: 'npc_b', text: "I am not for sale. I am filing a complaint with the Jade Emperor.", textZh: '我不是商品。我要向玉皇大帝提交投诉。' },
-      // 八戒嘲讽收尾
-      { type: 'npc', speaker: 'npc_a', text: "Good luck. HR hasn't picked up since the Tang Dynasty.", textZh: '祝你好运。人事部自唐朝起就没人接电话了。' },
+      // 白龙马表态：自由最好
+      { type: 'npc', speaker: 'npc_b', text: "Free is fine. I have a cousin in the East Sea. I call him.", textZh: '自由最好。我在东海有个表亲。我去找他。' },
+      // 八戒没想到这个结局，自嘲收尾
+      { type: 'npc', speaker: 'npc_a', text: "So nobody gets the two thousand. Typical.", textZh: '所以那两千块没人拿到。一如既往。' },
     ]),
     bg_color: '#F7F2EC',
     likes: 2300,
@@ -163,64 +161,62 @@ const SEED_ROOMS = [
     ]),
     dialogue_script: JSON.stringify([
       { type: 'system', text: '你被拉入群聊「复联×后宫战略资源整合委员会」' },
-      // 钢铁侠描述灭霸提案，带一丝欣赏
-      { type: 'npc', speaker: 'npc_a', text: "Thanos handed in a restructuring plan on day one. With a pie chart. Not bad formatting.", textZh: '灭霸第一天就交了一份重组方案。带饼状图的。格式还挺不错的。' },
-      // 甄嬛接话，态度分明：格式行，内容不行
-      { type: 'npc', speaker: 'npc_b', text: "The chart is elegant. The content is unacceptable. Especially the part about cutting fifty percent.", textZh: '图表做工精致。内容不可接受。尤其是那个削减五十个百分点的部分。' },
-      // 钢铁侠@用户，问题具体：你今天入职给灭霸培训，他第一天就搞事了
-      { type: 'npc', speaker: 'npc_a', text: "Hey, you're the new HR. You're supposed to onboard him today. @{username} how's day one going?", textZh: '嘿，你是新来的HR。你今天负责给他办入职。@{username} 第一天进展怎么样？' },
+      // 核心冲突：灭霸的裁员方案该不该执行
+      // 钢铁侠立场：方案数学上成立，可以考虑
+      { type: 'npc', speaker: 'npc_a', text: "Thanos's plan cuts fifty percent of costs. The math works. We should at least look at it.", textZh: '灭霸的方案削减了百分之五十的成本。数学上成立。我们至少应该看一看。' },
+      // 甄嬛直接反驳：数学成立不代表该执行
+      { type: 'npc', speaker: 'npc_b', text: "Math is not the point. You cannot cut people like a pie chart. This plan is wrong.", textZh: '数学不是重点。人不能像饼状图一样切。这个方案不对。' },
+      // 钢铁侠接住"不对"，反驳：那你拿出更好的方案，@用户站队
+      { type: 'npc', speaker: 'npc_a', text: "Then give me a better plan. We have a budget problem. @{username} should we run the plan or reject it?", textZh: '那你给我一个更好的方案。我们有预算问题。@{username} 这个方案该执行还是否决？' },
       {
         type: 'user_cue',
         speaker: 'npc_a',
-        hint: "钢铁侠问你：灭霸第一天表现怎么样？",
-        hintZh: '钢铁侠问你：灭霸第一天表现怎么样？',
-        // HR被问入职进展，灭霸已经搞出事了
+        hint: "钢铁侠问你：灭霸的裁员方案该执行还是否决？",
+        hintZh: '钢铁侠问你：灭霸的裁员方案该执行还是否决？',
         options: [
-          { label: '不太顺', example: "Not great. He tried to use the Gauntlet already." },
-          { label: '谨慎乐观', example: "Okay so far. He listens if you're direct with him." },
-          { label: '还在观察', example: "Too early to say. Give me more time." },
+          { label: '否决方案', example: "Reject it. You don't solve problems by cutting people." },
+          { label: '支持执行', example: "The budget is real. We need to make hard choices." },
+          { label: '先看细节', example: "Who exactly gets cut? I need to see the names." },
         ],
       },
-      // 甄嬛接，说有大志的人结局往往不好
-      { type: 'npc', speaker: 'npc_b', text: "Men with big plans rarely survive the first season here. I have seen this before.", textZh: '胸怀大志的人在这里很少能撑过第一季。本宫见过太多了。' },
-      // 钢铁侠补充：他已经在茶水间用手套了
-      { type: 'npc', speaker: 'npc_a', text: "He used the Gauntlet in the coffee room. IT revoked his admin rights already.", textZh: '他在茶水间用了手套。IT部门已经撤销了他的管理员权限。' },
-      // 甄嬛@用户，问题具体：茶水间规矩都不守的人，你打算怎么管
-      { type: 'npc', speaker: 'npc_b', text: "A man who breaks tea room rules cannot be trusted with power. @{username} keep him or let him go?", textZh: '连茶水间规矩都不守的人，不能托付大事。@{username} 留还是让他走？' },
+      // 甄嬛接住用户发言，提出新论据：这种方案会让剩下的人寒心
+      { type: 'npc', speaker: 'npc_b', text: "Even if the numbers work — after this, nobody will trust the team again.", textZh: '就算数字成立——这之后，没有人会再信任这个团队了。' },
+      // 钢铁侠反驳：不信任 vs 公司倒闭，哪个更糟
+      { type: 'npc', speaker: 'npc_a', text: "You think morale beats bankruptcy? If we don't cut, everyone loses their job.", textZh: '你觉得士气比破产更重要？不裁的话，所有人都会失业。' },
+      // 甄嬛反驳"破产"这个论据，@用户
+      { type: 'npc', speaker: 'npc_b', text: "Bankruptcy? That is his fear, not a fact. @{username} do you believe his numbers are real?", textZh: '破产？那是他的恐吓，不是事实。@{username} 你相信他说的数字是真的吗？' },
       {
         type: 'user_cue',
         speaker: 'npc_b',
-        hint: "甄嬛问你：灭霸第一天就违规，留还是让他走？",
-        hintZh: '甄嬛问你：灭霸第一天就违规，留还是让他走？',
-        // 甄嬛逼HR表态：留还是走
+        hint: "甄嬛问你：钢铁侠说不裁就破产，你信吗？",
+        hintZh: '甄嬛问你：钢铁侠说不裁就破产，你信吗？',
         options: [
-          { label: '先给机会', example: "Give him one more chance. Set clear rules first." },
-          { label: '建议走人', example: "Day one and he breaks rules. That's a bad sign." },
-          { label: '先给小任务', example: "Put him on something small. See how he does." },
+          { label: '相信数字', example: "The report looks real. The budget gap is serious." },
+          { label: '不相信', example: "I want to see the actual books first." },
+          { label: '有第三条路', example: "Maybe we cut costs, not people. Other options exist." },
         ],
       },
-      // 钢铁侠提出让灭霸做预算报表测试
-      { type: 'npc', speaker: 'npc_a', text: "Give him the budget report. Numbers don't bend to purple fists.", textZh: '让他做预算报表。数字不会向紫色拳头弯腰。' },
-      // 甄嬛同意，但语气里有算计
-      { type: 'npc', speaker: 'npc_b', text: "Agreed. Let the work reveal the person.", textZh: '同意。让工作来检验一个人。' },
-      // 钢铁侠@用户：报表做完了，还做得挺好，要怎么处理
-      { type: 'npc', speaker: 'npc_a', text: "Update: he finished the report. Correct data. Color-coded by department. I'm conflicted. @{username} what's your call?", textZh: '更新：报表做完了。数据准确。还按部门做了颜色分类。我心情很复杂。@{username} 你怎么决定？' },
+      // 钢铁侠让步一点：好，不一定全裁，但要减少人数
+      { type: 'npc', speaker: 'npc_a', text: "Fine. Not fifty percent. But some cuts are needed. That part is not wrong.", textZh: '好吧。不一定是五十个百分点。但要裁一些。这个前提没错。' },
+      // 甄嬛抓住这个让步：一裁就是接受了灭霸的逻辑
+      { type: 'npc', speaker: 'npc_b', text: "Any cut means you accepted his logic. Once you start, where do you stop?", textZh: '只要裁一个人，就是接受了他的逻辑。一旦开始，在哪里停下来？' },
+      // 钢铁侠@用户做最终裁定
+      { type: 'npc', speaker: 'npc_a', text: "This is going nowhere. @{username} you are HR. Final answer — execute the plan, reject it, or rewrite it?", textZh: '这讨论没完没了。@{username} 你是HR。最终答案——执行方案、否决方案、还是重写方案？' },
       {
         type: 'user_cue',
         speaker: 'npc_a',
-        hint: "钢铁侠问你：他有能力但危险，你作为HR怎么处理？",
-        hintZh: '钢铁侠问你：他有能力但危险，你作为HR怎么处理？',
-        // 钢铁侠要HR给结论：有才但危险怎么办
+        hint: "钢铁侠要你做最终决定：执行、否决、还是重写灭霸的裁员方案？",
+        hintZh: '钢铁侠要你做最终决定：执行、否决、还是重写灭霸的裁员方案？',
         options: [
-          { label: '留但限权', example: "Keep him. But take the Gauntlet away for good." },
-          { label: '设试用期', example: "One more month. If he breaks rules again, he's out." },
-          { label: '建议辞退', example: "Too risky. I'd say let him go." },
+          { label: '否决', example: "Reject it. This plan is too risky for the team." },
+          { label: '执行', example: "Run it. The budget problem is real and urgent." },
+          { label: '重写', example: "Rewrite it. Find cuts that don't hurt people." },
         ],
       },
-      // 甄嬛给经验之谈
-      { type: 'npc', speaker: 'npc_b', text: "Keep him busy with work he cares about. Idle ambition is dangerous.", textZh: '让他忙于他在乎的工作。闲置的野心是最危险的。' },
-      // 钢铁侠最后一句强调收回手套
-      { type: 'npc', speaker: 'npc_a', text: "And remove Gauntlet access. That one is not negotiable.", textZh: '还有，把手套权限收回。这个没有商量余地。' },
+      // 甄嬛认可"重写"这个思路
+      { type: 'npc', speaker: 'npc_b', text: "A new plan is the right call. But Thanos does not write the new one.", textZh: '重新做方案是对的。但新方案不能让灭霸来写。' },
+      // 钢铁侠接，带点幽默
+      { type: 'npc', speaker: 'npc_a', text: "Agreed. I'll do the new chart. With better colors.", textZh: '同意。我来做新图表。换个好看的配色。' },
     ]),
     bg_color: '#ECF0F7',
     likes: 4100,
@@ -284,64 +280,62 @@ const SEED_ROOMS = [
     ]),
     dialogue_script: JSON.stringify([
       { type: 'system', text: '你被拉入群聊「联合年会应急处理群」' },
-      // 诸葛亮冷静列清单：冻了什么
-      { type: 'npc', speaker: 'npc_a', text: "Stage frozen. Microphone frozen. The speaker's chair frozen. This was not in the plan.", textZh: '舞台冻住了。麦克风冻住了。主讲嘉宾的椅子也冻住了。这不在预案里。' },
-      // Elsa不觉得有问题，反而觉得好看
-      { type: 'npc', speaker: 'npc_b', text: "I just wanted to add atmosphere. The ice pillars look amazing with the lights.", textZh: '我只是想增添一点氛围。冰柱在灯光下看起来真的很惊艳。' },
-      // 诸葛亮接住"好看"，反驳：零下二十度，甘道夫法杖取不出来，@用户描述现场
-      { type: 'npc', speaker: 'npc_a', text: "The 'atmosphere' is minus twenty degrees. Gandalf cannot reach his staff. @{username} you were there — what did you actually see?", textZh: '这个"氛围"是零下二十度。甘道夫取不到他的法杖。@{username} 你当时在场——到底看到了什么？' },
+      // 核心冲突：冰雕事故的责任归属 — Elsa说是外部触发，诸葛亮说Elsa没有控制
+      // 诸葛亮立场：Elsa应该为事故负责
+      { type: 'npc', speaker: 'npc_a', text: "Stage frozen. Mic frozen. Speaker chairs frozen. Elsa, this is your responsibility.", textZh: '舞台冻住了。麦克风冻住了。嘉宾椅子冻住了。Elsa，这是你的责任。' },
+      // Elsa直接反驳：不是我的错，有人放了触发音乐
+      { type: 'npc', speaker: 'npc_b', text: "Someone played 'Let It Go' without warning me. That triggered it. Not my fault.", textZh: '有人没提前告诉我就放了"随它吧"。那触发了我。不是我的错。' },
+      // 诸葛亮接住"触发"论据，反驳：你本应该能控制，@用户站队
+      { type: 'npc', speaker: 'npc_a', text: "You knew you'd be here. You should have warned us. @{username} who is responsible — Elsa or the organizer?", textZh: '你知道自己要来的。你应该提前告知我们。@{username} 谁来负责——Elsa还是主办方？' },
       {
         type: 'user_cue',
         speaker: 'npc_a',
-        hint: "诸葛亮问你：舞台冻住那一刻你看到了什么？",
-        hintZh: '诸葛亮问你：舞台冻住那一刻你看到了什么？',
-        // 助理描述现场，是帮Elsa说话还是客观汇报
+        hint: "诸葛亮问你：冰雕事故谁来负责？Elsa还是主办方？",
+        hintZh: '诸葛亮问你：冰雕事故谁来负责？Elsa还是主办方？',
         options: [
-          { label: '客观还原', example: "The stage froze in seconds. Everyone stopped." },
-          { label: '帮Elsa说话', example: "It was fast. I think it was an accident." },
-          { label: '强调损失', example: "The mic, the chairs, all broken. Nothing works now." },
+          { label: 'Elsa负责', example: "Elsa should control her powers. That's on her." },
+          { label: '主办方负责', example: "The organizer picked that song. That's the real cause." },
+          { label: '两边都有责任', example: "Both sides made mistakes. Hard to pick one." },
         ],
       },
-      // Elsa接话：那是因为有人放了"随它吧"触发了她
-      { type: 'npc', speaker: 'npc_b', text: "Someone played 'Let It Go' as the walk-in music. That was a trigger. Not my fault.", textZh: '有人把"随它吧"作为入场音乐放了。那是个触发因素。不是我的错。' },
-      // 诸葛亮承认是自己选的歌，但态度还是很要面子
-      { type: 'npc', speaker: 'npc_a', text: "I chose that music. I did not expect this result. I am updating the risk list now.", textZh: '那首歌是我选的。我没有预料到这个后果。我现在正在更新风险清单。' },
-      // Elsa觉得可以保留冰装饰，@用户问：能不能留着冰
-      { type: 'npc', speaker: 'npc_b', text: "The ice chandelier in the back is stunning. @{username} can we keep it? Yes or no?", textZh: '后面那个冰吊灯真的很惊艳。@{username} 我们能留着吗？行还是不行？' },
+      // Elsa接住用户，提出新论据：我没有在合同里写过任何演出限制
+      { type: 'npc', speaker: 'npc_b', text: "My contract said 'perform.' It did not say 'control the weather.' That is not my job.", textZh: '我的合同写的是"表演"。没有写"控制天气"。那不是我的工作范围。' },
+      // 诸葛亮反驳合同论据：常识比合同更重要
+      { type: 'npc', speaker: 'npc_a', text: "Common sense is not in a contract. You froze a stage. You own that.", textZh: '常识不需要写进合同。你把舞台冻住了。你得认。' },
+      // Elsa抓住"常识"这个词，反驳，@用户
+      { type: 'npc', speaker: 'npc_b', text: "Common sense says: do not play 'Let It Go' to an ice queen. @{username} was that a reasonable trigger or not?", textZh: '常识是：不要对冰雪女王放"随它吧"。@{username} 那个触发算不算合理？' },
       {
         type: 'user_cue',
         speaker: 'npc_b',
-        hint: "Elsa问你：冰装饰能留着吗？",
-        hintZh: 'Elsa问你：冰装饰能留着吗？',
-        // Elsa要助理表态：留冰还是化冰
+        hint: "Elsa问你：放那首歌算不算合理的触发因素？",
+        hintZh: 'Elsa问你：放那首歌算不算合理的触发因素？',
         options: [
-          { label: '让她化冰', example: "Please melt it. We need the stage back." },
-          { label: '变废为宝', example: "Actually, let's keep it. Make it a theme." },
-          { label: '先道歉', example: "First say sorry to the guests. Then we talk." },
+          { label: '算，主办方失误', example: "Yes. Playing that song was a bad call. Organizer's fault." },
+          { label: '不算，Elsa还是要控制', example: "No. She should control it no matter what." },
+          { label: '都是失误', example: "Both made mistakes. The song and the lack of control." },
         ],
       },
-      // 诸葛亮灵机一动：把晚宴搬到大堂，冰雕变主题装饰
-      { type: 'npc', speaker: 'npc_a', text: "We moved dinner to the lobby. The ice is now the official decoration. We adapt.", textZh: '我们把晚宴移到了大堂。冰雕现在正式成为装饰主题。随机应变。' },
-      // Elsa高兴了：我就说嘛，还能做冰酒杯
-      { type: 'npc', speaker: 'npc_b', text: "See? I knew it would work out. I can also make ice wine glasses.", textZh: '看？我就说最后都会没事的。我还可以做冰酒杯。' },
-      // 诸葛亮立刻叫停，要提交申请，然后@用户：怎么防止明年再出这种事
-      { type: 'npc', speaker: 'npc_a', text: "No more ice without approval. @{username} how do we stop this from happening next year?", textZh: '未经批准不许再做冰制品。@{username} 我们怎么防止明年再发生这种事？' },
+      // 诸葛亮让步：好，选歌是我的失误，但损失要分担
+      { type: 'npc', speaker: 'npc_a', text: "Fine. The song was my mistake. But the damage is real. We split the cost.", textZh: '好，选歌是我的失误。但损失是真实存在的。我们分摊费用。' },
+      // Elsa回应：分摊可以，但比例要讲
+      { type: 'npc', speaker: 'npc_b', text: "Split is fair. But I pay less. The trigger was outside my control.", textZh: '分摊可以。但我少付一点。触发因素不在我控制范围内。' },
+      // 诸葛亮@用户做最终裁定
+      { type: 'npc', speaker: 'npc_a', text: "We cannot agree on the split. @{username} you saw everything. Who pays more — Elsa or the event team?", textZh: '我们谈不拢比例。@{username} 你全程在场。谁多付——Elsa还是活动组？' },
       {
         type: 'user_cue',
         speaker: 'npc_a',
-        hint: "诸葛亮问你：怎么防止明年年会再出意外？",
-        hintZh: '诸葛亮问你：怎么防止明年年会再出意外？',
-        // 诸葛亮要助理提预防方案
+        hint: "诸葛亮要你裁定：冰雕损失谁来多付？",
+        hintZh: '诸葛亮要你裁定：冰雕损失谁来多付？',
         options: [
-          { label: '加审批', example: "All special powers need approval before the event." },
-          { label: '提前彩排', example: "We should do a full run-through with everyone first." },
-          { label: '加入策划组', example: "Put Elsa on the planning team. Then it's controlled." },
+          { label: 'Elsa多付', example: "Elsa pays more. The freezing was still her action." },
+          { label: '主办方多付', example: "Event team pays more. That song was the real trigger." },
+          { label: '五五开', example: "Fifty-fifty. Both sides made a call that caused this." },
         ],
       },
-      // Elsa积极表态：把我加进策划组
-      { type: 'npc', speaker: 'npc_b', text: "Add me to the planning team. I am helpful with the right brief.", textZh: '把我加进策划委员会。给我明确的方向，我能发挥很大作用。' },
-      // 诸葛亮总结教训：要考虑不可预测的变量，还要检查播放列表
-      { type: 'npc', speaker: 'npc_a', text: "Lesson learned: plan for what you cannot predict. And check the playlist.", textZh: '教训已记：要为无法预测的情况做准备。还要检查播放列表。' },
+      // Elsa愿意接受结果，带点委屈
+      { type: 'npc', speaker: 'npc_b', text: "Okay. I accept. But next year, send me the playlist first.", textZh: '好吧。我接受。但明年，先把歌单发给我看。' },
+      // 诸葛亮总结，稍微认错
+      { type: 'npc', speaker: 'npc_a', text: "Noted. And I will not pick that song again. Ever.", textZh: '记住了。那首歌我以后不会再选了。永远不会。' },
     ]),
     bg_color: '#F7F4EC',
     likes: 1800,
@@ -405,64 +399,62 @@ const SEED_ROOMS = [
     ]),
     dialogue_script: JSON.stringify([
       { type: 'system', text: '你被拉入群聊「霍格沃茨数字化转型工作组」' },
-      // 赫敏陈述数据：AI分847人只用3秒
-      { type: 'npc', speaker: 'npc_a', text: "The AI sorted 847 students in three seconds. The Hat took eleven minutes for Harry alone.", textZh: 'AI在三秒内分配了847名学生。分院帽光给哈利就用了十一分钟。' },
-      // 马尔福接话，直接否定：速度不重要，结果错了
-      { type: 'npc', speaker: 'npc_b', text: "Speed means nothing if the answer is wrong. I am Slytherin. This is not open for debate.", textZh: '结果错了的话速度毫无意义。我是斯莱特林。这不是讨论的问题。' },
-      // 赫敏接住马尔福，解释系统逻辑，然后@用户：你来解释怎么运作的
-      { type: 'npc', speaker: 'npc_a', text: "It found loyalty and fairness values in your profile. Hufflepuff is a valid result. @{username} you built this — can you explain how it works?", textZh: '系统在你的档案里发现了忠诚和公平的价值观。赫奇帕奇是合理的结果。@{username} 这是你们建的——能解释一下它怎么运作吗？' },
+      // 核心冲突：AI分院系统该不该用
+      // 赫敏立场：数据准确，应该用
+      { type: 'npc', speaker: 'npc_a', text: "The AI sorted 847 students in three seconds with 97% accuracy. We should use it.", textZh: 'AI三秒内分配了847名学生，准确率97%。我们应该用。' },
+      // 马尔福直接反驳：我就是那3%，结果是错的
+      { type: 'npc', speaker: 'npc_b', text: "I am the three percent. The result is wrong. You cannot call that a success.", textZh: '我就是那3%。结果是错的。你不能说那是成功。' },
+      // 赫敏接住马尔福，反驳"3%就否定全部"，@用户站队
+      { type: 'npc', speaker: 'npc_a', text: "One wrong result does not break the system. @{username} should we use the AI or go back to the Hat?", textZh: '一个错误结果不能否定整个系统。@{username} 我们该用AI还是回到分院帽？' },
       {
         type: 'user_cue',
         speaker: 'npc_a',
-        hint: "赫敏问你：AI分院系统怎么工作的？",
-        hintZh: '赫敏问你：AI分院系统怎么工作的？',
-        // 赫敏让实习顾问解释系统
+        hint: "赫敏问你：用AI分院还是回到分院帽？",
+        hintZh: '赫敏问你：用AI分院还是回到分院帽？',
         options: [
-          { label: '简单解释', example: "It reads your profile and matches you to a house." },
-          { label: '承认局限', example: "It's mostly accurate, but it can miss some details." },
-          { label: '为系统辩护', example: "97% is hard to argue with. The data is solid." },
+          { label: '支持用AI', example: "97% is good. Use it. The Hat was slow anyway." },
+          { label: '回到分院帽', example: "The Hat is not perfect but it understood people better." },
+          { label: '两者结合', example: "Use AI first, then let the Hat check edge cases." },
         ],
       },
-      // 马尔福接话：不管怎么运作，它需要修
-      { type: 'npc', speaker: 'npc_b', text: "Whatever it does, it needs a patch. Log my complaint officially.", textZh: '不管它怎么运作，它需要打补丁。正式记录我的投诉。' },
-      // 赫敏接住马尔福，转移到更重要的问题：是信任问题，不是准确率
-      { type: 'npc', speaker: 'npc_a', text: "The real issue is not accuracy. Students need to feel the process understands them.", textZh: '真正的问题不是准确率。学生需要感受到这个过程理解他们。' },
-      // 马尔福接，被系统标了"高度共情"，感觉被侮辱，@用户站队：AI该不该做这类决定
-      { type: 'npc', speaker: 'npc_b', text: "It also called me 'high empathy.' That is an insult. @{username} should AI even be doing this? Yes or no?", textZh: '它还给我标了"高度共情"。那是侮辱。@{username} AI该不该做这类决定？行还是不行？' },
+      // 马尔福接住用户，提出新论据：分院决定了你的人生，AI不该做这种决定
+      { type: 'npc', speaker: 'npc_b', text: "Sorting decides your whole school life. That is too important for a machine.", textZh: '分院决定了你整个在校生活。这太重要了，不能交给机器。' },
+      // 赫敏反驳这个论据：分院帽也只是一顶帽子，不是神
+      { type: 'npc', speaker: 'npc_a', text: "The Hat is also just an object. At least AI has data, not just vibes.", textZh: '分院帽也只是个物件。AI至少有数据支撑，不只是感觉。' },
+      // 马尔福反驳"只是感觉"，@用户
+      { type: 'npc', speaker: 'npc_b', text: "The Hat talked to Harry for minutes. AI took one second. Seconds do not understand people. @{username} do you trust a one-second decision about who you are?", textZh: '分院帽和哈利谈了好几分钟。AI只用了一秒钟。一秒钟不能理解一个人。@{username} 你信任一个关于你是谁的一秒决定吗？' },
       {
         type: 'user_cue',
         speaker: 'npc_b',
-        hint: "马尔福问你：AI该不该做身份分类这种决定？",
-        hintZh: '马尔福问你：AI该不该做身份分类这种决定？',
-        // 向用户发问：AI该不该做身份类决策
+        hint: "马尔福问你：你信任AI一秒钟做出的身份分类吗？",
+        hintZh: '马尔福问你：你信任AI一秒钟做出的身份分类吗？',
         options: [
-          { label: '支持使用', example: "If the data is good, AI can make fair choices." },
-          { label: '有条件支持', example: "It can help, but not as the final answer." },
-          { label: '明确反对', example: "No. Who you are is not for a machine to decide." },
+          { label: '信任', example: "Yes. Fast and accurate is still good. Data doesn't lie." },
+          { label: '不信任', example: "No. One second is too fast for something this important." },
+          { label: '看情况', example: "Depends. If I can appeal the result, then maybe yes." },
         ],
       },
-      // 赫敏接，升华到工具vs替代的问题
-      { type: 'npc', speaker: 'npc_a', text: "AI is a tool. The question is: do we use it to help, or to replace?", textZh: 'AI是工具。问题在于我们是用它来帮助，还是用它来替代。' },
-      // 马尔福接赫敏，意外说出了一句合理的话
-      { type: 'npc', speaker: 'npc_b', text: "Use it for schedules. Use it for homework reminders. Do NOT use it to say who I am.", textZh: '用它来排课。用它提醒作业。不要用它来告诉我是谁。' },
-      // 赫敏@用户：你觉得AI不该碰什么
-      { type: 'npc', speaker: 'npc_a', text: "That is actually reasonable. I'm surprised. @{username} what is one thing AI should never replace?", textZh: '这个其实挺合理的。我有点意外。@{username} 你觉得有什么是AI无论如何都不该替代的？' },
+      // 赫敏让步：好，可以加申诉机制，但不废掉系统
+      { type: 'npc', speaker: 'npc_a', text: "Fine. We add an appeal option. Students can contest the result. But the system stays.", textZh: '好吧。我们加一个申诉选项。学生可以提出异议。但系统保留。' },
+      // 马尔福接：申诉可以，但要让分院帽最终裁定
+      { type: 'npc', speaker: 'npc_b', text: "Appeals go to the Hat. Not back to AI. The Hat makes the final call.", textZh: '申诉交给分院帽裁定。不是再跑一遍AI。分院帽做最终决定。' },
+      // 赫敏@用户做最终裁定：AI分院该不该用，加申诉行不行
+      { type: 'npc', speaker: 'npc_a', text: "AI for speed, Hat for appeals. @{username} is that a good system or not?", textZh: 'AI负责速度，分院帽处理申诉。@{username} 这个方案可不可行？' },
       {
         type: 'user_cue',
         speaker: 'npc_a',
-        hint: "赫敏问你：你觉得有什么是AI不该做的？",
-        hintZh: '赫敏问你：你觉得有什么是AI不该做的？',
-        // 赫敏要用户说出AI的边界
+        hint: "赫敏问你：AI分院+分院帽申诉的混合方案，行不行？",
+        hintZh: '赫敏问你：AI分院+分院帽申诉的混合方案，行不行？',
         options: [
-          { label: '人际关系', example: "Real connection between people. AI can't do that." },
-          { label: '情感判断', example: "How someone feels. Data can't catch that." },
-          { label: '道德选择', example: "Hard choices about right and wrong. Needs a human." },
+          { label: '可行', example: "Yes. AI for speed, Hat for hard cases. Good balance." },
+          { label: '不行，AI还是不该用', example: "No. Just use the Hat. This hybrid is too complicated." },
+          { label: '不行，全用AI', example: "No. Trust the AI fully. Appeals slow everything down." },
         ],
       },
-      // 马尔福收尾，带一点自恋
-      { type: 'npc', speaker: 'npc_b', text: "Human judgment. Especially mine.", textZh: '人类的判断力。尤其是我的。' },
-      // 赫敏认真总结
-      { type: 'npc', speaker: 'npc_a', text: "Context and empathy. Numbers tell you what. Not what it means.", textZh: '情境理解和同理心。数字告诉你发生了什么。不告诉你那意味着什么。' },
+      // 马尔福意外接受了，但还是要追加条件
+      { type: 'npc', speaker: 'npc_b', text: "Fine. But I am first in the appeal queue.", textZh: '好吧。但我要排申诉队列的第一个。' },
+      // 赫敏认可，带点小幽默
+      { type: 'npc', speaker: 'npc_a', text: "Noted. The Hat said loyalty twice when it read your file. Just so you know.", textZh: '记下了。分院帽分析你的档案时提到了两次"忠诚"。顺便说一声。' },
     ]),
     bg_color: '#ECF3F7',
     likes: 3200,
@@ -526,64 +518,62 @@ const SEED_ROOMS = [
     ]),
     dialogue_script: JSON.stringify([
       { type: 'system', text: '你被拉入群聊「中土好声音决赛后台紧急群」' },
-      // 甘道夫第一句就试图转移焦点，但话里藏着心虚
-      { type: 'npc', speaker: 'npc_a', text: "The chair incident was a one-time thing. A magical field in the venue caused it.", textZh: '转椅事故是个例。场馆内的魔法场造成的。' },
-      // 咕噜接话，完全不接受这个解释，细数损失
-      { type: 'npc', speaker: 'npc_b', text: "The chair FLEW. It hit the cake table. Three cakes are gone. Gollum counted.", textZh: '椅子飞出去了。撞到了蛋糕桌。三个蛋糕没了。咕噜数过了。' },
-      // 甘道夫接住咕噜"三块蛋糕"，但试图把话题转到表演，并@用户希望记者问表演不问椅子
-      { type: 'npc', speaker: 'npc_a', text: "Focus on the performances, please. @{username} reporter — ask me about the show, not the chair.", textZh: '请关注表演本身。@{username} 记者——问我节目的事，不要问椅子。' },
+      // 核心冲突：转椅事故是魔法干扰还是操作失误
+      // 甘道夫立场：是魔法场干扰，不是我的问题
+      { type: 'npc', speaker: 'npc_a', text: "The chair moved on its own. A magical field in the venue caused it. Not my fault.", textZh: '椅子自己转出去的。场馆里有魔法场干扰。不是我的问题。' },
+      // 咕噜直接反驳：我们都看到你抓了法杖
+      { type: 'npc', speaker: 'npc_b', text: "Everyone saw your staff glow. The magic came FROM you. Not the venue.", textZh: '所有人都看见你的法杖发光了。魔法是从你那里来的。不是场馆。' },
+      // 甘道夫接住"法杖发光"，解释是反应动作，@用户站队
+      { type: 'npc', speaker: 'npc_a', text: "I grabbed it by reflex. The chair surprised me. @{username} you were there — chair malfunction or my staff?", textZh: '我是反射动作才抓的。椅子吓到我了。@{username} 你当时在场——椅子故障还是我的法杖？' },
       {
         type: 'user_cue',
         speaker: 'npc_a',
-        hint: "甘道夫让你问节目，不要问椅子。你怎么问？",
-        hintZh: '甘道夫让你问节目，不要问椅子。你怎么问？',
-        // 记者的第一问：顺着甘道夫说还是追问椅子
+        hint: "甘道夫问你：转椅事故是椅子故障还是他法杖干扰？",
+        hintZh: '甘道夫问你：转椅事故是椅子故障还是他法杖干扰？',
         options: [
-          { label: '追问椅子', example: "Actually, did you press the button yourself?" },
-          { label: '帮他圆', example: "Sure. Which performance stood out to you tonight?" },
-          { label: '问法杖', example: "Witnesses said your staff glowed. Can you address that?" },
+          { label: '是法杖', example: "I saw the staff glow before the chair moved. That was the cause." },
+          { label: '是椅子故障', example: "The chair looked broken before he even pressed the button." },
+          { label: '说不清', example: "It happened too fast. I can't be sure which came first." },
         ],
       },
-      // 咕噜觉得自己的歌最好，不管椅子
-      { type: 'npc', speaker: 'npc_b', text: "Gollum's song was the best. Precious melody. The judges did not hear it right.", textZh: '咕噜的歌是最好的。宝贝一般的旋律。评委们没听明白。' },
-      // 甘道夫被逼，承认了自己按了按钮，但说椅子反应太快
-      { type: 'npc', speaker: 'npc_a', text: "Fine. I pressed the button. The chair moved faster than expected. I may have grabbed my staff.", textZh: '好吧。我按了那个按钮。椅子转得比预期快。我可能抓了一下法杖。' },
-      // 咕噜抓住"可能"这个词，@用户要求作证
-      { type: 'npc', speaker: 'npc_b', text: "'May have.' The staff GLOWED. Everyone saw it. @{username} you were there — did you see it or not?", textZh: '"可能"。法杖发光了。大家都看见了。@{username} 你当时在场——你看到了吗？' },
+      // 咕噜接住用户，提出新论据：法杖在前，椅子飞在后，时间线很清楚
+      { type: 'npc', speaker: 'npc_b', text: "Staff glowed FIRST. Then the chair flew. Gollum watched the whole thing. The order is clear.", textZh: '法杖先发光。然后椅子才飞出去。咕噜全程都看着。顺序很清楚。' },
+      // 甘道夫反驳：时间太快，咕噜没可能看清楚
+      { type: 'npc', speaker: 'npc_a', text: "It was one second. You cannot track that. Nobody can.", textZh: '只有一秒钟。你不可能看得那么准。没有人能。' },
+      // 咕噜反驳"看不清"，@用户
+      { type: 'npc', speaker: 'npc_b', text: "Gollum has very good eyes. We live in the dark. We see everything. @{username} do you believe Gandalf or Gollum?", textZh: '咕噜的眼睛非常好。我们住在黑暗里。我们什么都看得见。@{username} 你相信甘道夫还是咕噜？' },
       {
         type: 'user_cue',
         speaker: 'npc_b',
-        hint: "咕噜问你：法杖发光了，你看到了吗？",
-        hintZh: '咕噜问你：法杖发光了，你看到了吗？',
-        // 咕噜要记者作证，是站甘道夫还是站咕噜
+        hint: "咕噜问你：你相信甘道夫的说法还是咕噜的目击？",
+        hintZh: '咕噜问你：你相信甘道夫的说法还是咕噜的目击？',
         options: [
-          { label: '确认看见了', example: "Yes. I saw the staff glow. It was bright." },
-          { label: '说没看清', example: "I'm not sure. It happened really fast." },
-          { label: '转移到咕噜', example: "Let's talk about your performance. How did it feel?" },
+          { label: '相信咕噜', example: "Gollum saw it clearly. Staff first, then the chair." },
+          { label: '相信甘道夫', example: "One second is too fast. Gollum could be wrong." },
+          { label: '需要更多证据', example: "I need the video footage. One witness is not enough." },
         ],
       },
-      // 甘道夫强调评分标准，为自己辩护
-      { type: 'npc', speaker: 'npc_a', text: "The judging was clear. Stage presence, vocal skill, audience connection. All standard.", textZh: '评判标准是明确的。舞台表现力、演唱技巧、观众连接。全都是标准项目。' },
-      // 咕噜反驳：我有所有三项，观众尖叫就是连接
-      { type: 'npc', speaker: 'npc_b', text: "Gollum had all three. The audience screamed. Screaming is connection.", textZh: '咕噜三项都有。观众尖叫了。尖叫代表连接。' },
-      // 甘道夫补刀：尖叫是因为椅子砸到桌子，然后@用户：你来写报道，你决定怎么写
-      { type: 'npc', speaker: 'npc_a', text: "Some screams were from the chair crash. Note that for the record. @{username} what goes in your article — chair or performance?", textZh: '其中一些尖叫是因为椅子撞到桌子了。记录在案。@{username} 你的报道写什么——椅子还是表演？' },
+      // 甘道夫让步：好，承认法杖可能有影响，但也有椅子的问题
+      { type: 'npc', speaker: 'npc_a', text: "Fine. The staff may have added force. But the chair was already unstable. Both played a role.", textZh: '好吧。法杖可能增加了力道。但椅子本身也不稳。两者都有问题。' },
+      // 咕噜抓住"都有问题"：那你就不是完全没责任
+      { type: 'npc', speaker: 'npc_b', text: "Both. So you are not fully innocent. That is what Gollum said from the start.", textZh: '都有问题。所以你不是完全没责任。这就是咕噜一开始说的。' },
+      // 甘道夫@用户做最终裁定
+      { type: 'npc', speaker: 'npc_a', text: "This is your article. @{username} what is the official cause — magical interference, operator error, or both?", textZh: '这是你的报道。@{username} 官方定性是什么——魔法干扰、操作失误、还是两者都有？' },
       {
         type: 'user_cue',
         speaker: 'npc_a',
-        hint: "甘道夫问你：你的报道重点写椅子还是写表演？",
-        hintZh: '甘道夫问你：你的报道重点写椅子还是写表演？',
-        // 甘道夫问记者重点写什么
+        hint: "甘道夫让你定性：事故是魔法干扰、操作失误，还是两者都有？",
+        hintZh: '甘道夫让你定性：事故是魔法干扰、操作失误，还是两者都有？',
         options: [
-          { label: '写椅子', example: "The chair story is bigger. That's my lead." },
-          { label: '写表演', example: "I'll focus on the music. That's why people watched." },
-          { label: '两个都写', example: "Both. The whole night was a story." },
+          { label: '操作失误', example: "Operator error. The staff caused the chain reaction." },
+          { label: '魔法干扰', example: "Magical interference. The venue should have been checked." },
+          { label: '两者都有', example: "Both. Unstable chair plus staff magic. A perfect storm." },
         ],
       },
-      // 咕噜从心出发，感性收尾
-      { type: 'npc', speaker: 'npc_b', text: "Heart. Gollum sings from the heart. From where precious things live.", textZh: '心。咕噜从心里唱出来。从珍贵的东西居住的地方。' },
-      // 甘道夫说真诚+椅子都很重要，自嘲收尾
-      { type: 'npc', speaker: 'npc_a', text: "Authenticity matters. A working chair also matters. Both more than people think.", textZh: '真诚很重要。一把能正常使用的椅子也很重要。两者都比人们想的更重要。' },
+      // 咕噜表示认可，但还要蛋糕赔偿
+      { type: 'npc', speaker: 'npc_b', text: "Good. Now — three cakes. Gollum wants them back.", textZh: '好。现在——三个蛋糕。咕噜要赔偿。' },
+      // 甘道夫认了，自嘲收尾
+      { type: 'npc', speaker: 'npc_a', text: "I will replace the cakes. But I am keeping the chair story out of my Wikipedia page.", textZh: '蛋糕我来赔。但这件事我不会让它出现在我的维基百科页面上。' },
     ]),
     bg_color: '#F5ECF7',
     likes: 5600,

@@ -266,7 +266,8 @@ function ChatPage() {
 
         // ── dots 阶段 ──
         setPhase('dots');
-        // 预加载后续 TTS
+        // 预加载当前消息 + 后续 2 条的 TTS（dots 阶段约 1 秒，足够预加载完成）
+        prefetchTts(turn.text, profile.voiceId);
         prefetchUpcoming(script, i + 1, nm, 2);
         await sleep(800 + Math.random() * 300);
         if (!shouldContinueRef.current) break;

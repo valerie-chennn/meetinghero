@@ -19,17 +19,27 @@ function getNpcColor(id) {
 // ── TTS 预加载缓存 ──
 const ttsCache = new Map();
 
+// 清洗文本用于 TTS：去掉 @ 符号，让 TTS 直呼名字而不是读"at 用户名"
+// 口语里 @ 本来就是打字符号不发音
+function cleanTextForTts(text) {
+  if (!text) return text;
+  return text.replace(/@/g, '');
+}
+
 function prefetchTts(text, voiceId) {
   if (!text) return;
+  // 缓存 key 用原文（调用方也用原文），TTS 请求用清洗后的文本
   const key = `${text}|${voiceId || ''}`;
   if (ttsCache.has(key)) return;
-  ttsCache.set(key, textToSpeech(text, 'en', voiceId).catch(() => null));
+  const cleanText = cleanTextForTts(text);
+  ttsCache.set(key, textToSpeech(cleanText, 'en', voiceId).catch(() => null));
 }
 
 async function playTts(text, voiceId) {
   try {
     const key = `${text}|${voiceId || ''}`;
-    const blobPromise = ttsCache.get(key) || textToSpeech(text, 'en', voiceId);
+    const cleanText = cleanTextForTts(text);
+    const blobPromise = ttsCache.get(key) || textToSpeech(cleanText, 'en', voiceId);
     ttsCache.delete(key);
     const audioBlob = await blobPromise;
     if (!audioBlob) return;

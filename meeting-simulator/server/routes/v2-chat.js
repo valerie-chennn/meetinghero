@@ -280,19 +280,19 @@ router.post('/respond', async (req, res) => {
     );
 
     // 同步写入 v2_expression_cards（包含新字段），让 complete 接口无需再次生成
+    // context_note 字段已废弃，统一用 explanation
     if (betterVersion) {
       db.prepare(`
         INSERT INTO v2_expression_cards
-          (user_id, chat_session_id, turn_index, user_said, better_version, context_note,
+          (user_id, chat_session_id, turn_index, user_said, better_version,
            feedback_type, highlighted_phrases, explanation, is_saved)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)
       `).run(
         session.user_id,
         chatSessionId.trim(),
         turnNum,
         userInput.trim(),
         betterVersion,
-        explanation || null,
         feedbackType || null,
         highlights ? JSON.stringify(highlights) : null,
         explanation || null
@@ -361,40 +361,7 @@ router.post('/complete', (req, res) => {
       WHERE id = ?
     `).run(JSON.stringify(absurdAttrs), chatSessionId.trim());
 
-    // 查询该会话已在 respond 阶段生成的表达卡片
-    const existingCards = db.prepare(`
-      SELECT * FROM v2_expression_cards
-      WHERE chat_session_id = ?
-      ORDER BY turn_index ASC
-    `).all(chatSessionId.trim());
-
-    // 兜底：如果 respond 阶段没写入卡片（旧数据或异常），从 v2_user_messages 补生成
-    if (existingCards.length === 0) {
-      const messages = db.prepare(`
-        SELECT * FROM v2_user_messages
-        WHERE chat_session_id = ?
-        ORDER BY turn_index ASC
-      `).all(chatSessionId.trim());
-
-      const insertCard = db.prepare(`
-        INSERT INTO v2_expression_cards (user_id, chat_session_id, turn_index, user_said, better_version, context_note, is_saved)
-        VALUES (?, ?, ?, ?, ?, ?, 0)
-      `);
-      for (const msg of messages) {
-        if (msg.better_version) {
-          insertCard.run(
-            session.user_id,
-            chatSessionId.trim(),
-            msg.turn_index,
-            msg.user_input,
-            msg.better_version,
-            msg.context_note || null
-          );
-        }
-      }
-    }
-
-    // 重新查询卡片（包含兜底生成的）
+    // 查询该会话在 respond 阶段生成的表达卡片
     const allCards = db.prepare(`
       SELECT * FROM v2_expression_cards
       WHERE chat_session_id = ?
@@ -484,15 +451,11 @@ router.get('/:chatSessionId/settlement', (req, res) => {
     }));
 
     return res.status(200).json({
-      // 结算类型和结构化结果
-      settlementType: settlementTemplate.type || 'news',
-      eventResult: settlementTemplate.event_result || '',
-      structuredResult: settlementTemplate.structured_result || null,
       // newsletter: 报纸风结算内容（publisher/headline/bullets）
       newsletter: settlementTemplate.newsletter || null,
       // 荒诞属性：从 complete 阶段持久化的结果中读取
       absurdAttributes: session.absurd_attributes ? JSON.parse(session.absurd_attributes) : [],
-      // 表达卡片（保持不变）
+      // 表达卡片
       expressionCards,
     });
   } catch (err) {

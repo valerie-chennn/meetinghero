@@ -372,11 +372,6 @@
   animation: tapHint 2.5s ease-in-out infinite;
 }
 
-/* 点击提示（后续：只有文字）*/
-.tapSubsequent {
-  padding: 8px 0;
-}
-
 /* ===== 发言模式 — 下半屏 ===== */
 .speakMode {
   flex: 1;
@@ -422,31 +417,6 @@
   width: 100%;
   margin-bottom: 16px;
   animation: slideUp 0.3s ease;
-}
-
-.hintPills {
-  display: flex;
-  gap: 8px;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
-.hintPill {
-  padding: 8px 14px;
-  border-radius: 20px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  background: #fff;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 500;
-  color: #555;
-  transition: all 0.2s;
-}
-
-.hintPillActive {
-  border: 1.5px solid #7C5CBF;
-  background: rgba(124, 92, 191, 0.08);
-  color: #7C5CBF;
 }
 
 .exampleCard {

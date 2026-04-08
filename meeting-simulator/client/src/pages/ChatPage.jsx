@@ -153,9 +153,6 @@ function ChatPage() {
   // 参考说法加载中
   const [hintLoading, setHintLoading] = useState(false);
 
-  // ── 发言模式：已选中的立场 pill 索引（废弃，保留以免崩溃）──
-  const [selectedHint, setSelectedHint] = useState(null);
-
   // ── 发言模式：是否切换到打字输入 ──
   const [typeMode, setTypeMode] = useState(false);
 
@@ -385,7 +382,6 @@ function ChatPage() {
         // ── 直接进入发言模式（@提及已在 NPC 对话中完成 cue）──
         setPhase('mic');
         setHintOpen(false);
-        setSelectedHint(null);
         setTypeMode(false);
         setDynamicHint(null);
         // 后台预加载 AI 参考说法，用户点💡时就能直接看到

@@ -357,45 +357,7 @@ function ChatPage() {
         // 重置连续计数
         consecutiveNpcRef.current = 0;
 
-        // ── 先播放 NPC 的 cue 话术（hint），让用户知道该回什么 ──
-        if (turn.hint) {
-          const cueProfile = nm[turn.speaker] || { name: turn.speaker, voiceId: null };
-          const cueColor = getNpcColor(turn.speaker);
-
-          // dots 阶段 + 预加载 TTS
-          setPhase('dots');
-          const cueKey = `${turn.hint}|${cueProfile.voiceId || ''}`;
-          prefetchTts(turn.hint, cueProfile.voiceId);
-          const cueDotsWait = sleep(800 + Math.random() * 300);
-          const cueTtsCache = ttsCache.get(cueKey) || Promise.resolve(null);
-          await Promise.all([cueDotsWait, cueTtsCache]);
-          if (!shouldContinueRef.current) break;
-
-          // 打字机 + TTS 同步播放
-          // 临时设置 typingSource 数据（通过 curIdx 指向 user_cue 节点）
-          setPhase('typing_en');
-          const cueTtsPromise = playTts(turn.hint, cueProfile.voiceId);
-          await waitForPhase('typing_zh');
-          if (!shouldContinueRef.current) break;
-          await waitForPhase('typing_done');
-          if (!shouldContinueRef.current) break;
-          await cueTtsPromise;
-          if (!shouldContinueRef.current) break;
-
-          // 推入历史消息
-          appendMessage({
-            id: `cue-${i}`,
-            type: 'npc',
-            speaker: turn.speaker,
-            speakerName: cueProfile.name,
-            speakerColor: cueColor,
-            en: turn.hint,
-            zh: turn.hintZh,
-            voiceId: cueProfile.voiceId,
-          });
-        }
-
-        // ── 进入发言模式 ──
+        // ── 直接进入发言模式（@提及已在 NPC 对话中完成 cue）──
         setPhase('mic');
         setHintOpen(false);
         setSelectedHint(null);
@@ -624,17 +586,6 @@ function ChatPage() {
         speakerColor: getNpcColor(s.speaker),
         en: s.text,
         zh: s.textZh,
-      };
-    }
-    // user_cue：用 hint/hintZh（NPC cue 用户的话术）
-    if (s.type === 'user_cue' && s.hint) {
-      const p = npcMapRef.current[s.speaker] || { name: s.speaker };
-      return {
-        speaker: s.speaker,
-        speakerName: p.name,
-        speakerColor: getNpcColor(s.speaker),
-        en: s.hint,
-        zh: s.hintZh,
       };
     }
     return null;
@@ -886,27 +837,14 @@ function ChatPage() {
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* 💡提示展开区 */}
-          {hintOpen && currentUserCue?.options && (
+          {/* 💡提示：直接显示一句英文参考说法 */}
+          {hintOpen && currentUserCue?.options?.[0] && (
             <div className={styles.hintArea}>
-              <div className={styles.hintPills}>
-                {currentUserCue.options.map((opt, idx) => (
-                  <button
-                    key={idx}
-                    className={`${styles.hintPill} ${selectedHint === idx ? styles.hintPillActive : ''}`}
-                    onClick={() => setSelectedHint(selectedHint === idx ? null : idx)}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-              {selectedHint !== null && currentUserCue.options[selectedHint] && (
-                <div className={styles.exampleCard}>
-                  <div className={styles.exampleText}>
-                    {currentUserCue.options[selectedHint].example}
-                  </div>
+              <div className={styles.exampleCard}>
+                <div className={styles.exampleText}>
+                  {currentUserCue.options[0].example}
                 </div>
-              )}
+              </div>
             </div>
           )}
 
@@ -939,15 +877,7 @@ function ChatPage() {
                 </div>
                 <button
                   className={styles.micButton}
-                  onClick={() => {
-                    // 暂时用第一个 example 作为发言内容（真实场景接 STT）
-                    // 如果选了 hint pill，优先用 example，否则提示打字
-                    if (selectedHint !== null && currentUserCue?.options?.[selectedHint]) {
-                      handleUserSubmit(currentUserCue.options[selectedHint].example);
-                    } else {
-                      setTypeMode(true);
-                    }
-                  }}
+                  onClick={() => setTypeMode(true)}
                   disabled={isSubmitting}
                 >
                   <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round">
@@ -978,10 +908,7 @@ function ChatPage() {
                 </button>
                 <button
                   className={`${styles.bulbBtn} ${hintOpen ? styles.bulbBtnOn : styles.bulbBtnOff}`}
-                  onClick={() => {
-                    setHintOpen(h => !h);
-                    if (hintOpen) setSelectedHint(null);
-                  }}
+                  onClick={() => setHintOpen(h => !h)}
                 >
                   <span className={`${styles.bulbEmoji} ${!hintOpen ? styles.bulbEmojiIdle : ''}`}>💡</span>
                   <span>提示</span>

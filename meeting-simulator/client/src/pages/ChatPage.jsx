@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
-import UserInput from '../components/UserInput.jsx';
 import { joinChat, respondChat, completeChat, textToSpeech, generateHint } from '../api/index.js';
 import styles from './ChatPage.module.css';
 
@@ -153,8 +152,14 @@ function ChatPage() {
   // 参考说法加载中
   const [hintLoading, setHintLoading] = useState(false);
 
+  // ── done 阶段，completeChat 是否还在进行中（禁用按钮用）──
+  const [isCompleting, setIsCompleting] = useState(false);
+
   // ── 发言模式：是否切换到打字输入 ──
   const [typeMode, setTypeMode] = useState(false);
+  // ── 文字输入模式下的文本内容 ──
+  const [typeText, setTypeText] = useState('');
+  const typeTextareaRef = useRef(null);
 
   // ── 发言模式：麦克风区收起状态 ──
   const [micCollapsed, setMicCollapsed] = useState(false);
@@ -557,19 +562,18 @@ function ChatPage() {
           waitingTapRef.current = true;
         });
         if (!shouldContinueRef.current) return;
+        // 先进 done 显示按钮（loading 状态），后台 await completeChat
+        // 完成后 setIsCompleting(false) 按钮才可点击，避免提前跳转
         setPhase('done');
-        await sleep(800);
+        setIsCompleting(true);
+        await sleep(500);
         try {
           await completeChat(sessionData.chatSessionId);
-          navigate(`/settlement/${sessionData.chatSessionId}`, { replace: true });
+          if (!shouldContinueRef.current) return;
         } catch (err) {
           console.warn('[ChatPage] completeChat 失败:', err.message);
-          appendMessage({
-            id: `err-complete-${Date.now()}`,
-            type: 'system',
-            text: '结算失败，请稍后点击返回重试',
-            isError: true,
-          });
+        } finally {
+          if (shouldContinueRef.current) setIsCompleting(false);
         }
       } else {
         // 继续脚本
@@ -898,21 +902,85 @@ function ChatPage() {
           {/* 打字输入模式 */}
           {typeMode ? (
             <div className={styles.typeInputArea}>
-              <UserInput
-                placeholder="用英语回复..."
-                onSubmit={(text) => {
-                  setTypeMode(false);
-                  handleUserSubmit(text);
-                }}
-                disabled={isSubmitting}
-              />
-              <button
-                className={styles.keyboardBtn}
-                style={{ marginTop: 8, width: '100%', justifyContent: 'center' }}
-                onClick={() => setTypeMode(false)}
-              >
-                切换回语音
-              </button>
+              {/* 输入行：[麦克风图标] [输入框] [发送按钮] */}
+              <div className={styles.typeInputRow}>
+                {/* 左侧麦克风图标：点击切回语音模式 */}
+                <button
+                  type="button"
+                  className={styles.typeMicIcon}
+                  onClick={() => setTypeMode(false)}
+                  aria-label="切回语音模式"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                    <line x1="12" y1="19" x2="12" y2="23" />
+                    <line x1="8" y1="23" x2="16" y2="23" />
+                  </svg>
+                </button>
+
+                {/* 文字输入框 */}
+                <textarea
+                  ref={typeTextareaRef}
+                  className={styles.typeTextarea}
+                  value={typeText}
+                  onChange={(e) => {
+                    setTypeText(e.target.value);
+                    // 自动撑高
+                    const ta = e.target;
+                    ta.style.height = 'auto';
+                    ta.style.height = Math.min(ta.scrollHeight, 120) + 'px';
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      const trimmed = typeText.trim();
+                      if (trimmed && !isSubmitting) {
+                        setTypeText('');
+                        if (typeTextareaRef.current) typeTextareaRef.current.style.height = 'auto';
+                        setTypeMode(false);
+                        handleUserSubmit(trimmed);
+                      }
+                    }
+                  }}
+                  placeholder="用英语回复..."
+                  disabled={isSubmitting}
+                  rows={1}
+                />
+
+                {/* 发送按钮 */}
+                <button
+                  type="button"
+                  className={`${styles.typeSendBtn} ${typeText.trim() ? styles.typeSendBtnActive : ''}`}
+                  disabled={isSubmitting || !typeText.trim()}
+                  onClick={() => {
+                    const trimmed = typeText.trim();
+                    if (!trimmed) return;
+                    setTypeText('');
+                    if (typeTextareaRef.current) typeTextareaRef.current.style.height = 'auto';
+                    setTypeMode(false);
+                    handleUserSubmit(trimmed);
+                  }}
+                  aria-label="发送"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 2L11 13" />
+                    <path d="M22 2L15 22L11 13L2 9L22 2Z" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* 底部"提示"入口（与语音模式行为一致）*/}
+              <div className={styles.typeBottomRow}>
+                <button
+                  type="button"
+                  className={`${styles.bulbBtn} ${hintOpen ? styles.bulbBtnOn : styles.bulbBtnOff}`}
+                  onClick={() => setHintOpen(h => !h)}
+                >
+                  <span className={`${styles.bulbEmoji} ${!hintOpen ? styles.bulbEmojiIdle : ''}`}>💡</span>
+                  <span>提示</span>
+                </button>
+              </div>
             </div>
           ) : (
             <>
@@ -946,12 +1014,12 @@ function ChatPage() {
                 <button
                   className={styles.keyboardBtn}
                   onClick={() => setTypeMode(true)}
+                  aria-label="切换到打字模式"
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                     <rect x="2" y="4" width="20" height="16" rx="2" />
                     <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M8 16h8" />
                   </svg>
-                  <span>打字</span>
                 </button>
                 <button
                   className={`${styles.bulbBtn} ${hintOpen ? styles.bulbBtnOn : styles.bulbBtnOff}`}
@@ -972,15 +1040,15 @@ function ChatPage() {
           {isDone ? (
             <button
               className={styles.doneButton}
+              disabled={isCompleting}
               onClick={(e) => {
                 e.stopPropagation();
-                if (sessionData?.chatSessionId) {
-                  completeChat(sessionData.chatSessionId).catch(() => {});
-                  navigate(`/settlement/${sessionData.chatSessionId}`, { replace: true });
-                }
+                if (!sessionData?.chatSessionId || isCompleting) return;
+                // complete 已在 handleUserSubmit 里 await 完成，这里只跳转
+                navigate(`/settlement/${sessionData.chatSessionId}`, { replace: true });
               }}
             >
-              查看结算
+              {isCompleting ? '正在结算中...' : '查看结算'}
             </button>
           ) : phase === 'dots' ? (
             <div className={styles.statusText}>

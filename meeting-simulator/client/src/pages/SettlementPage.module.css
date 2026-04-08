@@ -37,7 +37,7 @@
   padding: 20px 20px 0;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 24px;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -45,7 +45,7 @@
 .newsCard {
   background: #fff;
   border-radius: 16px;
-  padding: 24px 20px;
+  padding: 24px 22px;
   border: 1px solid rgba(0, 0, 0, 0.06);
   animation: fadeUp 0.5s ease both;
 }
@@ -80,8 +80,8 @@
 .newsBullets {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-bottom: 20px;
+  gap: 10px;
+  margin-bottom: 22px;
 }
 
 .newsBulletItem {
@@ -109,43 +109,68 @@
 .divider {
   height: 1px;
   background: rgba(0, 0, 0, 0.06);
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 
 /* 能力值标签 */
 .statsLabel {
   font-size: 12px;
   color: #999;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
-/* 能力值横排 */
+/* 能力值横排（pill 标签）*/
 .statsRow {
   display: flex;
-  gap: 16px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
-.statItem {
+/* ===== Pill 标签 ===== */
+.statPill {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 20px;
 }
 
-.statName {
-  font-size: 14px;
-  color: #333;
+.statPillName {
+  font-size: 13px;
+  color: #555;
 }
 
-.statPlus {
-  font-size: 14px;
+.statPillValue {
+  font-size: 13px;
   font-weight: 700;
+}
+
+/* Pill 颜色变体 */
+.statPill_green {
+  background: rgba(26, 138, 110, 0.08);
+}
+.statPill_green .statPillValue {
   color: #1A8A6E;
 }
 
-.statMinus {
-  font-size: 14px;
-  font-weight: 700;
+.statPill_purple {
+  background: rgba(124, 92, 191, 0.08);
+}
+.statPill_purple .statPillValue {
+  color: #7C5CBF;
+}
+
+.statPill_gold {
+  background: rgba(184, 134, 11, 0.08);
+}
+.statPill_gold .statPillValue {
+  color: #B8860B;
+}
+
+.statPill_red {
+  background: rgba(200, 75, 49, 0.08);
+}
+.statPill_red .statPillValue {
   color: #C84B31;
 }
 
@@ -153,7 +178,7 @@
 .expressionSection {
   background: #fff;
   border-radius: 16px;
-  padding: 20px;
+  padding: 22px;
   border: 1px solid rgba(0, 0, 0, 0.06);
   animation: fadeUp 0.5s ease 0.15s both;
   /* overflow hidden 避免滑动时卡片超出圆角 */
@@ -165,7 +190,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
   font-size: 15px;
   font-weight: 700;
   color: #1a1a1a;
@@ -179,25 +204,24 @@
 .expressionCard {
   display: flex;
   flex-direction: column;
-  gap: 4px;
 }
 
 /* "你说的" 区块 */
 .userSaidBlock {
-  margin-bottom: 4px;
+  margin-bottom: 14px;
 }
 
 .labelSm {
   font-size: 11px;
   color: #999;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .userSaidText {
-  font-size: 15px;
+  font-size: 14px;
   color: #666;
-  line-height: 1.5;
-  padding: 10px 14px;
+  line-height: 1.6;
+  padding: 12px 14px;
   background: rgba(0, 0, 0, 0.02);
   border-radius: 10px;
 }
@@ -207,12 +231,12 @@
   text-align: center;
   font-size: 14px;
   color: #7C5CBF;
-  margin: 4px 0;
+  margin: 2px 0 6px;
 }
 
 /* 改进版本区块 */
 .betterBlock {
-  margin-bottom: 8px;
+  margin-bottom: 14px;
 }
 
 /* feedbackType 标签（紫色）*/
@@ -220,17 +244,17 @@
   font-size: 11px;
   font-weight: 600;
   color: #7C5CBF;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 /* 改进版本文本：紫色淡背景 + 左边框 */
 .betterText {
-  font-size: 15px;
+  font-size: 14px;
   color: #1a1a1a;
-  line-height: 1.5;
+  line-height: 1.6;
   font-weight: 500;
-  padding: 10px 14px;
-  background: rgba(124, 92, 191, 0.05);
+  padding: 12px 14px;
+  background: rgba(124, 92, 191, 0.04);
   border-radius: 10px;
   border-left: 3px solid #7C5CBF;
 }
@@ -240,7 +264,7 @@
   font-size: 12px;
   color: #888;
   line-height: 1.6;
-  padding: 8px 12px;
+  padding: 10px 12px;
   background: rgba(0, 0, 0, 0.02);
   border-radius: 8px;
 }

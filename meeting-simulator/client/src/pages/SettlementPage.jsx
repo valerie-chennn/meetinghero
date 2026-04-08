@@ -80,48 +80,60 @@ function ExpressionCardSlider({ cards }) {
   // 是否正在拖拽（拖拽中不加 transition）
   const [dragging, setDragging] = useState(false);
 
+  // 用 ref 同步存储拖拽状态，避免 stale closure 导致 touchmove 首帧 bailout
+  const draggingRef = useRef(false);
+  const dragXRef = useRef(0);
   const startXRef = useRef(0);
   const containerRef = useRef(null);
   // 卡片宽度（动态读取容器宽度）
-  const cardWidthRef = useRef(0);
+  const [cardWidth, setCardWidth] = useState(0);
 
   // 读取容器宽度
   useEffect(() => {
     if (containerRef.current) {
-      cardWidthRef.current = containerRef.current.offsetWidth;
+      setCardWidth(containerRef.current.offsetWidth);
     }
+    const onResize = () => {
+      if (containerRef.current) setCardWidth(containerRef.current.offsetWidth);
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
   }, []);
 
   const onStart = (x) => {
     startXRef.current = x;
+    draggingRef.current = true;
     setDragging(true);
   };
 
   const onMove = (x) => {
-    if (!dragging) return;
-    setDragX(x - startXRef.current);
+    if (!draggingRef.current) return;
+    const dx = x - startXRef.current;
+    dragXRef.current = dx;
+    setDragX(dx);
   };
 
   const onEnd = () => {
-    if (!dragging) return;
+    if (!draggingRef.current) return;
+    draggingRef.current = false;
     setDragging(false);
 
-    const cardW = cardWidthRef.current || 300;
-    const threshold = cardW * 0.2;
+    const cardW = cardWidth || 300;
+    const threshold = cardW * 0.15;
+    const dx = dragXRef.current;
 
-    if (dragX < -threshold && activeIndex < cards.length - 1) {
+    if (dx < -threshold && activeIndex < cards.length - 1) {
       // 左滑，切到下一张
       setActiveIndex(i => i + 1);
-    } else if (dragX > threshold && activeIndex > 0) {
+    } else if (dx > threshold && activeIndex > 0) {
       // 右滑，切到上一张
       setActiveIndex(i => i - 1);
-    } else {
-      // 未达到阈值，弹回（dragX 归零后 transition 自动完成动画）
     }
+    dragXRef.current = 0;
     setDragX(0);
   };
 
-  const translateX = -activeIndex * (cardWidthRef.current || 300) + dragX;
+  const translateX = -activeIndex * (cardWidth || 300) + dragX;
 
   return (
     <div className={styles.sliderWrapper}>
@@ -133,7 +145,7 @@ function ExpressionCardSlider({ cards }) {
         onTouchMove={(e) => onMove(e.touches[0].clientX)}
         onTouchEnd={onEnd}
         onMouseDown={(e) => onStart(e.clientX)}
-        onMouseMove={(e) => { if (dragging) onMove(e.clientX); }}
+        onMouseMove={(e) => { if (draggingRef.current) onMove(e.clientX); }}
         onMouseUp={onEnd}
         onMouseLeave={onEnd}
       >
@@ -289,14 +301,21 @@ function SettlementPage() {
               {/* 你的能力值 */}
               <div className={styles.statsLabel}>你的能力值</div>
               <div className={styles.statsRow}>
-                {absurdAttributes.map((attr, i) => (
-                  <div key={i} className={styles.statItem}>
-                    <span className={styles.statName}>{attr.name}</span>
-                    <span className={attr.delta > 0 ? styles.statPlus : styles.statMinus}>
-                      {attr.delta > 0 ? '+' : ''}{attr.delta}
-                    </span>
-                  </div>
-                ))}
+                {absurdAttributes.map((attr, i) => {
+                  // 正向属性按索引轮换 3 种颜色；负向统一红色
+                  const positivePalette = ['green', 'purple', 'gold'];
+                  const variant = attr.delta >= 0
+                    ? positivePalette[i % positivePalette.length]
+                    : 'red';
+                  return (
+                    <div key={i} className={`${styles.statPill} ${styles['statPill_' + variant]}`}>
+                      <span className={styles.statPillName}>{attr.name}</span>
+                      <span className={styles.statPillValue}>
+                        {attr.delta > 0 ? '+' : ''}{attr.delta}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 

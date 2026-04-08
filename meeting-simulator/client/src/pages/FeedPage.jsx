@@ -337,7 +337,8 @@ function FeedPage() {
                               >
                                 {item.npcAName}
                               </span>
-                              <p className={styles.commentText}>{item.npcAReaction}</p>
+                              <p className={styles.commentTextEn}>{item.npcAReactionEn || item.npcAReaction}</p>
+                              <p className={styles.commentTextZh}>{item.npcAReaction}</p>
                             </div>
                           </div>
                           {/* NPC B */}
@@ -355,7 +356,8 @@ function FeedPage() {
                               >
                                 {item.npcBName}
                               </span>
-                              <p className={styles.commentText}>{item.npcBReaction}</p>
+                              <p className={styles.commentTextEn}>{item.npcBReactionEn || item.npcBReaction}</p>
+                              <p className={styles.commentTextZh}>{item.npcBReaction}</p>
                             </div>
                           </div>
                         </div>
@@ -373,7 +375,7 @@ function FeedPage() {
                         className={styles.joinButton}
                         onClick={() => handleJoinChat(item.roomId)}
                       >
-                        加入讨论 · Join Chat
+                        Join Chat
                       </button>
 
                       {/* 上划提示 */}

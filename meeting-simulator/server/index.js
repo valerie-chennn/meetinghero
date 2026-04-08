@@ -14,13 +14,7 @@ const path = require('path');
 require('./db');
 
 // 导入路由
-const onboardingRouter = require('./routes/onboarding');
-const meetingRouter = require('./routes/meeting');
-const reviewRouter = require('./routes/review');
 const speechRouter = require('./routes/speech');
-const uploadRouter = require('./routes/upload');
-const historyRouter = require('./routes/history');
-const brainstormRouter = require('./routes/brainstorm');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -52,13 +46,7 @@ app.use((req, res, next) => {
 
 // ==================== 路由挂载 ====================
 
-app.use('/api/onboarding', onboardingRouter);
-app.use('/api/meeting', meetingRouter);
-app.use('/api/review', reviewRouter);
 app.use('/api/speech', speechRouter);
-app.use('/api/upload', uploadRouter);
-app.use('/api/history', historyRouter);
-app.use('/api/brainstorm', brainstormRouter);
 
 // ==================== v2 推流版路由 ====================
 const v2UsersRouter = require('./routes/v2-users');

@@ -835,8 +835,21 @@ function ChatPage() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* ===== 发言模式分割线（收起时隐藏）===== */}
-      {isMicMode && !micCollapsed && <div className={styles.divider} />}
+      {/* ===== 发言模式分割线 = 拖拽把手（收起时隐藏）===== */}
+      {isMicMode && !micCollapsed && (
+        <div
+          className={styles.dividerHandle}
+          onTouchStart={handleDragStart}
+          onTouchMove={handleDragMove}
+          onTouchEnd={handleDragEnd}
+          onMouseDown={handleDragStart}
+          onMouseMove={handleDragMove}
+          onMouseUp={handleDragEnd}
+          onMouseLeave={handleDragEnd}
+        >
+          <div className={styles.dragHandleBar} />
+        </div>
+      )}
 
       {/* ===== 底部区域 ===== */}
       {isMicMode ? (
@@ -863,22 +876,10 @@ function ChatPage() {
           className={styles.speakMode}
           style={{
             transform: `translateY(${micDragY}px)`,
-            // 拖拽中无 transition，松手后弹回/收起有动画
             transition: isDraggingRef.current ? 'none' : 'transform 0.3s ease',
           }}
           onClick={(e) => e.stopPropagation()}
-          onTouchStart={handleDragStart}
-          onTouchMove={handleDragMove}
-          onTouchEnd={handleDragEnd}
-          onMouseDown={handleDragStart}
-          onMouseMove={handleDragMove}
-          onMouseUp={handleDragEnd}
-          onMouseLeave={handleDragEnd}
         >
-          {/* 顶部拖拽把手 */}
-          <div className={styles.dragHandle}>
-            <div className={styles.dragHandleBar} />
-          </div>
           {/* 💡提示展开区 */}
           {hintOpen && currentUserCue?.options && (
             <div className={styles.hintArea}>

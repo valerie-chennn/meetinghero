@@ -103,11 +103,20 @@
   gap: 6px;
 }
 
-/* ===== 分割线（发言模式）===== */
-.divider {
-  height: 1px;
-  background: rgba(0, 0, 0, 0.06);
+/* ===== 分割线 = 拖拽把手（发言模式）===== */
+.dividerHandle {
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 0;
+  cursor: grab;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  background: #F5F0EB;
+}
+
+.dividerHandle:active {
+  cursor: grabbing;
 }
 
 /* ===== 系统消息 ===== */
@@ -377,16 +386,6 @@
   justify-content: center;
   padding: 0 24px 20px;
   animation: slideUp 0.4s ease;
-}
-
-/* 麦克风区顶部拖拽把手 */
-.dragHandle {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  padding: 8px 0 4px;
-  flex-shrink: 0;
-  cursor: grab;
 }
 
 .dragHandleBar {

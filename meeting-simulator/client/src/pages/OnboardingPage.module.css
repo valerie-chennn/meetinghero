@@ -1,182 +1,115 @@
-/* ===== OnboardingPage — 简化版，仅填花名 ===== */
+/* ===== OnboardingPage — 花名页 ===== */
 
+/* 页面容器：撑满手机壳高度，暖米色背景 */
 .container {
-  --brand: #4F46E5;
-  --brand-dark: #4338CA;
-  --brand-light: #EEF2FF;
-  --brand-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
-  --success: #10B981;
-  --success-shadow: 0 8px 24px rgba(16, 185, 129, 0.28);
-  --success-shadow-hover: 0 12px 32px rgba(16, 185, 129, 0.36);
-  /* 报纸暖色系 */
-  --input-border: rgba(0, 0, 0, 0.12);
-  --placeholder: #999999;
-  --chip-bg: rgba(0, 0, 0, 0.04);
-  --chip-text: #666666;
-
-  max-width: 430px;
-  margin: 0 auto;
   width: 100%;
-  min-height: 100vh;
-  min-height: 100dvh;
+  height: 100%;
+  background: #F5F0EB;
+  font-family: 'Noto Sans SC', sans-serif;
+  overflow: hidden;
+}
+
+/* 内容区：偏上布局，左右内边距 */
+.content {
+  padding: 100px 32px 0;
   display: flex;
   flex-direction: column;
+}
+
+/* 大标题：Noto Serif SC 900，左对齐 */
+.title {
+  font-size: 32px;
+  font-family: 'Noto Serif SC', serif;
+  font-weight: 900;
+  color: #1a1a1a;
+  line-height: 1.2;
+  margin: 0 0 48px 0;
+}
+
+/* 输入框 + 骰子同行白色容器 */
+.inputRow {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border-radius: 14px;
+  border: 1.5px solid rgba(0, 0, 0, 0.08);
+  padding: 4px 4px 4px 16px;
+  margin-bottom: 24px;
+}
+
+/* 文字输入框：无边框，透明背景 */
+.textInput {
+  flex: 1;
+  padding: 12px 0;
+  font-size: 18px;
+  font-weight: 500;
+  font-family: 'Noto Sans SC', sans-serif;
+  color: #1a1a1a;
+  background: transparent;
+  border: none;
+  outline: none;
+  min-width: 0;
+}
+
+/* placeholder 灰色 */
+.textInput::placeholder {
+  color: #aaa;
+}
+
+/* 骰子按钮：44x44 圆角方块 */
+.diceBtn {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  border: none;
+  background: rgba(0, 0, 0, 0.04);
+  cursor: pointer;
+  display: flex;
   align-items: center;
   justify-content: center;
-  /* 深色主题：继承全局 --bg-base */
-  background: var(--bg-base);
-  padding: var(--space-6);
+  font-size: 20px;
+  transition: background 0.15s;
 }
 
-/* 内容区居中，最大宽度 360px */
-.content {
-  width: 100%;
-  max-width: 360px;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
+.diceBtn:active {
+  background: rgba(0, 0, 0, 0.10);
 }
 
-/* ===== 头部 ===== */
-.header {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-3);
-  text-align: center;
-}
-
-.logo {
-  font-size: 48px;
-  line-height: 1;
-  animation: fadeInUp 400ms var(--ease-out) both;
-}
-
-.title {
-  font-size: var(--font-2xl);
-  font-weight: 700;
-  color: var(--text-primary);
-  animation: fadeInUp 400ms var(--ease-out) 100ms both;
-}
-
-.desc {
-  font-size: var(--font-base);
-  color: var(--text-muted);
-  animation: fadeInUp 400ms var(--ease-out) 150ms both;
-}
-
-/* ===== 输入框 ===== */
-.inputGroup {
-  animation: fadeInUp 400ms var(--ease-out) 200ms both;
-}
-
-.textInput {
-  width: 100%;
-  height: 52px;
-  /* 报纸暖色系：白色输入框 */
-  background: var(--bg-surface);
-  color: var(--text-primary);
-  font-size: var(--font-md);
-  padding: 0 16px;
-  border-radius: var(--radius-lg);
-  border: 1.5px solid var(--input-border);
-  box-shadow: var(--shadow-sm);
-  transition: border-color 200ms var(--ease-standard),
-              box-shadow 200ms var(--ease-standard);
-  outline: none;
-}
-
-.textInput:focus {
-  border-color: var(--brand);
-  border-width: 2px;
-  box-shadow: var(--brand-shadow);
-}
-
-.textInput::placeholder {
-  color: var(--placeholder);
-}
-
-/* ===== 推荐 chips ===== */
-.chipsRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  animation: fadeInUp 400ms var(--ease-out) 250ms both;
-}
-
-.chip {
-  height: 36px;
-  padding: 0 14px;
-  font-size: var(--font-sm);
-  color: var(--chip-text);
-  background: var(--chip-bg);
-  border-radius: var(--radius-full);
-  border: 1.5px solid transparent;
-  transition: background 200ms ease-out, color 200ms ease-out,
-              border-color 200ms ease-out;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-}
-
-.chip:hover {
-  /* 报纸暖色系 hover */
-  background: rgba(0, 0, 0, 0.08);
-  color: var(--text-primary);
-}
-
-.chipActive {
-  background: var(--brand);
-  color: #FFFFFF;
-  border-color: var(--brand);
-}
-
-.chipActive:hover {
-  background: var(--brand-dark);
-  border-color: var(--brand-dark);
-  color: #FFFFFF;
-}
-
-/* ===== 开始按钮 ===== */
+/* 开始胡说按钮：全宽深色 */
 .startButton {
   width: 100%;
-  height: 52px;
-  border-radius: var(--radius-lg);
-  font-size: var(--font-md);
-  font-weight: 600;
+  padding: 16px 0;
+  border-radius: 14px;
+  border: none;
+  background: #1a1a1a;
+  color: #F5F0EB;
+  font-size: 16px;
+  font-weight: 700;
+  font-family: 'Noto Sans SC', sans-serif;
+  letter-spacing: 1px;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 250ms ease-out, transform 250ms ease-out,
-              box-shadow 250ms ease-out, opacity 250ms ease-out;
-  cursor: pointer;
-  opacity: 0.4;
-  /* 报纸暖色系禁用态 */
-  background: rgba(0, 0, 0, 0.06);
-  color: #999999;
-  animation: fadeInUp 400ms var(--ease-out) 300ms both;
+  transition: transform 0.1s;
 }
 
-button.startButton:disabled {
+.startButton:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.startButton:disabled {
   cursor: not-allowed;
-  transform: none !important;
+  opacity: 0.6;
 }
 
-.startButtonActive {
-  opacity: 1;
-  background: var(--success);
-  color: #FFFFFF;
-  box-shadow: var(--success-shadow);
-}
-
-.startButtonActive:hover:not(:disabled) {
-  background: #0EA472;
-  transform: translateY(-1px);
-  box-shadow: var(--success-shadow-hover);
-}
-
-.startButtonActive:active:not(:disabled) {
-  transform: translateY(0) scale(0.98);
+/* 错误提示 */
+.errorMsg {
+  font-size: 14px;
+  color: #EF4444;
+  text-align: center;
+  margin-top: 12px;
 }
 
 /* ===== 加载三点动画 ===== */
@@ -190,20 +123,12 @@ button.startButton:disabled {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #FFFFFF;
-  animation: dotBounce 1.2s var(--ease-standard) infinite;
+  background: #F5F0EB;
+  animation: dotBounce 1.2s ease-in-out infinite;
 }
 
 .loadingDots span:nth-child(2) { animation-delay: 0.2s; }
 .loadingDots span:nth-child(3) { animation-delay: 0.4s; }
-
-/* ===== 错误提示 ===== */
-.errorMsg {
-  font-size: var(--font-sm);
-  color: #EF4444;
-  text-align: center;
-  margin-top: calc(var(--space-2) * -1);
-}
 
 @keyframes dotBounce {
   0%, 100% {

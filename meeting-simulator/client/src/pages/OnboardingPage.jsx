@@ -1,29 +1,60 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
 import { initUser } from '../api/index.js';
 import styles from './OnboardingPage.module.css';
 
-// 推荐花名列表
-const NAME_SUGGESTIONS = ['Alex', 'Chris', 'Taylor', 'Sam', 'Jamie', 'Jordan'];
+// 形容词池
+const ADJ = [
+  'Sleepy', 'Curious', 'Clueless', 'Brave', 'Lazy', 'Dramatic',
+  'Sneaky', 'Reckless', 'Polite', 'Grumpy', 'Cheerful', 'Confused',
+  'Bold', 'Gentle', 'Chaotic', 'Hungry',
+];
+
+// 荒诞身份池
+const NOUN = [
+  'Intern', 'Diplomat', 'Spy', 'Accountant', 'Witness', 'Consultant',
+  'Janitor', 'CEO', 'Penguin', 'Lobster', 'Toaster', 'Astronaut',
+  'Pirate', 'Professor', 'Detective', 'Ghost',
+];
+
+// 随机生成花名：80% 形容词+身份，10% 只出身份，10% 只出形容词
+function genName() {
+  const r = Math.random();
+  if (r < 0.1) return NOUN[Math.floor(Math.random() * NOUN.length)];
+  if (r < 0.2) return ADJ[Math.floor(Math.random() * ADJ.length)];
+  return ADJ[Math.floor(Math.random() * ADJ.length)] + ' ' + NOUN[Math.floor(Math.random() * NOUN.length)];
+}
 
 function OnboardingPage() {
   const navigate = useNavigate();
   const { state, updateState } = useApp();
-  const [userName, setUserName] = useState('');
+  const [typed, setTyped] = useState('');
+  const [placeholder, setPlaceholder] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // 提交花名，调用真实 API /api/v2/users/init
+  // 页面加载时生成初始 placeholder
+  useEffect(() => {
+    setPlaceholder(genName());
+  }, []);
+
+  // 点骰子：直接替换 placeholder
+  const handleRoll = () => {
+    setPlaceholder(genName());
+  };
+
+  // 提交花名：有输入用输入的，没输入用当前 placeholder
   const handleStart = async () => {
-    const trimmed = userName.trim();
-    if (!trimmed || isLoading) return;
+    if (isLoading) return;
+    const finalName = typed.trim() || placeholder;
+    if (!finalName) return;
 
     setIsLoading(true);
     setErrorMsg('');
     try {
-      await initUser(state.userId, trimmed);
-      updateState({ userName: trimmed });
+      await initUser(state.userId, finalName);
+      updateState({ userName: finalName });
       navigate('/feed');
     } catch (err) {
       console.error('初始化用户失败:', err);
@@ -41,58 +72,49 @@ function OnboardingPage() {
   return (
     <div className={styles.container}>
       <div className={styles.content}>
-        {/* 标题区 */}
-        <div className={styles.header}>
-          <div className={styles.logo}>💬</div>
-          <h1 className={styles.title}>加入每日胡说</h1>
-          <p className={styles.desc}>起一个花名，让大家记住你</p>
-        </div>
 
-        {/* 输入框 */}
-        <div className={styles.inputGroup}>
+        {/* 大标题 */}
+        <h1 className={styles.title}>你的花名</h1>
+
+        {/* 输入框 + 骰子同行容器 */}
+        <div className={styles.inputRow}>
           <input
             className={styles.textInput}
             type="text"
-            placeholder="输入你的花名…"
-            value={userName}
-            onChange={e => setUserName(e.target.value)}
+            value={typed}
+            onChange={e => setTyped(e.target.value)}
             onKeyDown={handleKeyDown}
+            placeholder={placeholder}
             autoComplete="off"
-            autoFocus
-            maxLength={20}
+            maxLength={30}
           />
+          <button
+            className={styles.diceBtn}
+            onClick={handleRoll}
+            aria-label="换一个花名"
+          >
+            🎲
+          </button>
         </div>
 
-        {/* 推荐花名 chips */}
-        <div className={styles.chipsRow}>
-          {NAME_SUGGESTIONS.map(s => (
-            <button
-              key={s}
-              className={`${styles.chip} ${userName === s ? styles.chipActive : ''}`}
-              onClick={() => setUserName(s)}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-
-        {/* 开始按钮 */}
+        {/* 开始胡说按钮 */}
         <button
-          className={`${styles.startButton} ${userName.trim() && !isLoading ? styles.startButtonActive : ''}`}
+          className={styles.startButton}
           onClick={handleStart}
-          disabled={!userName.trim() || isLoading}
+          disabled={isLoading}
         >
           {isLoading ? (
             <span className={styles.loadingDots}>
               <span></span><span></span><span></span>
             </span>
-          ) : '进入每日胡说'}
+          ) : '开始胡说'}
         </button>
 
         {/* 错误提示 */}
         {errorMsg && (
           <p className={styles.errorMsg}>{errorMsg}</p>
         )}
+
       </div>
     </div>
   );

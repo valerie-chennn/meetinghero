@@ -509,13 +509,20 @@ function ChatPage() {
         id: `npc-reply-${Date.now()}`,
       });
       setPhase('typing_en');
+      // 开始播放 TTS（与打字机同步）
+      const ttsPromise = playTts(result.npcReply.text, replyVoiceId);
 
-      // 等打字机完成（等待 phase 变成 wait_tap）
-      await waitForPhase('wait_tap');
+      // 逐步等打字机完成：typing_en → typing_zh → typing_done
+      await waitForPhase('typing_zh');
+      if (!shouldContinueRef.current) return;
+      await waitForPhase('typing_done');
       if (!shouldContinueRef.current) return;
 
-      // 推入消息历史，清空 pendingNpcReply
-      // 注意：不能在 setter 内部调用另一个 setter，需要先读值再分步更新
+      // 等 TTS 播完（气泡在 typing_done 阶段保持高亮色）
+      await ttsPromise;
+      if (!shouldContinueRef.current) return;
+
+      // TTS + 打字机都完成，推入消息历史（白色气泡）
       const pendingMsg = {
         id: `npc-reply-${Date.now()}`,
         type: 'npc',
@@ -529,9 +536,6 @@ function ChatPage() {
       setPendingNpcReply(null);
       appendMessage(pendingMsg);
       setPhase('wait_tap');
-
-      // 播放 TTS
-      playTts(result.npcReply.text, replyVoiceId);
 
       // 更新发言次数
       setUserTurnCount(currentTurnCount);
@@ -771,7 +775,7 @@ function ChatPage() {
       >
         {/* 已完成消息 */}
         {messages.map(msg => (
-          <MessageBubble key={msg.id} msg={msg} />
+          <MessageBubble key={msg.id} msg={msg} userName={state.userName} />
         ))}
 
         {/* ── dots 阶段：显示跳动三点 ── */}
@@ -818,7 +822,8 @@ function ChatPage() {
                 )}
                 {(phase === 'typing_zh' || phase === 'typing_done') && (
                   <>
-                    <div className={styles.bubbleEn}>{typingSource.en}</div>
+                    {/* typing_zh/done 阶段英文已完成，替换 @{username} 为高亮花名 */}
+                    <div className={styles.bubbleEn}>{renderTextWithMention(typingSource.en, state.userName)}</div>
                     {phase === 'typing_zh' ? (
                       <Typewriter
                         text={typingSource.zh || ''}
@@ -827,7 +832,8 @@ function ChatPage() {
                         className={styles.bubbleZh}
                       />
                     ) : (
-                      <div className={styles.bubbleZh}>{typingSource.zh}</div>
+                      /* typing_done 阶段中文也已完成，替换 @{username} */
+                      <div className={styles.bubbleZh}>{renderTextWithMention(typingSource.zh, state.userName)}</div>
                     )}
                   </>
                 )}
@@ -1035,8 +1041,31 @@ function ChatPage() {
   );
 }
 
+// ===== @{username} 替换为带紫色高亮的 React 元素 =====
+// 把文本中的 @{username} 占位符替换为用户花名，紫色高亮
+function renderTextWithMention(text, userName) {
+  if (!text || !text.includes('@{username}')) return text;
+  const parts = text.split('@{username}');
+  const result = [];
+  parts.forEach((part, idx) => {
+    if (part) result.push(part);
+    // 最后一段后面不再插入 @
+    if (idx < parts.length - 1) {
+      result.push(
+        <span
+          key={`mention-${idx}`}
+          style={{ color: '#7C5CBF', fontWeight: 600 }}
+        >
+          @{userName || 'you'}
+        </span>
+      );
+    }
+  });
+  return result;
+}
+
 // ===== 单条消息气泡组件 =====
-function MessageBubble({ msg }) {
+function MessageBubble({ msg, userName }) {
   if (msg.type === 'system') {
     return (
       <div className={`${styles.systemMessage} ${msg.isError ? styles.systemMessageError : ''}`}>
@@ -1075,8 +1104,9 @@ function MessageBubble({ msg }) {
             {msg.speakerName || msg.speaker}
           </div>
           <div className={styles.npcBubble}>
-            <div className={styles.bubbleEn}>{msg.en}</div>
-            {msg.zh && <div className={styles.bubbleZh}>{msg.zh}</div>}
+            {/* renderTextWithMention 把 @{username} 替换为紫色高亮的用户花名 */}
+            <div className={styles.bubbleEn}>{renderTextWithMention(msg.en, userName)}</div>
+            {msg.zh && <div className={styles.bubbleZh}>{renderTextWithMention(msg.zh, userName)}</div>}
             {/* 小喇叭 TTS 图标（可点击重听）*/}
             <div className={styles.ttsIconRow}>
               <TtsIconButton text={msg.en} voiceId={msg.voiceId} />

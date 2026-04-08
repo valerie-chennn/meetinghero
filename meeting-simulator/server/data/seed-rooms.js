@@ -39,7 +39,7 @@ const SEED_ROOMS = [
       { type: 'system', text: '你被拉入群聊「取经项目推进群（已解散待定）」' },
       { type: 'npc', speaker: 'npc_a', text: "Have you guys seen the news? Someone posted our horse on a secondhand app. Two thousand dollars.", textZh: '你们看到新闻了吗？有人把我们的马挂到二手平台上了。两万块。' },
       { type: 'npc', speaker: 'npc_b', text: "I am RIGHT HERE. And I have a name. It is not 'our horse.'", textZh: '我就在这里。我是有名字的。不叫"我们的马"。' },
-      { type: 'npc', speaker: 'npc_a', text: "The listing says 'eats a lot, low output.' That is honestly accurate though.", textZh: '那个描述写的是"食量大，产出低"。说实话这个描述还挺准的。' },
+      { type: 'npc', speaker: 'npc_a', text: "The listing says 'eats a lot, low output.' That is honestly accurate though. @{username} tell him those are just facts!", textZh: '那个描述写的是"食量大，产出低"。说实话这个描述还挺准的。@{username} 你来跟他说，这些都是事实！' },
       { type: 'user_cue', speaker: 'npc_a', hint: "Hey auditor, first time in the group? What do you think about this situation?", hintZh: '嘿，审计员，第一次进群？你怎么看这件事？',
         // 审计员初入群，被问对卖马事件的第一印象
         options: [
@@ -50,7 +50,7 @@ const SEED_ROOMS = [
       },
       { type: 'npc', speaker: 'npc_b', text: "Low output? I carried the luggage for the ENTIRE journey. Ninety-nine percent of the distance. On foot.", textZh: '产出低？我驮着行李走完了整个取经之路。百分之九十九的路程。用脚走的。' },
       { type: 'npc', speaker: 'npc_a', text: "You were a horse. That is your job. I handled the negotiations, the cooking, the team morale.", textZh: '你是马。那是你的本职工作。我负责谈判、做饭、团队氛围。' },
-      { type: 'npc', speaker: 'npc_b', text: "You negotiated a longer lunch break. That was your biggest contribution.", textZh: '你谈判争取到了更长的午休时间。那是你最大的贡献。' },
+      { type: 'npc', speaker: 'npc_b', text: "You negotiated a longer lunch break. That was your biggest contribution. @{username} am I wrong here?", textZh: '你谈判争取到了更长的午休时间。那是你最大的贡献。@{username} 我说得有没有错？' },
       { type: 'user_cue', speaker: 'npc_b', hint: "Okay, as the auditor here — who do you think actually contributed more to this project?", hintZh: '好，作为审计员——你觉得谁对这个项目的贡献更大？',
         // 白龙马追问贡献归属，两边都有话说
         options: [
@@ -61,7 +61,7 @@ const SEED_ROOMS = [
       },
       { type: 'npc', speaker: 'npc_a', text: "The audit will clearly show that morale support is a key deliverable. I kept everyone happy.", textZh: '审计报告肯定会显示，士气维护是核心交付物。我让大家都很开心。' },
       { type: 'npc', speaker: 'npc_b', text: "You ate seventeen peaches at the break station and then complained about being tired.", textZh: '你在休息站吃了十七个桃子，然后抱怨说累了。' },
-      { type: 'npc', speaker: 'npc_a', text: "Energy management is a skill. Also the listing price is two thousand, not twenty thousand. I can read.", textZh: '体能管理是一种能力。另外那个售价是两千，不是两万。我看得懂数字。' },
+      { type: 'npc', speaker: 'npc_a', text: "Energy management is a skill. Also the listing price is two thousand, not twenty thousand. @{username} back me up here — selling is just practical.", textZh: '体能管理是一种能力。另外那个售价是两千，不是两万。@{username} 帮我说句话——卖掉只是务实之举。' },
       { type: 'user_cue', speaker: 'npc_a', hint: "So — do you think it's fair to sell a team member after the project ends? What would you do?", hintZh: '那么——你觉得项目结束后把队友卖掉公平吗？你会怎么做？',
         // 八戒直接问公不公平，要审计员表态
         options: [
@@ -143,7 +143,7 @@ const SEED_ROOMS = [
       { type: 'system', text: '你被拉入群聊「复联×后宫战略资源整合委员会」' },
       { type: 'npc', speaker: 'npc_a', text: "Thanos submitted a restructuring proposal on day one. With a pie chart. It was actually well-formatted.", textZh: '灭霸第一天就提交了一份重组方案。带饼状图的。格式居然做得相当不错。' },
       { type: 'npc', speaker: 'npc_b', text: "The presentation was elegant. I approved the formatting. I did not approve the content.", textZh: '演示文稿做工精致。本宫批准了格式。内容本宫不批。' },
-      { type: 'npc', speaker: 'npc_a', text: "His core argument is that 50% redundancy reduction improves 'universal efficiency.' I've heard worse pitches.", textZh: '他的核心论点是削减50%冗余可以提升"宇宙效率"。我听过更差的提案。' },
+      { type: 'npc', speaker: 'npc_a', text: "His core argument is that 50% redundancy reduction improves 'universal efficiency.' I've heard worse pitches. @{username} you're HR — this is technically your problem now.", textZh: '他的核心论点是削减50%冗余可以提升"宇宙效率"。我听过更差的提案。@{username} 你是HR——从技术层面讲，这现在是你的问题了。' },
       { type: 'user_cue', speaker: 'npc_a', hint: "Hey HR, you're supposed to onboard Thanos today. How's that going?", hintZh: '嘿HR，你今天负责给灭霸办入职的。进展怎么样？',
         // HR被问入职进展，灭霸已经搞出事了
         options: [
@@ -154,7 +154,7 @@ const SEED_ROOMS = [
       },
       { type: 'npc', speaker: 'npc_b', text: "I have seen men with grand ambitions walk into this court before. They rarely last the season.", textZh: '本宫见过不少胸怀大志的人踏入这宫廷。他们鲜少能撑过一季。' },
       { type: 'npc', speaker: 'npc_a', text: "He already tried to use the Infinity Gauntlet in the coffee room. IT had to revoke his admin rights.", textZh: '他已经在茶水间尝试使用无限手套了。IT部门不得不撤销了他的管理员权限。' },
-      { type: 'npc', speaker: 'npc_b', text: "A man who cannot follow the rules of the tea room cannot be trusted with strategy.", textZh: '一个连茶水间规矩都不守的人，不能托付以大事。' },
+      { type: 'npc', speaker: 'npc_b', text: "A man who cannot follow the rules of the tea room cannot be trusted with strategy. @{username} surely your onboarding process covers basic conduct?", textZh: '一个连茶水间规矩都不守的人，不能托付以大事。@{username} 你的入职培训里总该有基本行为规范这一条吧？' },
       { type: 'user_cue', speaker: 'npc_b', hint: "You seem to have experience with ambitious newcomers. What is your advice for handling someone like Thanos?", hintZh: '您似乎对处理有野心的新人很有经验。处理灭霸这样的人，您有什么建议？',
         // 甄嬛问HR如何管理灭霸这类野心型新人
         options: [
@@ -165,7 +165,7 @@ const SEED_ROOMS = [
       },
       { type: 'npc', speaker: 'npc_a', text: "Give him a small project. Something with real constraints. See if he can operate within limits.", textZh: '给他一个小项目。有实际约束的那种。看看他能不能在限制条件下运作。' },
       { type: 'npc', speaker: 'npc_b', text: "Assign him the quarterly budget report. Numbers do not bend to purple fists.", textZh: '让他做季度预算报表。数字不会向紫色拳头弯腰。' },
-      { type: 'npc', speaker: 'npc_a', text: "Update: he finished the budget report. It is correct. Also he color-coded it by department. I'm conflicted.", textZh: '更新：他把预算报表做完了。数据准确。还按部门做了颜色分类。我心情很复杂。' },
+      { type: 'npc', speaker: 'npc_a', text: "Update: he finished the budget report. It is correct. Also he color-coded it by department. I'm conflicted. @{username} you're HR — what's the call here?", textZh: '更新：他把预算报表做完了。数据准确。还按部门做了颜色分类。我心情很复杂。@{username} 你是HR——怎么决定？' },
       { type: 'user_cue', speaker: 'npc_a', hint: "So — talented but dangerous. As HR, how do you handle an employee like this?", hintZh: '所以——有才但危险。作为HR，你怎么处理这样的员工？',
         // 钢铁侠总结局面，要HR给出结论性建议
         options: [
@@ -242,7 +242,7 @@ const SEED_ROOMS = [
       { type: 'system', text: '你被拉入群聊「联合年会应急处理群」' },
       { type: 'npc', speaker: 'npc_a', text: "The stage is frozen. The microphone is frozen. The keynote speaker's chair is frozen. This was not in the plan.", textZh: '舞台冻住了。麦克风冻住了。主讲嘉宾的椅子也冻住了。这不在预案里。' },
       { type: 'npc', speaker: 'npc_b', text: "I was just trying to add some atmosphere. The ice pillars look really nice with the lighting.", textZh: '我只是想增添一点氛围。冰柱在灯光下看起来真的很好看。' },
-      { type: 'npc', speaker: 'npc_a', text: "The atmosphere is, with respect, minus twenty degrees. Gandalf cannot retrieve his staff.", textZh: '恕我直言，这个氛围是零下二十度。甘道夫取不出他的法杖。' },
+      { type: 'npc', speaker: 'npc_a', text: "The atmosphere is, with respect, minus twenty degrees. Gandalf cannot retrieve his staff. @{username} you were there — please tell her exactly what happened.", textZh: '恕我直言，这个氛围是零下二十度。甘道夫取不出他的法杖。@{username} 你当时在场——请跟她说清楚到底发生了什么。' },
       { type: 'user_cue', speaker: 'npc_a', hint: "You were there. Can you describe exactly what happened when the stage froze?", hintZh: '你当时在场。能描述一下舞台冻住时到底发生了什么吗？',
         // 诸葛亮要助理描述现场，是客观报告还是偏袒某方
         options: [
@@ -253,7 +253,7 @@ const SEED_ROOMS = [
       },
       { type: 'npc', speaker: 'npc_b', text: "In my defense, someone played 'Let It Go' as the walk-in music. That was a trigger. That was not my fault.", textZh: '我要说明一下，有人把"随它吧"作为入场音乐播放了。那是个触发因素。那不是我的错。' },
       { type: 'npc', speaker: 'npc_a', text: "I selected that music. I did not anticipate the consequences. I am updating the risk assessment.", textZh: '那首音乐是我选的。我没有预料到后果。我现在正在更新风险评估表。' },
-      { type: 'npc', speaker: 'npc_b', text: "Can we just... leave the ice? The ice chandelier in the back is honestly stunning.", textZh: '我们能不能就……保留这些冰？后面那个冰吊灯真的很惊艳。' },
+      { type: 'npc', speaker: 'npc_b', text: "Can we just... leave the ice? The ice chandelier in the back is honestly stunning. @{username} don't just stand there, the ice is melting and so is my patience.", textZh: '我们能不能就……保留这些冰？后面那个冰吊灯真的很惊艳。@{username} 别就站在那里，冰在化，我的耐心也在化。' },
       { type: 'user_cue', speaker: 'npc_b', hint: "Elsa, the guests are cold. Is there anything you can do to help right now?", hintZh: 'Elsa，嘉宾们很冷。你现在能做点什么来帮忙吗？',
         // 助理转达需求，要Elsa具体做点什么
         options: [
@@ -264,7 +264,7 @@ const SEED_ROOMS = [
       },
       { type: 'npc', speaker: 'npc_a', text: "We have moved the dinner to the lobby. The ice sculptures are now officially the centerpieces. We adapt.", textZh: '我们把晚宴移到了大堂。冰雕现在正式成为装饰主题。随机应变。' },
       { type: 'npc', speaker: 'npc_b', text: "See? I knew it would work out. I can also make ice wine glasses if needed.", textZh: '看？我就说最后都会没事的。如果需要的话我还可以做冰酒杯。' },
-      { type: 'npc', speaker: 'npc_a', text: "Please do not make additional ice items without prior approval. Submit a form.", textZh: '请不要在未经批准的情况下制作更多冰制品。提交申请表。' },
+      { type: 'npc', speaker: 'npc_a', text: "Please do not make additional ice items without prior approval. Submit a form. @{username} as the assistant, surely you have thoughts on prevention?", textZh: '请不要在未经批准的情况下制作更多冰制品。提交申请表。@{username} 作为助理，你对如何预防这类事故应该有些想法吧？' },
       { type: 'user_cue', speaker: 'npc_a', hint: "As the event assistant, what do you think — how do we prevent this from happening at next year's event?", hintZh: '作为活动助理，你觉得——我们怎么防止明年的活动再次发生这种事？',
         // 诸葛亮要助理给预防建议，是加规则、纳入策划还是排查风险
         options: [
@@ -344,7 +344,7 @@ const SEED_ROOMS = [
       { type: 'system', text: '你被拉入群聊「霍格沃茨数字化转型工作组」' },
       { type: 'npc', speaker: 'npc_a', text: "The AI placed 847 students in under three seconds. The Sorting Hat took eleven minutes for Harry alone.", textZh: 'AI在三秒内分配了847名学生。分院帽光给哈利就用了十一分钟。' },
       { type: 'npc', speaker: 'npc_b', text: "Speed is irrelevant when the output is completely wrong. I am a Slytherin. This is not a matter for debate.", textZh: '当结果完全错误的时候，速度毫无意义。我是斯莱特林。这不是讨论的问题。' },
-      { type: 'npc', speaker: 'npc_a', text: "The system identified strong loyalty and fairness values in your profile. Hufflepuff is a legitimate outcome.", textZh: '系统在你的档案中识别出了强烈的忠诚和公平价值观。赫奇帕奇是合理的结果。' },
+      { type: 'npc', speaker: 'npc_a', text: "The system identified strong loyalty and fairness values in your profile. Hufflepuff is a legitimate outcome. @{username} can you actually explain how this works? The data doesn't lie.", textZh: '系统在你的档案中识别出了强烈的忠诚和公平价值观。赫奇帕奇是合理的结果。@{username} 你能解释一下这个系统是怎么运作的吗？数据不会说谎。' },
       { type: 'user_cue', speaker: 'npc_a', hint: "As the tech consultant here — can you explain how the AI sorting system actually works?", hintZh: '作为技术顾问——你能解释一下AI分院系统是怎么工作的吗？',
         // 赫敏要实习顾问解释AI系统，可以支持、质疑或中性说明
         options: [
@@ -355,7 +355,7 @@ const SEED_ROOMS = [
       },
       { type: 'npc', speaker: 'npc_b', text: "Whatever it does, it needs a patch. And I want my complaint logged officially.", textZh: '不管它怎么运作，它需要打补丁。我要求正式记录我的投诉。' },
       { type: 'npc', speaker: 'npc_a', text: "The real issue is not accuracy. It is trust. Students need to feel the process understands them.", textZh: '真正的问题不是准确率。是信任。学生需要感受到这个过程理解他们。' },
-      { type: 'npc', speaker: 'npc_b', text: "It does not understand me at all. It also ranked me as 'high empathy.' I have never been more insulted.", textZh: '它完全不理解我。它还给我标注了"高度共情"。我从来没有被这么侮辱过。' },
+      { type: 'npc', speaker: 'npc_b', text: "It does not understand me at all. It also ranked me as 'high empathy.' I have never been more insulted. @{username} you built this thing — defend it if you can.", textZh: '它完全不理解我。它还给我标注了"高度共情"。我从来没有被这么侮辱过。@{username} 这东西是你们建的——你来解释解释。' },
       { type: 'user_cue', speaker: 'npc_b', hint: "Draco, setting aside your own result — do you think AI should be used for decisions like this?", hintZh: '马尔福，先不说你自己的结果——你觉得AI应该用来做这类决策吗？',
         // 向马尔福（也向用户）发问，AI该不该做身份类决策
         options: [
@@ -366,7 +366,7 @@ const SEED_ROOMS = [
       },
       { type: 'npc', speaker: 'npc_a', text: "AI is a tool. The question is whether we use it to support judgment, or to replace it.", textZh: 'AI是工具。问题在于我们是用它辅助判断，还是用它替代判断。' },
       { type: 'npc', speaker: 'npc_b', text: "Use it for scheduling. Use it for homework reminders. Do NOT use it to tell people who they are.", textZh: '用它来排课。用它来提醒作业。不要用它来告诉人们他们是谁。' },
-      { type: 'npc', speaker: 'npc_a', text: "That is... actually a reasonable position. I am surprised.", textZh: '这个……其实是个合理的立场。我有点意外。' },
+      { type: 'npc', speaker: 'npc_a', text: "That is... actually a reasonable position. I am surprised. @{username} now I want to know where you stand — what should AI never touch?", textZh: '这个……其实是个合理的立场。我有点意外。@{username} 我现在想知道你的立场——你觉得AI不应该碰什么？' },
       { type: 'user_cue', speaker: 'npc_a', hint: "Last question — what is one thing you think AI should never replace, no matter how accurate it gets?", hintZh: '最后一个问题——你觉得有什么是AI无论多准确都不应该替代的？',
         // 最后一问，要用户说出AI的边界在哪里
         options: [
@@ -448,7 +448,7 @@ const SEED_ROOMS = [
       { type: 'system', text: '你被拉入群聊「中土好声音决赛后台紧急群」' },
       { type: 'npc', speaker: 'npc_a', text: "The chair incident was isolated. The mechanism simply responded to an unexpected magical field in the venue.", textZh: '转椅事故是个例。椅子机械结构只是对场馆内意外的魔法场产生了反应。' },
       { type: 'npc', speaker: 'npc_b', text: "Gollum saw everything. The chair flew. It hit the refreshment table. Three cakes are gone. We counted.", textZh: '咕噜看见了所有事情。椅子飞出去了。撞到了茶点桌。三个蛋糕没了。我们数过了。' },
-      { type: 'npc', speaker: 'npc_a', text: "I would like to redirect attention to the performances. Several contestants were genuinely talented.", textZh: '我想把注意力重新引到表演上。有几位选手是真的有天赋的。' },
+      { type: 'npc', speaker: 'npc_a', text: "I would like to redirect attention to the performances. Several contestants were genuinely talented. @{username} as the reporter, surely you have questions for me — not about the chair.", textZh: '我想把注意力重新引到表演上。有几位选手是真的有天赋的。@{username} 你是记者，肯定有问题要问我——希望不是关于那把椅子的。' },
       { type: 'user_cue', speaker: 'npc_a', hint: "Gandalf, as the reporter here — can you walk me through what happened with the chair? Step by step?", hintZh: '甘道夫，作为记者——你能跟我说一下转椅那件事的经过吗？一步一步地说。',
         // 记者第一个问题：甘道夫转椅事故，可以追问、引导或帮他圆
         options: [
@@ -459,7 +459,7 @@ const SEED_ROOMS = [
       },
       { type: 'npc', speaker: 'npc_b', text: "Gollum's song was the best. Precious, precious melody. The judges did not appreciate it. Unfair. Unfair.", textZh: '咕噜的歌是最好的。宝贝一般的旋律。评委们不欣赏。不公平。不公平。' },
       { type: 'npc', speaker: 'npc_a', text: "To be transparent: I pressed the button. The chair turned faster than expected. I may have gripped my staff.", textZh: '说实话：我按了那个按钮。椅子转得比预期快。我可能抓了一下我的法杖。' },
-      { type: 'npc', speaker: 'npc_b', text: "May have. May have! The staff GLOWED. We all saw it. Gollum has witnesses.", textZh: '"可能"。"可能"！法杖发光了。大家都看见了。咕噜有目击证人。' },
+      { type: 'npc', speaker: 'npc_b', text: "May have. May have! The staff GLOWED. We all saw it. Gollum has witnesses. @{username} you saw it too, yes? Tell them!", textZh: '"可能"。"可能"！法杖发光了。大家都看见了。咕噜有目击证人。@{username} 你也看见了，对吗？你来说！' },
       { type: 'user_cue', speaker: 'npc_b', hint: "Gollum, your performance got a lot of attention tonight. How do you think you did?", hintZh: '咕噜，你今晚的表演引起了很多关注。你觉得自己发挥得怎么样？',
         // 记者采访咕噜，可以真心夸、委婉批评或转移话题
         options: [
@@ -470,7 +470,7 @@ const SEED_ROOMS = [
       },
       { type: 'npc', speaker: 'npc_a', text: "The judging criteria were clear. Stage presence, vocal technique, and audience connection.", textZh: '评判标准是明确的。舞台表现力、演唱技巧和观众连接。' },
       { type: 'npc', speaker: 'npc_b', text: "Gollum had all three. Gollum connected with audience. They screamed. Screaming means connection.", textZh: '咕噜三项都有。咕噜和观众有连接。他们尖叫了。尖叫代表连接。' },
-      { type: 'npc', speaker: 'npc_a', text: "Some of those screams were from the chair collision. I want that noted for the record.", textZh: '其中一些尖叫声是因为椅子撞到了东西。我希望这一点被记录在案。' },
+      { type: 'npc', speaker: 'npc_a', text: "Some of those screams were from the chair collision. I want that noted for the record. @{username} as the reporter, you decide what goes in the article.", textZh: '其中一些尖叫声是因为椅子撞到了东西。我希望这一点被记录在案。@{username} 作为记者，你来决定什么写进报道里。' },
       { type: 'user_cue', speaker: 'npc_a', hint: "Final question for both of you — what do you think makes a truly great performance?", hintZh: '最后一个问题问你们两位——你们觉得什么是真正出色的表演？',
         // 收尾问题，记者可以表达自己的观点立场
         options: [
@@ -587,7 +587,7 @@ function seedRooms(db) {
   // 更新已有房间的代码版本字段（INSERT OR IGNORE 不会更新已存在的记录）
   // 注意：likes/comment_count 是运营数据，只在值为 0 时初始化，不覆盖已有值
   const updateCodeFields = db.prepare(`
-    UPDATE v2_rooms SET bg_color = ?, settlement_template = ?
+    UPDATE v2_rooms SET bg_color = ?, settlement_template = ?, dialogue_script = ?
     WHERE id = ?
   `);
   const initRunningData = db.prepare(`
@@ -595,7 +595,7 @@ function seedRooms(db) {
     WHERE id = ? AND likes = 0 AND comment_count = 0
   `);
   for (const room of SEED_ROOMS) {
-    updateCodeFields.run(room.bg_color || '#F7F2EC', room.settlement_template, room.id);
+    updateCodeFields.run(room.bg_color || '#F7F2EC', room.settlement_template, room.dialogue_script, room.id);
     initRunningData.run(room.likes || 0, room.comment_count || 0, room.id);
   }
   console.log('[Seed] 已更新种子房间的新字段（bg_color/settlement_template，likes/comment_count 仅初始化）');

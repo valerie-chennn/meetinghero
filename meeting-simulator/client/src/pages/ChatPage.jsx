@@ -19,26 +19,36 @@ function getNpcColor(id) {
 // ── TTS 预加载缓存 ──
 const ttsCache = new Map();
 
-// 清洗文本用于 TTS：去掉 @ 符号，让 TTS 直呼名字而不是读"at 用户名"
+// 清洗文本用于 TTS：
+// 1. 把 @{username} 占位符替换为实际花名（去掉 @ 符号，TTS 直接读名字）
+// 2. 剩下的 @ 符号也一律去掉（处理种子里已替换好的 @实际花名 的情况）
 // 口语里 @ 本来就是打字符号不发音
-function cleanTextForTts(text) {
+function cleanTextForTts(text, userName) {
   if (!text) return text;
-  return text.replace(/@/g, '');
+  let out = text;
+  // 1. 替换占位符 @{username} → 实际花名（或空字符串，如果没花名）
+  const name = userName || '';
+  out = out.replace(/@\{username\}/g, name);
+  // 2. 去掉残留的 @ 符号
+  out = out.replace(/@/g, '');
+  // 3. 合并可能出现的多余空格
+  out = out.replace(/\s+/g, ' ').trim();
+  return out;
 }
 
-function prefetchTts(text, voiceId) {
+function prefetchTts(text, voiceId, userName) {
   if (!text) return;
   // 缓存 key 用原文（调用方也用原文），TTS 请求用清洗后的文本
   const key = `${text}|${voiceId || ''}`;
   if (ttsCache.has(key)) return;
-  const cleanText = cleanTextForTts(text);
+  const cleanText = cleanTextForTts(text, userName);
   ttsCache.set(key, textToSpeech(cleanText, 'en', voiceId).catch(() => null));
 }
 
-async function playTts(text, voiceId) {
+async function playTts(text, voiceId, userName) {
   try {
     const key = `${text}|${voiceId || ''}`;
-    const cleanText = cleanTextForTts(text);
+    const cleanText = cleanTextForTts(text, userName);
     const blobPromise = ttsCache.get(key) || textToSpeech(cleanText, 'en', voiceId);
     ttsCache.delete(key);
     const audioBlob = await blobPromise;
@@ -56,13 +66,13 @@ async function playTts(text, voiceId) {
 }
 
 // 预加载脚本后续 N 条 NPC 消息的 TTS
-function prefetchUpcoming(script, cursor, npcMap, count = 2) {
+function prefetchUpcoming(script, cursor, npcMap, userName, count = 2) {
   let fetched = 0;
   for (let i = cursor; i < script.length && fetched < count; i++) {
     const t = script[i];
     if (t.type === 'npc') {
       const p = npcMap[t.speaker] || {};
-      prefetchTts(t.text, p.voiceId);
+      prefetchTts(t.text, p.voiceId, userName);
       fetched++;
     }
   }
@@ -256,7 +266,7 @@ function ChatPage() {
         setIsLoading(false);
 
         // 预加载前 2 条 NPC TTS
-        prefetchUpcoming(data.dialogueScript, 0, nm, 2);
+        prefetchUpcoming(data.dialogueScript, 0, nm, state.userName, 2);
 
         // 延迟后启动脚本
         setTimeout(() => {
@@ -315,8 +325,8 @@ function ChatPage() {
         setPhase('dots');
         // 发起 TTS 预加载请求（存入缓存，不播放）
         const ttsKey = `${turn.text}|${profile.voiceId || ''}`;
-        prefetchTts(turn.text, profile.voiceId);
-        prefetchUpcoming(script, i + 1, nm, 2);
+        prefetchTts(turn.text, profile.voiceId, state.userName);
+        prefetchUpcoming(script, i + 1, nm, state.userName, 2);
         // dots 最少显示 800ms，同时等 TTS 预加载完成（取两者较长的）
         const dotsMinWait = sleep(800 + Math.random() * 300);
         const ttsCachePromise = ttsCache.get(ttsKey) || Promise.resolve(null);
@@ -325,7 +335,7 @@ function ChatPage() {
 
         // ── typing_en 阶段：TTS 已缓存，立即播放 ──
         setPhase('typing_en');
-        const ttsPromise = playTts(turn.text, profile.voiceId);
+        const ttsPromise = playTts(turn.text, profile.voiceId, state.userName);
         // 等打字机打完（通过 onEnDone 回调驱动）
         await waitForPhase('typing_zh');
         if (!shouldContinueRef.current) break;
@@ -509,7 +519,7 @@ function ChatPage() {
       setDotsPreview({ speakerName: replyProfile.name, speakerColor: replyColor });
 
       // 预缓存回复语音
-      prefetchTts(result.npcReply.text, replyVoiceId);
+      prefetchTts(result.npcReply.text, replyVoiceId, state.userName);
 
       // dots → typing_en
       await sleep(600 + Math.random() * 300);
@@ -528,7 +538,7 @@ function ChatPage() {
       });
       setPhase('typing_en');
       // 开始播放 TTS（与打字机同步）
-      const ttsPromise = playTts(result.npcReply.text, replyVoiceId);
+      const ttsPromise = playTts(result.npcReply.text, replyVoiceId, state.userName);
 
       // 逐步等打字机完成：typing_en → typing_zh → typing_done
       await waitForPhase('typing_zh');
@@ -1167,7 +1177,7 @@ function MessageBubble({ msg, userName }) {
             {msg.zh && <div className={styles.bubbleZh}>{renderTextWithMention(msg.zh, userName)}</div>}
             {/* 小喇叭 TTS 图标（可点击重听）*/}
             <div className={styles.ttsIconRow}>
-              <TtsIconButton text={msg.en} voiceId={msg.voiceId} />
+              <TtsIconButton text={msg.en} voiceId={msg.voiceId} userName={userName} />
             </div>
           </div>
         </div>
@@ -1179,14 +1189,14 @@ function MessageBubble({ msg, userName }) {
 }
 
 // ===== 小喇叭 TTS 图标按钮 =====
-function TtsIconButton({ text, voiceId }) {
+function TtsIconButton({ text, voiceId, userName }) {
   const [playing, setPlaying] = useState(false);
 
   async function handleClick(e) {
     e.stopPropagation();
     if (playing || !text) return;
     setPlaying(true);
-    await playTts(text, voiceId);
+    await playTts(text, voiceId, userName);
     setPlaying(false);
   }
 

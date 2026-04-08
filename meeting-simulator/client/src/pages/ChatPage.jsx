@@ -660,38 +660,43 @@ function ChatPage() {
   }, [isMicMode]);
 
   // ── 拖拽开始（touch / mouse）──
+  // 用 ref 存最新 micDragY，供 document 级事件读取（避免闭包捕获旧值）
+  const micDragYRef = useRef(0);
+
   function handleDragStart(e) {
     e.stopPropagation();
+    e.preventDefault();
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
     dragStartYRef.current = clientY;
     isDraggingRef.current = true;
-  }
+    micDragYRef.current = 0;
 
-  // ── 拖拽移动 ──
-  function handleDragMove(e) {
-    if (!isDraggingRef.current || dragStartYRef.current === null) return;
-    e.stopPropagation();
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    const delta = clientY - dragStartYRef.current;
-    // 只允许往下拖（正值），负值不生效
-    setMicDragY(delta > 0 ? delta : 0);
-  }
+    // 绑到 document，手指离开把手区域也能继续拖
+    const onMove = (ev) => {
+      if (!isDraggingRef.current) return;
+      const y = ev.touches ? ev.touches[0].clientY : ev.clientY;
+      const delta = y - dragStartYRef.current;
+      const val = delta > 0 ? delta : 0;
+      micDragYRef.current = val;
+      setMicDragY(val);
+    };
+    const onEnd = () => {
+      isDraggingRef.current = false;
+      dragStartYRef.current = null;
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onEnd);
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend', onEnd);
 
-  // ── 拖拽结束，判断是否超过阈值收起 ──
-  function handleDragEnd(e) {
-    if (!isDraggingRef.current) return;
-    e.stopPropagation();
-    isDraggingRef.current = false;
-    dragStartYRef.current = null;
-
-    if (micDragY > 80) {
-      // 超过 80px 阈值：收起
-      setMicCollapsed(true);
+      if (micDragYRef.current > 80) {
+        setMicCollapsed(true);
+      }
       setMicDragY(0);
-    } else {
-      // 未超过：弹回原位
-      setMicDragY(0);
-    }
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onEnd);
+    document.addEventListener('touchmove', onMove, { passive: false });
+    document.addEventListener('touchend', onEnd);
   }
 
   // ── 展开麦克风区 ──
@@ -840,12 +845,7 @@ function ChatPage() {
         <div
           className={styles.dividerHandle}
           onTouchStart={handleDragStart}
-          onTouchMove={handleDragMove}
-          onTouchEnd={handleDragEnd}
           onMouseDown={handleDragStart}
-          onMouseMove={handleDragMove}
-          onMouseUp={handleDragEnd}
-          onMouseLeave={handleDragEnd}
         >
           <div className={styles.dragHandleBar} />
         </div>

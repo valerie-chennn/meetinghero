@@ -11,6 +11,7 @@ const { callOpenAIJson } = require('../services/openai');
 const { respondChatPrompt } = require('../prompts/respond-chat');
 const { betterVersionPrompt } = require('../prompts/better-version');
 const { generateHintPrompt } = require('../prompts/generate-hint');
+const { generateSettlementPrompt } = require('../prompts/generate-settlement');
 
 /**
  * 从属性池中随机选取 2-3 个荒诞属性
@@ -323,11 +324,11 @@ router.post('/respond', async (req, res) => {
 
 /**
  * POST /api/v2/chat/complete
- * 完成群聊，生成表达卡片
+ * 完成群聊，AI 动态生成结算新闻，生成表达卡片
  * 入参: { chatSessionId, force? }
  * 出参: { success: true }
  */
-router.post('/complete', (req, res) => {
+router.post('/complete', async (req, res) => {
   try {
     const { chatSessionId, force } = req.body;
 
@@ -349,17 +350,91 @@ router.post('/complete', (req, res) => {
       return res.status(400).json({ error: '至少需要发言一次才能完成，或传 force=true 强制完成' });
     }
 
-    // 查询房间的结算模板，提前抽取荒诞属性并持久化
-    const roomForComplete = db.prepare('SELECT settlement_template FROM v2_rooms WHERE id = ?').get(session.room_id);
+    // 查询房间的结算模板和新闻标题
+    const roomForComplete = db.prepare('SELECT settlement_template, news_title FROM v2_rooms WHERE id = ?').get(session.room_id);
     const templateForComplete = roomForComplete ? JSON.parse(roomForComplete.settlement_template) : {};
-    const absurdAttrs = pickAbsurdAttributes(templateForComplete.absurd_attributes_pool);
+    const newsTitle = roomForComplete ? roomForComplete.news_title : '';
 
-    // 更新会话状态为 completed，同时写入荒诞属性
+    // 读取该会话所有用户发言和 NPC 回复，供 AI 生成结算
+    const userMessages = db.prepare(`
+      SELECT user_input, npc_reply FROM v2_user_messages
+      WHERE chat_session_id = ?
+      ORDER BY turn_index ASC
+    `).all(chatSessionId.trim());
+
+    // 提取用户发言文本和 NPC 回复文本
+    const userMsgTexts = userMessages.map(m => m.user_input || '');
+    const npcReplyTexts = userMessages.map(m => {
+      if (!m.npc_reply) return '';
+      try {
+        const parsed = JSON.parse(m.npc_reply);
+        // 优先用中文回复，没有就用英文
+        return parsed.textZh || parsed.text || '';
+      } catch (e) {
+        return '';
+      }
+    });
+
+    // AI 调用：动态生成结算新闻和荒诞属性
+    let dynamicNewsletter = null;
+    let absurdAttrs = null;
+
+    try {
+      const publisher = templateForComplete.newsletter?.publisher || '今日快报';
+      const absurdAttributesPool = templateForComplete.absurd_attributes_pool || [];
+
+      const { systemPrompt, userPrompt } = generateSettlementPrompt({
+        newsTopic: newsTitle,
+        publisher,
+        userMessages: userMsgTexts,
+        npcReplies: npcReplyTexts,
+        absurdAttributesPool,
+      });
+
+      const aiResult = await callOpenAIJson(
+        [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        { temperature: 0.8, maxTokens: 500 }
+      );
+
+      // 组装 newsletter 对象（publisher 来自种子，headline/bullets 来自 AI）
+      if (aiResult && aiResult.headline && Array.isArray(aiResult.bullets)) {
+        dynamicNewsletter = {
+          publisher,
+          headline: aiResult.headline,
+          bullets: aiResult.bullets,
+        };
+        console.log(`[v2-chat/complete] AI 结算新闻生成成功：${aiResult.headline}`);
+      }
+
+      // 荒诞属性：AI 生成的优先，格式校验
+      if (aiResult && Array.isArray(aiResult.absurdAttributes) && aiResult.absurdAttributes.length > 0) {
+        absurdAttrs = aiResult.absurdAttributes;
+        console.log(`[v2-chat/complete] AI 荒诞属性生成成功：${JSON.stringify(absurdAttrs)}`);
+      }
+    } catch (aiErr) {
+      // AI 调用失败，降级到种子模板
+      console.error('[v2-chat/complete] AI 结算生成失败，使用种子模板降级：', aiErr.message);
+    }
+
+    // 降级处理：AI 没有生成有效内容时使用种子数据
+    if (!absurdAttrs) {
+      absurdAttrs = pickAbsurdAttributes(templateForComplete.absurd_attributes_pool);
+    }
+
+    // 更新会话状态为 completed，同时写入荒诞属性和动态结算新闻
     db.prepare(`
       UPDATE v2_chat_sessions
-      SET status = 'completed', completed_at = CURRENT_TIMESTAMP, absurd_attributes = ?
+      SET status = 'completed', completed_at = CURRENT_TIMESTAMP,
+          absurd_attributes = ?, settlement_newsletter = ?
       WHERE id = ?
-    `).run(JSON.stringify(absurdAttrs), chatSessionId.trim());
+    `).run(
+      JSON.stringify(absurdAttrs),
+      dynamicNewsletter ? JSON.stringify(dynamicNewsletter) : null,
+      chatSessionId.trim()
+    );
 
     // 查询该会话在 respond 阶段生成的表达卡片
     const allCards = db.prepare(`
@@ -425,9 +500,15 @@ router.get('/:chatSessionId/settlement', (req, res) => {
       return res.status(400).json({ error: '会话尚未完成，无法查看结算' });
     }
 
-    // 查询房间的结算模板
+    // 查询房间的结算模板（用于 fallback）
     const room = db.prepare('SELECT settlement_template FROM v2_rooms WHERE id = ?').get(session.room_id);
     const settlementTemplate = room ? JSON.parse(room.settlement_template) : {};
+
+    // 优先读 AI 动态生成的 newsletter，fallback 到种子模板
+    const dynamicNewsletter = session.settlement_newsletter
+      ? (() => { try { return JSON.parse(session.settlement_newsletter); } catch (e) { return null; } })()
+      : null;
+    const newsletter = dynamicNewsletter || settlementTemplate.newsletter || null;
 
     // 查询该会话的表达卡片
     const cards = db.prepare(`
@@ -440,19 +521,20 @@ router.get('/:chatSessionId/settlement', (req, res) => {
       id: card.id,
       turnIndex: card.turn_index,
       userSaid: card.user_said,
-      feedbackType: card.feedback_type || null,                    // 新增：反馈类型
+      feedbackType: card.feedback_type || null,                    // 反馈类型
       betterVersion: card.better_version,
-      highlights: card.highlighted_phrases                         // 新增：高亮短语数组
+      highlights: card.highlighted_phrases                         // 高亮短语数组
         ? (() => { try { return JSON.parse(card.highlighted_phrases); } catch (e) { return []; } })()
         : [],
-      explanation: card.explanation || null,                       // 新增：解释文字
-      isFeatured: card.is_featured === 1,                         // 新增：是否 featured
+      explanation: card.explanation || null,                       // 解释文字
+      isFeatured: card.is_featured === 1,                         // 是否 featured
       isSaved: card.is_saved === 1,
     }));
 
     return res.status(200).json({
       // newsletter: 报纸风结算内容（publisher/headline/bullets）
-      newsletter: settlementTemplate.newsletter || null,
+      // 优先使用 AI 动态生成，失败时 fallback 到种子模板
+      newsletter,
       // 荒诞属性：从 complete 阶段持久化的结果中读取
       absurdAttributes: session.absurd_attributes ? JSON.parse(session.absurd_attributes) : [],
       // 表达卡片

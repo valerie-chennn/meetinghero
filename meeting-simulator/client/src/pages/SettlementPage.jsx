@@ -36,15 +36,27 @@ function highlightText(text, highlights) {
 }
 
 // 单张表达卡片（纯展示，无收藏按钮）
-function ExpressionCard({ card }) {
+// showHeader：是否在卡片内部顶部显示"✨ 你的表达"标签（默认 false，由外部控制）
+function ExpressionCard({ card, showHeader = false }) {
   const highlights = card.highlights || [];
 
   return (
     <div className={styles.expressionCard}>
+      {/* 卡片内部顶部标签：仅 featured 单卡展示时显示 */}
+      {showHeader && (
+        <div className={styles.expressionCardHeader}>
+          <span className={styles.sparkle}>✨</span>
+          <span>你的表达</span>
+        </div>
+      )}
+
       {/* 用户原句 */}
       <div className={styles.userSaidBlock}>
         <div className={styles.labelSm}>你说的</div>
-        <div className={styles.userSaidText}>{card.userSaid}</div>
+        {/* userSaid 为空时显示"（未发言）"而不是空白 */}
+        <div className={styles.userSaidText}>
+          {card.userSaid || '（未发言）'}
+        </div>
       </div>
 
       {/* 向下箭头 */}
@@ -301,47 +313,37 @@ function SettlementPage() {
               {/* 你的能力值 */}
               <div className={styles.statsLabel}>你的能力值</div>
               <div className={styles.statsRow}>
-                {absurdAttributes.map((attr, i) => {
-                  // 正向属性按索引轮换 3 种颜色；负向统一红色
-                  const positivePalette = ['green', 'purple', 'gold'];
-                  const variant = attr.delta >= 0
-                    ? positivePalette[i % positivePalette.length]
-                    : 'red';
-                  return (
-                    <div key={i} className={`${styles.statPill} ${styles['statPill_' + variant]}`}>
-                      <span className={styles.statPillName}>{attr.name}</span>
-                      <span className={styles.statPillValue}>
-                        {attr.delta > 0 ? '+' : ''}{attr.delta}
-                      </span>
-                    </div>
-                  );
-                })}
+                {absurdAttributes.map((attr, i) => (
+                  <div key={i} className={styles.statItem}>
+                    {/* 属性名：深灰色普通文字 */}
+                    <span className={styles.statName}>{attr.name}</span>
+                    {/* 数值：正绿负红，加号显式输出 */}
+                    <span className={attr.delta >= 0 ? styles.statValuePos : styles.statValueNeg}>
+                      {attr.delta > 0 ? '+' : ''}{attr.delta}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
 
-            {/* ===== 块 2：表达卡片区 ===== */}
+            {/* ===== 块 2：表达卡片 ===== */}
             {featuredCard && (
               <>
-                {/* 卡片容器 */}
-                <div className={styles.expressionSection}>
-                  {/* 标题行 */}
-                  <div className={styles.expressionTitle}>
-                    <span className={styles.sparkle}>✨</span>
-                    <span>你的表达</span>
+                {/* 默认模式：独立白卡，内部顶部含"✨ 你的表达"标签 */}
+                {!showAll && (
+                  <div className={styles.expressionCardWrapper}>
+                    <ExpressionCard card={featuredCard} showHeader={true} />
                   </div>
+                )}
 
-                  {/* 默认模式：只展示 featured 卡片 */}
-                  {!showAll && (
-                    <ExpressionCard card={featuredCard} />
-                  )}
-
-                  {/* 展开模式：左右滑动卡片组 */}
-                  {showAll && (
+                {/* 展开模式：左右滑动卡片组，外层同样白卡 */}
+                {showAll && (
+                  <div className={styles.expressionCardWrapper}>
                     <ExpressionCardSlider cards={expressionCards} />
-                  )}
-                </div>
+                  </div>
+                )}
 
-                {/* 切换按钮（有多张卡片才显示）*/}
+                {/* 切换按钮：在卡片外面下方，紫色文字（有多张卡片才显示）*/}
                 {hasMultipleCards && (
                   <button
                     className={styles.toggleAllButton}

@@ -34,10 +34,11 @@
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 20px 20px 0;
+  /* 与参考文件对齐：20px 顶部，24px 左右，底部由 bottomPad 决定 */
+  padding: 20px 24px 0;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 0;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -45,8 +46,11 @@
 .newsCard {
   background: #fff;
   border-radius: 16px;
-  padding: 24px 22px;
+  /* 与参考文件对齐：padding 24px 20px */
+  padding: 24px 20px;
   border: 1px solid rgba(0, 0, 0, 0.06);
+  /* 与参考文件对齐：卡片之间 20px 间距 */
+  margin-bottom: 20px;
   animation: fadeUp 0.5s ease both;
 }
 
@@ -119,78 +123,59 @@
   margin-bottom: 10px;
 }
 
-/* 能力值横排（pill 标签）*/
+/* 能力值横排：纯文字，gap 16px，可换行 */
 .statsRow {
   display: flex;
-  gap: 8px;
+  gap: 16px;
   flex-wrap: wrap;
 }
 
-/* ===== Pill 标签 ===== */
-.statPill {
+/* 单条能力值：名字 + 数值并排 */
+.statItem {
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 6px 12px;
-  border-radius: 20px;
+  gap: 6px;
 }
 
-.statPillName {
-  font-size: 13px;
-  color: #555;
+/* 属性名：深灰色普通文字 */
+.statName {
+  font-size: 14px;
+  color: #333;
 }
 
-.statPillValue {
-  font-size: 13px;
+/* 正向数值：绿色 */
+.statValuePos {
+  font-size: 14px;
   font-weight: 700;
-}
-
-/* Pill 颜色变体 */
-.statPill_green {
-  background: rgba(26, 138, 110, 0.08);
-}
-.statPill_green .statPillValue {
   color: #1A8A6E;
 }
 
-.statPill_purple {
-  background: rgba(124, 92, 191, 0.08);
-}
-.statPill_purple .statPillValue {
-  color: #7C5CBF;
-}
-
-.statPill_gold {
-  background: rgba(184, 134, 11, 0.08);
-}
-.statPill_gold .statPillValue {
-  color: #B8860B;
-}
-
-.statPill_red {
-  background: rgba(200, 75, 49, 0.08);
-}
-.statPill_red .statPillValue {
+/* 负向数值：红色 */
+.statValueNeg {
+  font-size: 14px;
+  font-weight: 700;
   color: #C84B31;
 }
 
-/* ===== 块 2：表达卡片区域 ===== */
-.expressionSection {
+/* ===== 块 2：表达卡片外层白卡 ===== */
+/* 与参考文件对齐：padding 20px，borderRadius 16px，marginBottom 16px */
+.expressionCardWrapper {
   background: #fff;
   border-radius: 16px;
-  padding: 22px;
+  padding: 20px;
   border: 1px solid rgba(0, 0, 0, 0.06);
+  margin-bottom: 16px;
   animation: fadeUp 0.5s ease 0.15s both;
   /* overflow hidden 避免滑动时卡片超出圆角 */
   overflow: hidden;
 }
 
-/* 标题行 */
-.expressionTitle {
+/* 卡片内部顶部标签：✨ 你的表达 */
+.expressionCardHeader {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
   font-size: 15px;
   font-weight: 700;
   color: #1a1a1a;
@@ -328,6 +313,7 @@
 }
 
 /* ===== 切换"查看全部"按钮 ===== */
+/* 位于表达卡片外面下方，与参考文件对齐：fontSize 13, color #7C5CBF, marginBottom 24px */
 .toggleAllButton {
   text-align: center;
   font-size: 13px;
@@ -339,6 +325,7 @@
   padding: 4px 0;
   display: block;
   width: 100%;
+  margin-bottom: 24px;
 }
 
 /* ===== 已存入表达本提示 ===== */
@@ -346,7 +333,7 @@
   font-size: 12px;
   color: #bbb;
   text-align: center;
-  margin: 0;
+  margin: 0 0 16px;
 }
 
 /* ===== 回首页按钮 ===== */

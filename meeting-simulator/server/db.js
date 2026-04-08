@@ -309,6 +309,9 @@ function initSchema() {
   // v2_chat_sessions 补列：荒诞属性 JSON
   try { db.exec(`ALTER TABLE v2_chat_sessions ADD COLUMN absurd_attributes TEXT`); } catch (e) {}
 
+  // v2_chat_sessions 补列：AI 动态生成的结算新闻（JSON字符串）
+  try { db.exec(`ALTER TABLE v2_chat_sessions ADD COLUMN settlement_newsletter TEXT`); } catch (e) {}
+
   // 插入种子数据
   const { seedRooms } = require('./data/seed-rooms');
   seedRooms(db);

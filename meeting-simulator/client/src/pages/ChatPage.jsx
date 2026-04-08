@@ -63,9 +63,26 @@ const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
 
 // ===== 打字机组件 =====
 // 接收 text、speed（ms/字）、onDone 回调
-function Typewriter({ text, speed, onDone, className }) {
+function Typewriter({ text, speed, onDone, className, renderFn }) {
   const [pos, setPos] = useState(0);
   const [done, setDone] = useState(false);
+
+  // 预计算可见字符位置：遇到 @{username} 时整体跳过，避免逐字暴露占位符
+  const visiblePositions = React.useMemo(() => {
+    const positions = [];
+    const placeholder = '@{username}';
+    let idx = 0;
+    while (idx <= text.length) {
+      positions.push(idx);
+      // 如果当前位置开始是占位符，整个跳过
+      if (text.startsWith(placeholder, idx)) {
+        idx += placeholder.length;
+      } else {
+        idx++;
+      }
+    }
+    return positions;
+  }, [text]);
 
   useEffect(() => {
     // text 变化时重置
@@ -74,23 +91,26 @@ function Typewriter({ text, speed, onDone, className }) {
     let i = 0;
     const iv = setInterval(() => {
       i++;
-      setPos(i);
-      if (i >= text.length) {
+      if (i >= visiblePositions.length) {
         clearInterval(iv);
+        setPos(text.length);
         setDone(true);
+      } else {
+        setPos(visiblePositions[i]);
       }
     }, speed);
     return () => clearInterval(iv);
-  }, [text, speed]);
+  }, [text, speed, visiblePositions]);
 
   // done 时通知父组件
   useEffect(() => {
     if (done && onDone) onDone();
   }, [done]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const sliced = text.slice(0, pos);
   return (
     <span className={className}>
-      {text.slice(0, pos)}
+      {renderFn ? renderFn(sliced) : sliced}
       {!done && <span className={styles.cursor}>|</span>}
     </span>
   );
@@ -498,6 +518,8 @@ function ChatPage() {
       setPendingNpcReply(null);
       appendMessage(pendingMsg);
       setPhase('wait_tap');
+      // NPC 回复计入连续发言计数（避免 1+3=4 条 NPC 连续不让用户插嘴）
+      consecutiveNpcRef.current = 1;
 
       // 更新发言次数
       setUserTurnCount(currentTurnCount);
@@ -769,6 +791,7 @@ function ChatPage() {
                     speed={30}
                     onDone={onEnDone}
                     className={styles.bubbleEn}
+                    renderFn={(t) => renderTextWithMention(t, state.userName)}
                   />
                 )}
                 {(phase === 'typing_zh' || phase === 'typing_done') && (
@@ -781,6 +804,7 @@ function ChatPage() {
                         speed={25}
                         onDone={onZhDone}
                         className={styles.bubbleZh}
+                        renderFn={(t) => renderTextWithMention(t, state.userName)}
                       />
                     ) : (
                       /* typing_done 阶段中文也已完成，替换 @{username} */

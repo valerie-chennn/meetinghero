@@ -258,6 +258,15 @@ export const getSettlement = (chatSessionId) =>
   request(`/v2/chat/${chatSessionId}/settlement`);
 
 /**
+ * 动态生成💡参考说法
+ * 读 NPC 最近一条 @用户消息，AI 生成一句符合用户水平的英文回应
+ * @param {string} chatSessionId
+ * @returns {Promise<{ hint: string }>}
+ */
+export const generateHint = (chatSessionId) =>
+  request(`/v2/chat/${chatSessionId}/generate-hint`, { method: 'POST', body: JSON.stringify({}) });
+
+/**
  * 获取已收藏的表达本列表
  * @param {string} userId - 用户 ID
  */

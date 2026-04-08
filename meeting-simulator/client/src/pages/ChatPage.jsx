@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
 import UserInput from '../components/UserInput.jsx';
-import { joinChat, respondChat, completeChat, textToSpeech } from '../api/index.js';
+import { joinChat, respondChat, completeChat, textToSpeech, generateHint } from '../api/index.js';
 import styles from './ChatPage.module.css';
 
 // ── NPC 角色色彩池（按 speakerId 哈希取色）──
@@ -148,7 +148,12 @@ function ChatPage() {
   // ── 发言模式：是否展示💡提示 ──
   const [hintOpen, setHintOpen] = useState(false);
 
-  // ── 发言模式：已选中的立场 pill 索引 ──
+  // ── 发言模式：AI 动态生成的参考说法（点💡时展示）──
+  const [dynamicHint, setDynamicHint] = useState(null);
+  // 参考说法加载中
+  const [hintLoading, setHintLoading] = useState(false);
+
+  // ── 发言模式：已选中的立场 pill 索引（废弃，保留以免崩溃）──
   const [selectedHint, setSelectedHint] = useState(null);
 
   // ── 发言模式：是否切换到打字输入 ──
@@ -382,6 +387,9 @@ function ChatPage() {
         setHintOpen(false);
         setSelectedHint(null);
         setTypeMode(false);
+        setDynamicHint(null);
+        // 后台预加载 AI 参考说法，用户点💡时就能直接看到
+        fetchDynamicHint();
         // 等用户发言（handleUserSubmit 会调用 resumeAfterUser）
         return;
 
@@ -441,6 +449,23 @@ function ChatPage() {
   // ── 添加消息 ──
   function appendMessage(msg) {
     setMessages(prev => [...prev, msg]);
+  }
+
+  // ── 拉取 AI 动态生成的💡参考说法 ──
+  async function fetchDynamicHint() {
+    if (!sessionData?.chatSessionId) return;
+    setHintLoading(true);
+    try {
+      const result = await generateHint(sessionData.chatSessionId);
+      if (result?.hint && shouldContinueRef.current) {
+        setDynamicHint(result.hint);
+      }
+    } catch (err) {
+      console.warn('[ChatPage] 生成参考说法失败:', err.message);
+      // 失败静默，用户点💡时会显示 fallback
+    } finally {
+      if (shouldContinueRef.current) setHintLoading(false);
+    }
   }
 
   // ── 用户发言处理 ──
@@ -861,12 +886,14 @@ function ChatPage() {
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* 💡提示：直接显示一句英文参考说法 */}
-          {hintOpen && currentUserCue?.options?.[0] && (
+          {/* 💡提示：AI 动态生成的参考说法（fallback 到种子数据）*/}
+          {hintOpen && (
             <div className={styles.hintArea}>
               <div className={styles.exampleCard}>
                 <div className={styles.exampleText}>
-                  {currentUserCue.options[0].example}
+                  {hintLoading && !dynamicHint
+                    ? '生成中...'
+                    : (dynamicHint || currentUserCue?.options?.[0]?.example || '')}
                 </div>
               </div>
             </div>

@@ -10,6 +10,7 @@ const db = require('../db');
 const { callOpenAIJson } = require('../services/openai');
 const { respondChatPrompt } = require('../prompts/respond-chat');
 const { betterVersionPrompt } = require('../prompts/better-version');
+const { generateHintPrompt } = require('../prompts/generate-hint');
 
 /**
  * 从属性池中随机选取 2-3 个荒诞属性
@@ -487,6 +488,8 @@ router.get('/:chatSessionId/settlement', (req, res) => {
       settlementType: settlementTemplate.type || 'news',
       eventResult: settlementTemplate.event_result || '',
       structuredResult: settlementTemplate.structured_result || null,
+      // newsletter: 报纸风结算内容（publisher/headline/bullets）
+      newsletter: settlementTemplate.newsletter || null,
       // 荒诞属性：从 complete 阶段持久化的结果中读取
       absurdAttributes: session.absurd_attributes ? JSON.parse(session.absurd_attributes) : [],
       // 表达卡片（保持不变）
@@ -495,6 +498,117 @@ router.get('/:chatSessionId/settlement', (req, res) => {
   } catch (err) {
     console.error('[v2-chat/settlement] 错误：', err.message);
     return res.status(500).json({ error: '服务器内部错误，请稍后重试' });
+  }
+});
+
+/**
+ * POST /api/v2/chat/:chatSessionId/generate-hint
+ * 动态生成💡参考说法
+ * 读最近一条 NPC @用户消息，用 AI 生成一句符合用户水平的英文回应
+ * 出参: { hint: string }
+ */
+router.post('/:chatSessionId/generate-hint', async (req, res) => {
+  try {
+    const { chatSessionId } = req.params;
+
+    const session = db.prepare('SELECT * FROM v2_chat_sessions WHERE id = ?').get(chatSessionId);
+    if (!session) {
+      return res.status(404).json({ error: '会话不存在' });
+    }
+
+    // 查房间信息
+    const room = db.prepare('SELECT id, news_title, dialogue_script, npc_profiles FROM v2_rooms WHERE id = ?').get(session.room_id);
+    if (!room) {
+      return res.status(404).json({ error: '房间不存在' });
+    }
+
+    const dialogueScript = JSON.parse(room.dialogue_script);
+    const npcProfiles = JSON.parse(room.npc_profiles);
+
+    // 根据 user_turn_count 定位当前的 user_cue（第 N 次发言对应第 N 个 user_cue）
+    // user_turn_count 是已完成的发言次数，当前要回应第 (user_turn_count + 1) 个 cue
+    const targetCueIndex = session.user_turn_count; // 0-based：第一次是第 0 个
+    let cueCount = 0;
+    let currentCueIdx = -1;
+    for (let i = 0; i < dialogueScript.length; i++) {
+      if (dialogueScript[i].type === 'user_cue') {
+        if (cueCount === targetCueIndex) {
+          currentCueIdx = i;
+          break;
+        }
+        cueCount++;
+      }
+    }
+
+    if (currentCueIdx === -1) {
+      return res.status(400).json({ error: '找不到对应的发言节点' });
+    }
+
+    // 找 user_cue 前面最后一条 npc 消息（真正的 @用户消息）
+    let cueMessage = null;
+    let speakerName = 'NPC';
+    for (let i = currentCueIdx - 1; i >= 0; i--) {
+      if (dialogueScript[i].type === 'npc') {
+        cueMessage = dialogueScript[i].text;
+        const profile = npcProfiles.find(p => p.id === dialogueScript[i].speaker);
+        if (profile) speakerName = profile.name;
+        break;
+      }
+    }
+
+    // 兜底：如果找不到 @ 消息，用 user_cue 的 hint
+    if (!cueMessage) {
+      cueMessage = dialogueScript[currentCueIdx].hint || '';
+    }
+
+    // 查用户花名，用于替换 @{username}
+    const user = db.prepare('SELECT nickname FROM v2_users WHERE id = ?').get(session.user_id);
+    const nickname = (user && user.nickname) || 'you';
+
+    // 把 @{username} 替换为实际花名，让 AI 看到的是完整语境
+    const cueWithName = (cueMessage || '').replace(/@\{username\}/g, '@' + nickname);
+
+    // 调 AI 生成参考说法
+    const { systemPrompt, userPrompt } = generateHintPrompt({
+      cueMessage: cueWithName,
+      speakerName,
+      newsTopic: room.news_title || '',
+      userLevel: 'A2',
+    });
+
+    const result = await callOpenAIJson([
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt },
+    ]);
+
+    const hint = (result && result.hint) || '';
+    if (!hint) {
+      // AI 返回空 → 降级用 seed 里的 fallback
+      const fallback = dialogueScript[currentCueIdx].options?.[0]?.example || 'What do you mean?';
+      return res.status(200).json({ hint: fallback });
+    }
+
+    return res.status(200).json({ hint });
+  } catch (err) {
+    console.error('[v2-chat/generate-hint] 错误：', err.message);
+    // 失败时降级：尝试从 seed 拿 fallback
+    try {
+      const { chatSessionId } = req.params;
+      const session = db.prepare('SELECT room_id, user_turn_count FROM v2_chat_sessions WHERE id = ?').get(chatSessionId);
+      const room = db.prepare('SELECT dialogue_script FROM v2_rooms WHERE id = ?').get(session.room_id);
+      const script = JSON.parse(room.dialogue_script);
+      const targetIdx = session.user_turn_count;
+      let cnt = 0;
+      for (const turn of script) {
+        if (turn.type === 'user_cue') {
+          if (cnt === targetIdx) {
+            return res.status(200).json({ hint: turn.options?.[0]?.example || 'What do you mean?' });
+          }
+          cnt++;
+        }
+      }
+    } catch (_) { /* 兜底也失败就返回固定 fallback */ }
+    return res.status(200).json({ hint: 'What do you mean?' });
   }
 });
 

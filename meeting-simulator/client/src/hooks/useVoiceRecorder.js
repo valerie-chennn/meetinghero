@@ -3,14 +3,8 @@ import { speechToText } from '../api/index.js';
 
 /**
  * 语音录音 hook
- * 策略：MediaRecorder 录音 + Web Speech API 实时识别（主路径）+ Whisper 兜底
- *
- * 性能优化（方案 B）：
- * - 录音开始时同时启动 MediaRecorder 和 Web Speech（浏览器原生流式 STT）
- * - 停止录音后等 Web Speech flush 最终结果（最多 400ms），
- *   **有结果走快路径**：立即调用 onResult，不等 Whisper（感知延迟 <500ms）
- *   **无结果走慢路径**：发 Whisper 请求，和优化前行为一致（兜底）
- * - Web Speech 在 iOS Safari 支持历史不稳定，失败自动退回 Whisper，最差等于旧体验
+ * 策略：MediaRecorder 录音 + Web Speech API 静默识别 fallback
+ * 录音结束：优先用后端 Whisper，失败时用 Web Speech 结果
  *
  * @param {object} opts
  * @param {(result: { text: string, language: string }) => void} opts.onResult - 识别成功回调
@@ -112,40 +106,18 @@ export function useVoiceRecorder({ onResult, onError, onTranscribing } = {}) {
   }, []);
 
   /**
-   * 停止 Web Speech 并等待 onend 事件 flush 最终结果
-   * recognition.stop() 是异步的，stop 调用后还可能有最后一次 onresult 触发，
-   * 之后才 onend。等 onend 才能确保 webSpeechResultRef 是最终值。
-   * 带 400ms 超时兜底，防止某些浏览器 onend 永不触发导致挂起。
-   * @returns {Promise<void>}
+   * 停止 Web Speech API（录音结束时调用）
+   * 停止后 webSpeechResultRef 中存有已识别的文字
    */
-  const stopWebSpeechAndWait = useCallback(() => {
-    const recognition = recognitionRef.current;
-    if (!recognition) return Promise.resolve();
-
-    return new Promise((resolve) => {
-      let settled = false;
-      const finish = () => {
-        if (settled) return;
-        settled = true;
-        recognitionRef.current = null;
-        resolve();
-      };
-
-      // recognition 自然结束或被 stop() 触发的 end 事件
-      recognition.onend = finish;
-      // onerror 也视为结束（失败静默处理，让快路径判断 ref 即可）
-      recognition.onerror = finish;
-
+  const stopWebSpeech = useCallback(() => {
+    if (recognitionRef.current) {
       try {
-        recognition.stop();
+        recognitionRef.current.stop();
       } catch (_) {
-        finish();
-        return;
+        // 忽略停止时的异常
       }
-
-      // 兜底：400ms 仍没 onend 就强制继续
-      setTimeout(finish, 400);
-    });
+      recognitionRef.current = null;
+    }
   }, []);
 
   /**
@@ -174,44 +146,45 @@ export function useVoiceRecorder({ onResult, onError, onTranscribing } = {}) {
       mediaRecorder.onstop = async () => {
         // 关闭麦克风轨道
         stream.getTracks().forEach(track => track.stop());
-
-        // 关键：等 Web Speech flush 最终结果（最多 400ms），而不是立即停
-        // 这样 webSpeechResultRef 才是"说话的最终识别文本"
-        await stopWebSpeechAndWait();
+        // 停止 Web Speech，让其最终结果写入 ref
+        stopWebSpeech();
 
         const audioBlob = new Blob(chunksRef.current, { type: mediaRecorder.mimeType });
-        const webSpeechText = webSpeechResultRef.current && webSpeechResultRef.current.trim();
 
-        // ⚡ 快路径：Web Speech 已有结果，立即返回，不等 Whisper
-        // 这条路径下感知延迟 <500ms（主要是 onend 等待时间）
-        if (webSpeechText) {
-          console.info('[useVoiceRecorder] ⚡ Web Speech 快路径命中，长度:', webSpeechText.length);
-          onResultRef.current?.({ text: webSpeechText, language: 'en' });
-          // 不触发 loading：快路径没有异步等待
-          // （如果调用方之前把 isTranscribing 设为 true 作为"录音处理中"的过渡态，
-          //  也显式设一次 false 保险）
-          onTranscribingRef.current?.(false);
-          return;
-        }
-
-        // 🐢 慢路径：Web Speech 没识别出任何内容（iOS Safari 偶发、不支持、说得太轻等），
-        // 退回到 Whisper，行为和优化前一致
-        console.info('[useVoiceRecorder] 🐢 Web Speech 无结果，走 Whisper 慢路径');
+        // 通知调用方：开始等待 Whisper 转写，显示加载态
         onTranscribingRef.current?.(true);
 
         try {
+          // 优先使用后端 Whisper STT
           const result = await speechToText(audioBlob);
+
+          // 转写完成，通知调用方关闭加载态
           onTranscribingRef.current?.(false);
 
           if (result && result.text && result.text.trim()) {
+            // 后端识别成功，直接使用
             onResultRef.current?.(result);
           } else {
-            onErrorRef.current?.('语音识别未能检测到内容，请重试或手动输入');
+            // 后端返回空，尝试 Web Speech 结果
+            const fallbackText = webSpeechResultRef.current;
+            if (fallbackText) {
+              console.info('[useVoiceRecorder] 后端 STT 返回空，使用 Web Speech 结果作为 fallback');
+              onResultRef.current?.({ text: fallbackText, language: 'en' });
+            } else {
+              onErrorRef.current?.('语音识别未能检测到内容，请重试或手动输入');
+            }
           }
         } catch (err) {
-          console.error('[useVoiceRecorder] Whisper STT 失败:', err);
+          console.error('[useVoiceRecorder] 后端 Whisper STT 失败，尝试 Web Speech fallback:', err);
+          // 出错时也要关闭加载态
           onTranscribingRef.current?.(false);
-          onErrorRef.current?.('语音识别失败，请重试或手动输入');
+          // 后端失败，使用 Web Speech API 结果
+          const fallbackText = webSpeechResultRef.current;
+          if (fallbackText) {
+            onResultRef.current?.({ text: fallbackText, language: 'en' });
+          } else {
+            onErrorRef.current?.('语音识别失败，请重试或手动输入');
+          }
         }
       };
 
@@ -238,7 +211,7 @@ export function useVoiceRecorder({ onResult, onError, onTranscribing } = {}) {
     } finally {
       isStartingRef.current = false;
     }
-  }, [startTimer, startWebSpeechSilent, stopWebSpeechAndWait]);
+  }, [startTimer, startWebSpeechSilent, stopWebSpeech]);
 
   /**
    * 停止录音

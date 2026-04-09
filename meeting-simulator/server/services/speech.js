@@ -3,52 +3,7 @@
  * 提供文字转语音（TTS）和语音转文字（STT）功能
  * TTS 优先使用 ElevenLabs，fallback 到 Azure
  * STT 使用 Azure Whisper
- * TTS 结果会过 ffmpeg loudnorm 做响度归一化，解决不同 voice 响度不一致
  */
-
-const { spawn } = require('child_process');
-const fs = require('fs');
-const os = require('os');
-const path = require('path');
-
-/**
- * 用 ffmpeg loudnorm filter 做响度归一化
- * 目标：I=-16 LUFS（播客/语音标准响度），TP=-1.5 dBTP，LRA=11 LU
- * 任何失败（ffmpeg 不存在 / 异常退出 / 超时）都返回原 buffer，
- * 保证永远有声音，宁可响度不齐也不能无声
- *
- * 实测数据（本地验证通过）：
- * - Josh  (ElevenLabs): -23.73 LUFS → -17.54（+6 dB，耗时 ~120ms）
- * - Arnold (ElevenLabs): -16.06 LUFS → -16.48（几乎不动，耗时 ~70ms）
- * - 归一化后差距 1 dB 以内，人耳基本听不出差异
- *
- * @param {Buffer} mp3Buffer - 输入 mp3 字节
- * @returns {Promise<Buffer>} 归一化后的 mp3，或者失败时的原 buffer
- */
-// ⚠️ 2026-04-09 放弃运行时响度归一化：连续 5 次 iPhone 翻车教训
-//
-// 失败记录：
-// 1. Web Audio + RMS 归一化（前端）：iPhone 无声（AudioContext 解锁不硬）
-// 2. single-pass loudnorm mp3 48 kHz：iPhone 部分无声 → 44.1 kHz 修复
-// 3. two-pass loudnorm mp3：被 peak 限幅卡死，精度差
-// 4. acompressor + loudnorm mp3：Chrome OK，iPhone "itttttt" frame loop
-// 5. acompressor + loudnorm wav (临时文件)：iPhone 部分能播，但 WAV 文件是
-//    mp3 的 5-6 倍大（~300 KB vs ~50 KB），移动网络下 5-6 条 TTS 加载极慢，
-//    甚至脚本阶段的 TTS 都下载不完 → 用户体感"开头 TTS 都没了"
-//
-// 结论：TTS 归一化的正确方向是离线预处理（提前合成脚本内固定文本，
-// 本地批量 ffmpeg 归一化后入库），而不是运行时处理。LLM 生成的动态
-// 回复无法预处理，只能接受响度浮动。
-//
-// 当前方案：直接透传 ElevenLabs 返回的原始 mp3，不做任何处理。
-// 响度不完美但：
-//   - iPhone 100% 能播
-//   - 文件小加载快
-//   - 无延迟开销
-// 用户之前明确说过"能接受一大一小的状态"，这是底线保障
-async function normalizeLoudness(mp3Buffer) {
-  return mp3Buffer;
-}
 
 /**
  * 检查 ElevenLabs TTS 服务是否已配置
@@ -365,5 +320,4 @@ module.exports = {
   textToSpeechElevenLabs,
   textToSpeech,
   speechToText,
-  normalizeLoudness,
 };

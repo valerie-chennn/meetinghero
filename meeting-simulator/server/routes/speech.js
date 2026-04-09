@@ -13,7 +13,6 @@ const {
   isElevenLabsConfigured,
   isSpeechConfigured,
   isWhisperConfigured,
-  normalizeLoudness,
 } = require('../services/speech');
 
 // 配置 multer 使用内存存储，限制文件大小 10MB
@@ -54,13 +53,11 @@ router.post('/tts', async (req, res) => {
     }
 
     let audioBuffer;
-    let ttsSource;
 
     // 优先使用 ElevenLabs（需要传入 voiceId）
     if (isElevenLabsConfigured() && voiceId) {
       console.log(`[Speech/TTS] 使用 ElevenLabs，voiceId=${voiceId}, textLength=${text.trim().length}`);
       audioBuffer = await textToSpeechElevenLabs(text.trim(), voiceId);
-      ttsSource = 'elevenlabs';
     } else {
       // Fallback：使用 Azure TTS
       if (!isSpeechConfigured()) {
@@ -77,14 +74,6 @@ router.post('/tts', async (req, res) => {
 
       console.log(`[Speech/TTS] 使用 Azure TTS，language=${language}, textLength=${text.trim().length}`);
       audioBuffer = await textToSpeech(text.trim(), language, voice);
-      ttsSource = 'azure';
-    }
-
-    // normalizeLoudness 已经改成 passthrough（2026-04-09 放弃运行时响度归一化）
-    // 直接透传原 mp3 buffer，保持 Content-Type audio/mpeg
-    // 历史上各种 ffmpeg filter 组合都在 iPhone Safari 上翻车，见 speech.js 注释
-    if (ttsSource === 'elevenlabs') {
-      audioBuffer = await normalizeLoudness(audioBuffer);
     }
 
     // 返回音频流

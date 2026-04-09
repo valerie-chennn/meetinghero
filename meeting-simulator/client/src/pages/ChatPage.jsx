@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
 import { joinChat, respondChat, completeChat, textToSpeech, generateHint } from '../api/index.js';
+import { useVoiceRecorder } from '../hooks/useVoiceRecorder.js';
 import styles from './ChatPage.module.css';
 
 // ── NPC 角色色彩池（按 speakerId 哈希取色）──
@@ -53,16 +54,104 @@ async function playTts(text, voiceId, userName) {
     ttsCache.delete(key);
     const audioBlob = await blobPromise;
     if (!audioBlob) return;
+
+    // 优先走 Web Audio 路径做 RMS 响度归一化，解决不同 ElevenLabs voice
+    // 响度不一致的问题（ElevenLabs API 不做归一化）
+    try {
+      return await playWithWebAudio(audioBlob);
+    } catch (webAudioErr) {
+      console.warn('[ChatPage] Web Audio 归一化失败，回退到 HTMLAudioElement:', webAudioErr.message);
+      // fallthrough 到 HTMLAudioElement
+    }
+
+    // Fallback：HTMLAudioElement（不做归一化，但保证能播）
     return new Promise((resolve) => {
       const audioUrl = URL.createObjectURL(audioBlob);
-      const audio = new Audio(audioUrl);
-      audio.onended = () => { URL.revokeObjectURL(audioUrl); resolve(); };
-      audio.onerror = () => { URL.revokeObjectURL(audioUrl); resolve(); };
-      audio.play().catch(() => resolve());
+      // ── 复用全局解锁的 Audio 实例 ──
+      // iOS Safari 的 HTMLAudioElement 解锁是"元素级"的：
+      //   new Audio() 创建的新实例必须在 user gesture 内才能 play
+      //   但一个已解锁的实例可以无限次改 src 在任何地方 play
+      // window.__unlockedAudio 是 useAudioUnlock 在用户首次点击时创建并解锁的单例
+      const audio = window.__unlockedAudio || new Audio();
+      const cleanup = () => {
+        URL.revokeObjectURL(audioUrl);
+        audio.onended = null;
+        audio.onerror = null;
+      };
+      audio.onended = () => { cleanup(); resolve(); };
+      audio.onerror = () => { cleanup(); resolve(); };
+      audio.src = audioUrl;
+      audio.play().catch((err) => {
+        console.warn('[ChatPage] audio.play() 被拒绝:', err.message);
+        cleanup();
+        resolve();
+      });
     });
   } catch (err) {
     console.warn('[ChatPage] TTS 失败，静默跳过:', err.message);
   }
+}
+
+// 用 Web Audio API 播放音频，同时做 RMS 响度归一化
+// 目的：不同 ElevenLabs voice 的原始响度差异巨大（Josh 比 Arnold 大声很多），
+// API 不做归一化，播出来一条大一条小，用户体感割裂。
+// 这里解码后计算 RMS，算出 gain 让输出接近目标响度。
+async function playWithWebAudio(audioBlob) {
+  const audioCtx = window.__sharedAudioCtx;
+  if (!audioCtx) {
+    throw new Error('AudioContext 未解锁，需要在 useAudioUnlock 里初始化');
+  }
+  // iOS Safari 在页面切后台再切回前台时 AudioContext 可能变 suspended
+  if (audioCtx.state === 'suspended') {
+    try { await audioCtx.resume(); } catch (_) { /* ignore */ }
+  }
+
+  const arrayBuffer = await audioBlob.arrayBuffer();
+
+  // decodeAudioData 在旧版 iOS Safari 只支持 callback 风格，新版同时支持 Promise。
+  // 这里两种都兼容：先用 callback，同时 hook 返回的 Promise（如果有）
+  const audioBuffer = await new Promise((resolve, reject) => {
+    let settled = false;
+    const ok = (buf) => { if (!settled) { settled = true; resolve(buf); } };
+    const fail = (e) => { if (!settled) { settled = true; reject(e || new Error('decodeAudioData 失败')); } };
+    try {
+      const maybePromise = audioCtx.decodeAudioData(arrayBuffer, ok, fail);
+      if (maybePromise && typeof maybePromise.then === 'function') {
+        maybePromise.then(ok, fail);
+      }
+    } catch (e) {
+      fail(e);
+    }
+  });
+
+  // 计算所有声道合并后的 RMS（人声 TTS 通常是 mono，循环一次即可）
+  let sumSquares = 0;
+  let sampleCount = 0;
+  for (let ch = 0; ch < audioBuffer.numberOfChannels; ch++) {
+    const data = audioBuffer.getChannelData(ch);
+    for (let i = 0; i < data.length; i++) {
+      const v = data[i];
+      sumSquares += v * v;
+    }
+    sampleCount += data.length;
+  }
+  const rms = sampleCount > 0 ? Math.sqrt(sumSquares / sampleCount) : 0.15;
+
+  // 目标 RMS 0.15（经验值，接近人声 -16 LUFS）
+  // gain 上限 3 防止把低音量音频过度放大出现噪声/爆音
+  const TARGET_RMS = 0.15;
+  const gain = Math.min(TARGET_RMS / Math.max(rms, 0.001), 3);
+
+  return new Promise((resolve) => {
+    const source = audioCtx.createBufferSource();
+    source.buffer = audioBuffer;
+    const gainNode = audioCtx.createGain();
+    gainNode.gain.value = gain;
+    source.connect(gainNode).connect(audioCtx.destination);
+    // onended 在 source.start() 后音频自然播完时触发
+    source.onended = () => resolve();
+    source.start();
+  });
 }
 
 // 预加载脚本后续 N 条 NPC 消息的 TTS
@@ -183,6 +272,28 @@ function ChatPage() {
 
   // ── 发言模式：麦克风区收起状态 ──
   const [micCollapsed, setMicCollapsed] = useState(false);
+
+  // 转写中状态：录音停止后、Whisper 返回结果前显示 loading UI
+  // 避免用户点完停止后按钮立即回到 idle，体感"啥都没发生"
+  const [isTranscribing, setIsTranscribing] = useState(false);
+
+  // ── 录音 hook：录音完成后自动 submit ──
+  const { isRecording, duration: recordDuration, toggleRecording } = useVoiceRecorder({
+    onResult: (result) => {
+      if (result?.text?.trim()) {
+        handleUserSubmit(result.text.trim());
+      }
+    },
+    onError: (msg) => {
+      console.warn('[ChatPage] 录音失败:', msg);
+      // ChatPage 暂无 toast 机制，用 alert 兜底
+      alert(msg);
+    },
+    onTranscribing: (loading) => {
+      // 转写中：按钮显示 spinner + "识别中…"
+      setIsTranscribing(loading);
+    },
+  });
 
   // ── 发言模式：拖拽过程中的 Y 偏移量（px）──
   const [micDragY, setMicDragY] = useState(0);
@@ -518,11 +629,17 @@ function ChatPage() {
       // 设置 dots 预览（用于 dots 阶段显示正确的头像）
       setDotsPreview({ speakerName: replyProfile.name, speakerColor: replyColor });
 
-      // 预缓存回复语音
+      // 预缓存回复语音（返回 promise，下面要 await 它）
       prefetchTts(result.npcReply.text, replyVoiceId, state.userName);
 
       // dots → typing_en
-      await sleep(600 + Math.random() * 300);
+      // 关键：同时等 dots 最短时长 + TTS 就绪（取两者较长的）
+      // 否则 TTS 还在合成就进入 typing，气泡先出 TTS 落后，体感 NPC 回复滞后
+      // 这是 startPlayback 路径已有的做法，handleUserSubmit 路径之前漏了
+      const ttsKey = `${result.npcReply.text}|${replyVoiceId || ''}`;
+      const ttsCachePromise = ttsCache.get(ttsKey) || Promise.resolve(null);
+      const dotsMinWait = sleep(600 + Math.random() * 300);
+      await Promise.all([dotsMinWait, ttsCachePromise]);
       if (!shouldContinueRef.current) return;
 
       // 把 NPC 回复挂到打字机 state
@@ -1004,24 +1121,44 @@ function ChatPage() {
             </div>
           ) : (
             <>
-              {/* 大麦克风按钮 */}
-              <div className={styles.micWrap}>
+              {/* 大麦克风按钮：三态切换 idle / recording / transcribing */}
+              <div className={`${styles.micWrap} ${isRecording ? styles.micWrapRecording : ''}`}>
                 <div className={styles.pulseRingOuter}>
                   <div className={styles.pulseRing} />
                   <div className={`${styles.pulseRing} ${styles.pulseRing2}`} />
                 </div>
                 <button
-                  className={styles.micButton}
-                  onClick={() => setTypeMode(true)}
-                  disabled={isSubmitting}
+                  className={`${styles.micButton} ${isRecording ? styles.micButtonRecording : ''} ${isTranscribing ? styles.micButtonTranscribing : ''}`}
+                  onClick={toggleRecording}
+                  disabled={isSubmitting || isTranscribing}
                 >
-                  <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round">
-                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                    <line x1="12" y1="19" x2="12" y2="23" />
-                    <line x1="8" y1="23" x2="16" y2="23" />
-                  </svg>
+                  {isTranscribing ? (
+                    /* 转写中：spinner */
+                    <div className={styles.micSpinner} />
+                  ) : isRecording ? (
+                    /* 录音中：红色方块停止图标 */
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="#fff">
+                      <rect x="6" y="6" width="12" height="12" rx="2" />
+                    </svg>
+                  ) : (
+                    /* 静止：麦克风图标 */
+                    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round">
+                      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                      <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                      <line x1="12" y1="19" x2="12" y2="23" />
+                      <line x1="8" y1="23" x2="16" y2="23" />
+                    </svg>
+                  )}
                 </button>
+                {/* 状态文字：录音中显示时长，转写中显示"识别中..." */}
+                {isRecording && (
+                  <div className={styles.recordDurationText}>
+                    {Math.floor(recordDuration / 60)}:{String(recordDuration % 60).padStart(2, '0')}
+                  </div>
+                )}
+                {isTranscribing && (
+                  <div className={styles.transcribingText}>识别中…</div>
+                )}
               </div>
 
               {/* 首次发言提示 */}

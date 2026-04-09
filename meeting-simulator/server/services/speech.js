@@ -28,13 +28,26 @@ async function normalizeLoudness(mp3Buffer) {
     const chunks = [];
     let stderr = '';
     let settled = false;
+
+    // 尝试从 stderr 里 parse 出 loudnorm 的 json 诊断输出
+    // print_format=json 会在 stderr 打印 {"input_i":"-23.73","output_i":"-16.97",...}
+    const parseLoudnormJson = () => {
+      const m = stderr.match(/\{\s*"input_i"[\s\S]*?\}/);
+      if (!m) return null;
+      try { return JSON.parse(m[0]); } catch (_) { return null; }
+    };
+
     const finish = (buf, reason) => {
       if (settled) return;
       settled = true;
       const elapsed = Date.now() - startTime;
       const tag = reason === 'ok' ? '[Speech/loudnorm] ok' : `[Speech/loudnorm] ${reason}`;
-      console.log(`${tag} in=${mp3Buffer.length}B out=${buf.length}B took=${elapsed}ms`);
-      if (reason !== 'ok' && stderr) {
+      const info = parseLoudnormJson();
+      const lufs = info
+        ? ` input_i=${info.input_i} output_i=${info.output_i} input_tp=${info.input_tp} target_offset=${info.target_offset}`
+        : '';
+      console.log(`${tag} in=${mp3Buffer.length}B out=${buf.length}B took=${elapsed}ms${lufs}`);
+      if (reason !== 'ok' && stderr && !info) {
         console.warn(`[Speech/loudnorm] stderr=${stderr.trim().slice(0, 300)}`);
       }
       resolve(buf);
@@ -43,17 +56,15 @@ async function normalizeLoudness(mp3Buffer) {
     let ff;
     try {
       // 关键 encoder 参数：
-      // -ar 44100 -ac 1 -c:a libmp3lame：
-      //   强制输出 44.1 kHz mono + libmp3lame encoder，和 ElevenLabs 原始 mp3 一致
-      //   如果不加，ffmpeg 会输出 48 kHz 而且用默认 encoder，虽然 ffprobe 看没问题，
-      //   但 iPhone Safari 对 48 kHz MP3 的 HTMLAudioElement 播放有兼容问题，导致
-      //   有时候直接静默无声（2026-04-09 实测验证）
+      // -ar 44100 -ac 1 -c:a libmp3lame：强制 44.1 kHz mono libmp3lame，和 ElevenLabs 原始对齐
+      //   之前用 48 kHz default encoder 导致 iPhone Safari 某些 mp3 静默无声（2026-04-09 修复）
       // -b:a 128k：码率对齐 ElevenLabs 原始
+      // loudnorm 加 print_format=json：在 stderr 打印归一化前后的 LUFS 数据，便于远程诊断
       ff = spawn('ffmpeg', [
-        '-hide_banner', '-loglevel', 'error',
+        '-hide_banner', '-loglevel', 'info',
         '-f', 'mp3',
         '-i', 'pipe:0',
-        '-af', 'loudnorm=I=-16:TP=-1.5:LRA=11',
+        '-af', 'loudnorm=I=-16:TP=-1.5:LRA=11:print_format=json',
         '-ar', '44100',
         '-ac', '1',
         '-c:a', 'libmp3lame',

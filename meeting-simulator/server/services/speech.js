@@ -42,13 +42,23 @@ async function normalizeLoudness(mp3Buffer) {
 
     let ff;
     try {
+      // 关键 encoder 参数：
+      // -ar 44100 -ac 1 -c:a libmp3lame：
+      //   强制输出 44.1 kHz mono + libmp3lame encoder，和 ElevenLabs 原始 mp3 一致
+      //   如果不加，ffmpeg 会输出 48 kHz 而且用默认 encoder，虽然 ffprobe 看没问题，
+      //   但 iPhone Safari 对 48 kHz MP3 的 HTMLAudioElement 播放有兼容问题，导致
+      //   有时候直接静默无声（2026-04-09 实测验证）
+      // -b:a 128k：码率对齐 ElevenLabs 原始
       ff = spawn('ffmpeg', [
         '-hide_banner', '-loglevel', 'error',
         '-f', 'mp3',
         '-i', 'pipe:0',
         '-af', 'loudnorm=I=-16:TP=-1.5:LRA=11',
-        '-f', 'mp3',
+        '-ar', '44100',
+        '-ac', '1',
+        '-c:a', 'libmp3lame',
         '-b:a', '128k',
+        '-f', 'mp3',
         'pipe:1',
       ]);
     } catch (err) {

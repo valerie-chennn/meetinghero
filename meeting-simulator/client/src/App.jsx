@@ -24,27 +24,12 @@ function useAudioUnlock() {
           audio.play().catch(() => {});
           window.__unlockedAudio = audio;
         }
-        // 同时解锁 AudioContext（TTS 的 Web Audio 路径需要）
-        // iOS Safari 关键坑：光 resume() 不够，必须在 user gesture 内真正 play 过
-        // 一个 buffer source 才算"激活"，之后在任意时刻 play 新的 source 才会出声
-        // 这是 iOS Safari Web Audio 社区公认的解锁姿势
+        // 同时解锁 AudioContext（部分场景需要）
         if (!window.__sharedAudioCtx) {
           window.__sharedAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
         }
-        const ctx = window.__sharedAudioCtx;
-        // 1. 同步 play 一个 1-sample 的静音 buffer，强制 iOS Safari 激活
-        try {
-          const silentBuffer = ctx.createBuffer(1, 1, 22050);
-          const silentSource = ctx.createBufferSource();
-          silentSource.buffer = silentBuffer;
-          silentSource.connect(ctx.destination);
-          silentSource.start(0);
-        } catch (audioUnlockErr) {
-          // 某些旧浏览器不支持 createBuffer/createBufferSource，忽略
-        }
-        // 2. 再 resume 一次兜底（有些 iOS 版本需要显式 resume）
-        if (ctx.state === 'suspended') {
-          ctx.resume().catch(() => {});
+        if (window.__sharedAudioCtx.state === 'suspended') {
+          window.__sharedAudioCtx.resume().catch(() => {});
         }
       } catch (e) { /* 静默忽略 */ }
       document.removeEventListener('click', unlock);

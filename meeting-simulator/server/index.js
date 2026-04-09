@@ -15,7 +15,6 @@ require('./db');
 
 // 导入路由
 const speechRouter = require('./routes/speech');
-const debugRouter = require('./routes/debug');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -48,7 +47,6 @@ app.use((req, res, next) => {
 // ==================== 路由挂载 ====================
 
 app.use('/api/speech', speechRouter);
-app.use('/api/debug', debugRouter);
 
 // ==================== v2 推流版路由 ====================
 const v2UsersRouter = require('./routes/v2-users');

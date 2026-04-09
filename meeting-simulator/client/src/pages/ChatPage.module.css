@@ -22,10 +22,6 @@
   }
 }
 
-/* 点击推进时整页可点击 */
-.containerTappable {
-  cursor: pointer;
-}
 
 /* ===== 顶部导航栏 ===== */
 .header {
@@ -313,7 +309,7 @@
 /* ===== 底部状态区（非发言模式）===== */
 .bottomStatus {
   flex-shrink: 0;
-  padding: 8px 16px 20px;
+  padding: 8px 20px 20px;
   text-align: center;
   background: #F5F0EB;
 }
@@ -324,59 +320,18 @@
   padding: 8px 0;
 }
 
-/* 点击提示（第一次：手指+水波纹）*/
-.tapFirst {
-  padding: 8px 0;
-}
-
-.tapGestureWrap {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  width: 60px;
-  height: 60px;
-  margin: 0 auto 4px;
-}
-
-/* 水波纹：从手指中心向外扩散，循环 */
-.tapRipple {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  border: 1.5px solid rgba(0, 0, 0, 0.1);
-  transform: translate(-50%, -50%) scale(0.5);
-  animation: ripple 1.8s ease-out infinite;
-  pointer-events: none;
-}
-
-/* 第二圈水波纹，错开时间 */
-.tapRipple2 {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  border: 1.5px solid rgba(0, 0, 0, 0.08);
-  transform: translate(-50%, -50%) scale(0.5);
-  animation: ripple 1.8s ease-out infinite 0.9s;
-  pointer-events: none;
-}
-
-.tapFinger {
-  position: relative;
-  z-index: 1;
-  animation: tapGesture 1.8s ease-in-out infinite;
-}
-
-.tapHintText {
-  font-size: 12px;
-  color: #bbb;
-  animation: tapHint 2.5s ease-in-out infinite;
+/* 点击继续 CTA —— 全宽暖棕渐变 */
+.tapContinueBtn {
+  width: 100%;
+  height: 48px;
+  border-radius: 24px;
+  background: linear-gradient(135deg, #d4a574 0%, #c4956a 100%);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* ===== 发言模式 — 下半屏 ===== */
@@ -818,27 +773,6 @@
 @keyframes dotBounce {
   0%, 80%, 100% { transform: translateY(0); }
   40%           { transform: translateY(-4px); }
-}
-
-/* 手指点击动画 */
-@keyframes tapGesture {
-  0%   { transform: scale(1);    opacity: 0.8; }
-  30%  { transform: scale(0.85); opacity: 1; }
-  50%  { transform: scale(1);    opacity: 0.8; }
-  100% { transform: scale(1);    opacity: 0.6; }
-}
-
-/* 水波纹 */
-@keyframes ripple {
-  0%   { transform: translate(-50%, -50%) scale(0.5); opacity: 0.5; }
-  50%  { transform: translate(-50%, -50%) scale(1.5); opacity: 0.2; }
-  100% { transform: translate(-50%, -50%) scale(2.5); opacity: 0; }
-}
-
-/* 点击提示文字呼吸 */
-@keyframes tapHint {
-  0%, 100% { opacity: 0.3; }
-  50%       { opacity: 0.6; }
 }
 
 /* 麦克风呼吸 */

@@ -25,7 +25,8 @@ services:
       context: .
       dockerfile: Dockerfile.nginx
     ports:
-      - "80:80"
+      # 端口可通过环境变量覆盖：生产不传则默认 80，staging 用 NGINX_PORT=8080
+      - "${NGINX_PORT:-80}:80"
     depends_on:
       app:
         condition: service_healthy

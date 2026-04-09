@@ -7,6 +7,9 @@
  */
 
 const { spawn } = require('child_process');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 
 /**
  * 用 ffmpeg loudnorm filter 做响度归一化
@@ -25,9 +28,14 @@ const { spawn } = require('child_process');
 async function normalizeLoudness(mp3Buffer) {
   return new Promise((resolve) => {
     const startTime = Date.now();
-    const chunks = [];
     let stderr = '';
     let settled = false;
+
+    // 关键：写到临时文件而不是 pipe:1。
+    // pipe 模式下 ffmpeg 无法 seek，WAV data chunk size 会被写成 0xffffffff（streaming 标记），
+    // iPhone Safari 按这个长度读会产生 frame loop / 无声（2026-04-09 第 5 次翻车定位的根因）。
+    // 写临时文件后 ffmpeg 会 seek 回 header 改写真实 size，iPhone 才能正确 decode
+    const tmpOut = path.join(os.tmpdir(), `tts-loudnorm-${Date.now()}-${Math.random().toString(36).slice(2)}.wav`);
 
     const parseLoudnormSummary = () => {
       const m = stderr.match(/\{\s*"input_i"[\s\S]*?\}/);
@@ -38,6 +46,8 @@ async function normalizeLoudness(mp3Buffer) {
     const finish = (buf, reason) => {
       if (settled) return;
       settled = true;
+      // 清理临时文件（如果还在）
+      try { fs.unlinkSync(tmpOut); } catch (_) { /* 可能已经不存在 */ }
       const elapsed = Date.now() - startTime;
       const tag = reason === 'ok' ? '[Speech/loudnorm] ok' : `[Speech/loudnorm] ${reason}`;
       const info = parseLoudnormSummary();
@@ -72,6 +82,7 @@ async function normalizeLoudness(mp3Buffer) {
       //   44.1 kHz mono 和 ElevenLabs 原始一致
       ff = spawn('ffmpeg', [
         '-hide_banner', '-loglevel', 'info',
+        '-y',
         '-f', 'mp3',
         '-i', 'pipe:0',
         '-af', 'acompressor=threshold=-20dB:ratio=4:attack=5:release=50,loudnorm=I=-16:TP=-1.5:LRA=11:print_format=json',
@@ -79,7 +90,7 @@ async function normalizeLoudness(mp3Buffer) {
         '-ac', '1',
         '-c:a', 'pcm_s16le',
         '-f', 'wav',
-        'pipe:1',
+        tmpOut,
       ]);
     } catch (err) {
       console.warn('[Speech/loudnorm] spawn 同步异常:', err.message);
@@ -87,15 +98,24 @@ async function normalizeLoudness(mp3Buffer) {
       return;
     }
 
-    ff.stdout.on('data', (c) => chunks.push(c));
     ff.stderr.on('data', (c) => { stderr += c.toString(); });
     ff.on('error', (err) => finish(mp3Buffer, `spawn-error: ${err.message}`));
     ff.on('close', (code) => {
-      if (code !== 0 || chunks.length === 0) {
+      if (code !== 0) {
         finish(mp3Buffer, `ffmpeg-exit-${code}`);
         return;
       }
-      finish(Buffer.concat(chunks), 'ok');
+      // 读临时文件为 buffer（ffmpeg 已经写完并 seek 回修正 header）
+      try {
+        const wavBuffer = fs.readFileSync(tmpOut);
+        if (wavBuffer.length === 0) {
+          finish(mp3Buffer, 'empty-output');
+          return;
+        }
+        finish(wavBuffer, 'ok');
+      } catch (readErr) {
+        finish(mp3Buffer, `read-tmp-error: ${readErr.message}`);
+      }
     });
 
     ff.stdin.on('error', () => { /* 忽略 EPIPE */ });

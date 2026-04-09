@@ -15,6 +15,9 @@
    =================================================== */
 :root {
 
+  /* ── 状态栏高度（大屏 demo 模式：假状态栏；小屏真机：iOS safe area）── */
+  --status-bar-h: 54px;
+
   /* ── 字体族（报纸衬线体）── */
   --font-serif: 'Noto Serif SC', Georgia, 'Times New Roman', serif;
   --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Display',
@@ -172,6 +175,13 @@
   --shadow: rgba(0, 0, 0, 0.06);
 }
 
+@media (max-width: 768px) {
+  :root {
+    /* 真机模式：使用 iOS safe area，fallback 44px */
+    --status-bar-h: env(safe-area-inset-top, 44px);
+  }
+}
+
 /* ===================================================
    无障碍 — 减少动效（尊重用户系统偏好）
    =================================================== */
@@ -307,6 +317,43 @@ body {
 }
 
 /* ===================================================
+   真机适配：≤480px 移除假手机壳，全屏使用真机视口
+   =================================================== */
+@media (max-width: 768px) {
+  /* #root 不再 center，让 phone-wrapper 撑满视口 */
+  #root {
+    align-items: stretch;
+    justify-content: stretch;
+  }
+
+  .phone-wrapper {
+    padding: 0;
+    min-height: 100dvh;
+    width: 100vw;   /* 直接绑定到视口宽度，不依赖 flex 计算 */
+    flex: 1;
+  }
+
+  .phone-frame {
+    width: 100vw;   /* 直接绑定到视口宽度，避免 flex item 内 100% 塌缩 */
+    height: 100dvh;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    background: #F5F0EB;
+  }
+
+  .phone-screen {
+    border-radius: 0;
+    width: 100%;
+  }
+
+  /* 隐藏假状态栏，使用真机系统状态栏 */
+  .phone-status-bar {
+    display: none;
+  }
+}
+
+/* ===================================================
    页面容器 — 移动端优先，最大宽度 430px 居中
    =================================================== */
 .page-container {
@@ -318,8 +365,13 @@ body {
   display: flex;
   flex-direction: column;
   position: relative;
-  /* 防止超宽屏时两侧过于空旷 */
   background: var(--bg-base);
+}
+/* 真机（小屏）模式：取消 max-width 限制，撑满视口 */
+@media (max-width: 768px) {
+  .page-container {
+    max-width: none;
+  }
 }
 
 /* ===================================================

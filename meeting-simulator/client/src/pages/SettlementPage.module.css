@@ -35,7 +35,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 74px 28px 0; /* 54px 状态栏 + 20px 视觉间距 */
+  padding: calc(var(--status-bar-h) + 20px) 28px 0; /* 状态栏 + 20px 视觉间距 */
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
@@ -296,7 +296,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 60px 28px 0; /* 54px 状态栏 + 6px 视觉间距 */
+  padding: calc(var(--status-bar-h) + 6px) 28px 0; /* 状态栏 + 6px 视觉间距 */
   flex-shrink: 0;
 }
 
@@ -585,4 +585,15 @@
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
+}
+
+/* ===================================================
+   真机适配：≤480px 隐藏报头双线
+   大屏 demo 仍保留双线作为报纸风视觉锚点
+   =================================================== */
+@media (max-width: 768px) {
+  .headerRuleFat,
+  .headerRuleThin {
+    display: none;
+  }
 }

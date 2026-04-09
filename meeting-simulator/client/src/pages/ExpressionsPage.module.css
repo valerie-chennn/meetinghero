@@ -12,10 +12,17 @@
   background: var(--bg-elevated);
 }
 
+/* 真机模式（小屏剥壳后）：取消 max-width 限制 */
+@media (max-width: 768px) {
+  .container {
+    max-width: none;
+  }
+}
+
 /* ===== 顶部标题 ===== */
 .header {
-  /* 手机壳状态栏高 54px，避开刘海/时间 */
-  padding: calc(54px + var(--space-4)) var(--space-5) var(--space-4);
+  /* 使用变量避开状态栏（大屏 54px 假状态栏，小屏 safe-area-inset-top）*/
+  padding: calc(var(--status-bar-h) + var(--space-4)) var(--space-5) var(--space-4);
   /* 报纸暖色系 */
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border);

@@ -15,6 +15,13 @@
   cursor: default;
 }
 
+/* 真机模式（小屏剥壳后）：取消 max-width 限制，撑满 phone-frame 宽度 */
+@media (max-width: 768px) {
+  .container {
+    max-width: none;
+  }
+}
+
 /* 点击推进时整页可点击 */
 .containerTappable {
   cursor: pointer;
@@ -30,10 +37,10 @@
   flex-shrink: 0;
   gap: 10px;
   z-index: 10;
-  /* 手机壳状态栏高 54px（absolute），header 必须推到它下方 */
-  padding-top: 54px;
-  /* 48px 内容高度 + 54px 状态栏 */
-  min-height: calc(48px + 54px);
+  /* 使用变量避开状态栏（大屏 54px 假状态栏，小屏 safe-area-inset-top）*/
+  padding-top: var(--status-bar-h);
+  /* 48px 内容高度 + 状态栏高度 */
+  min-height: calc(48px + var(--status-bar-h));
 }
 
 .backButton {
@@ -483,6 +490,56 @@
 .micButton:active {
   background: #5a3fa0;
   animation: recording 0.5s ease-in-out infinite;
+}
+
+/* 录音中：大圆按钮变红 */
+.micButtonRecording {
+  background: #E5484D !important;
+  animation: recording 0.5s ease-in-out infinite !important;
+}
+
+/* 录音中：pulseRing 节奏加快，颜色变红调 */
+.micWrapRecording .pulseRing {
+  animation-duration: 1s !important;
+  border-color: rgba(229, 72, 77, 0.4) !important;
+}
+
+/* 录音时长文字（大按钮下方，普通流布局撑开空间）*/
+.recordDurationText {
+  margin-top: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #E5484D;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.5px;
+  text-align: center;
+}
+
+/* 转写中：按钮变灰 + 禁用脉冲呼吸动画 */
+.micButtonTranscribing {
+  background: #999 !important;
+  animation: none !important;
+  cursor: wait !important;
+}
+
+/* 转写中：按钮内 spinner 动画 */
+.micSpinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #FFFFFF;
+  border-radius: 50%;
+  animation: spin 700ms linear infinite;
+}
+
+/* "识别中…" 文字，跟时长文字同位置 */
+.transcribingText {
+  margin-top: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #666;
+  letter-spacing: 0.5px;
+  text-align: center;
 }
 
 /* 首次发言提示 */

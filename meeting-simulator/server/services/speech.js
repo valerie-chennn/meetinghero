@@ -53,30 +53,21 @@ async function normalizeLoudness(mp3Buffer) {
 
     let ff;
     try {
-      // 关键 filter chain：acompressor → loudnorm
-      // 原因：ElevenLabs 的强调/感叹句（如 LLM 生成的 "See? You get it..."）peak 很高，
-      // 但 integrated LUFS 很低。直接用 loudnorm 归一化会被 TP=-1.5 dBTP 限幅卡住，
-      // 无法 boost 到 target -16 LUFS，不同内容之间响度差距保持 4-7 dB。
+      // ⚠️ iPhone Safari 失败记录（2026-04-09 连续 4 次翻车）：
+      // 1. Web Audio + RMS 归一化：iPhone 无声（AudioContext 解锁不硬）
+      // 2. single-pass loudnorm 48 kHz：iPhone 部分无声 → 44.1 kHz 修复
+      // 3. two-pass loudnorm linear：响度差距没解决（被 TP 限幅卡死）
+      // 4. acompressor + loudnorm：Chrome LUFS 完美（差 0.13 dB），但 iPhone 播放
+      //    "itttttt" frame loop + 无声 ← acompressor 产生的 mp3 在 iPhone Safari 上解码失败
       //
-      // acompressor 先压缩峰值（threshold=-20dB ratio=4:1 快 attack/release），
-      // 降低 crest factor，然后 loudnorm 就有足够 headroom 把整体响度拉到 -16。
-      //
-      // 本地实测数据（josh-loud "Project is over..." + arnold-quiet "I carried bags..."）：
-      //   只 loudnorm single-pass：  Josh -20.78  Arnold -16.68  差 4.1 dB
-      //   loudnorm two-pass linear： Josh -20.78  Arnold -16.68  差 4.1 dB（被 peak 限幅）
-      //   acompressor + loudnorm：   Josh -16.65  Arnold -16.52  差 0.13 dB ⭐
-      //
-      // 参数说明：
-      //   acompressor: threshold=-20dB（-20 dB 以上压缩），ratio=4:1（4 dB 进压成 1 dB），
-      //                attack=5ms（快速反应 transient），release=50ms（快速释放避免 pumping）
-      //   loudnorm: I=-16 LUFS（播客标准），TP=-1.5 dBTP，LRA=11 LU
-      // -ar 44100 -ac 1 -c:a libmp3lame -b:a 128k：对齐 ElevenLabs 原始 mp3 format，
-      //   防止 iPhone Safari 对 48 kHz mono MP3 的解码兼容问题
+      // 当前保守方案：single-pass loudnorm，不加前级 filter。
+      // 响度差距约 4-7 dB（用户接受过），但确保 iPhone 能播。
+      // 响度完美归一化不要在这个 filter chain 里继续加 filter，方向应该是改输出格式（WAV）
       ff = spawn('ffmpeg', [
         '-hide_banner', '-loglevel', 'info',
         '-f', 'mp3',
         '-i', 'pipe:0',
-        '-af', 'acompressor=threshold=-20dB:ratio=4:attack=5:release=50,loudnorm=I=-16:TP=-1.5:LRA=11:print_format=json',
+        '-af', 'loudnorm=I=-16:TP=-1.5:LRA=11:print_format=json',
         '-ar', '44100',
         '-ac', '1',
         '-c:a', 'libmp3lame',

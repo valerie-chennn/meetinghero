@@ -40,6 +40,10 @@ RUN cd server && npm install --omit=dev
 # 删除编译工具，减小镜像体积
 RUN apk del python3 make g++ && rm -rf /tmp/*
 
+# 安装 ffmpeg（用于 TTS 响度归一化 loudnorm）
+# alpine 的 ffmpeg 包包含 loudnorm filter，大小约 60MB
+RUN apk add --no-cache ffmpeg
+
 # 从 builder 阶段复制 server 源码和前端构建产物
 COPY --from=builder /app/server/ ./server/
 COPY --from=builder /app/client/dist ./client/dist/

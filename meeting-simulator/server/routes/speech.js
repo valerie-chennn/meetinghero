@@ -13,6 +13,7 @@ const {
   isElevenLabsConfigured,
   isSpeechConfigured,
   isWhisperConfigured,
+  normalizeLoudness,
 } = require('../services/speech');
 
 // 配置 multer 使用内存存储，限制文件大小 10MB
@@ -53,11 +54,13 @@ router.post('/tts', async (req, res) => {
     }
 
     let audioBuffer;
+    let ttsSource;
 
     // 优先使用 ElevenLabs（需要传入 voiceId）
     if (isElevenLabsConfigured() && voiceId) {
       console.log(`[Speech/TTS] 使用 ElevenLabs，voiceId=${voiceId}, textLength=${text.trim().length}`);
       audioBuffer = await textToSpeechElevenLabs(text.trim(), voiceId);
+      ttsSource = 'elevenlabs';
     } else {
       // Fallback：使用 Azure TTS
       if (!isSpeechConfigured()) {
@@ -74,6 +77,14 @@ router.post('/tts', async (req, res) => {
 
       console.log(`[Speech/TTS] 使用 Azure TTS，language=${language}, textLength=${text.trim().length}`);
       audioBuffer = await textToSpeech(text.trim(), language, voice);
+      ttsSource = 'azure';
+    }
+
+    // ElevenLabs 结果过 ffmpeg loudnorm 归一化（解决不同 voice 响度不一致）
+    // Azure TTS 响度本身比较标准，不做处理
+    // normalizeLoudness 内部已做失败兜底：任何异常都返回原 buffer，不影响可用性
+    if (ttsSource === 'elevenlabs') {
+      audioBuffer = await normalizeLoudness(audioBuffer);
     }
 
     // 返回音频流

@@ -46,6 +46,21 @@ function prefetchTts(text, voiceId, userName) {
   ttsCache.set(key, textToSpeech(cleanText, 'en', voiceId).catch(() => null));
 }
 
+// ── TTS 响度归一化 ──
+// ElevenLabs 不同 voice 原始响度差异最大可达 2 倍（八戒 Josh rms≈0.145，
+// 白龙马 Arnold rms≈0.073），API 不做归一化。这里用 Web Audio 的 GainNode
+// 运行时做 RMS 归一化 + peak 限幅，让所有 voice 听起来响度一致
+const NORMALIZE_LOUDNESS = true;
+const TARGET_RMS = 0.15;
+// gain 上限：RMS 归一化可能把低响度音频放大过多，3 倍是安全上限
+const MAX_GAIN = 3;
+// Peak 限幅：放大后的峰值不超过 0.95，留 5% 余量避免 clip 失真
+const PEAK_LIMIT = 0.95;
+// Web Audio 整条路径的最大耐心时间（相对 buffer 时长的倍数）+ 兜底常数
+// 比如 buffer 10 秒 → 最多等 10*1.2+2 = 14 秒，超时后强制 resolve，主流程不 hang
+const WEB_AUDIO_TIMEOUT_RATIO = 1.2;
+const WEB_AUDIO_TIMEOUT_EXTRA_MS = 2000;
+
 async function playTts(text, voiceId, userName) {
   try {
     const key = `${text}|${voiceId || ''}`;
@@ -55,13 +70,18 @@ async function playTts(text, voiceId, userName) {
     const audioBlob = await blobPromise;
     if (!audioBlob) return;
 
+    // 优先 Web Audio 路径（iOS Safari 唯一能控制音量的方式），失败兜底到 HTMLAudioElement
+    try {
+      await playViaWebAudio(audioBlob);
+      return;
+    } catch (webAudioErr) {
+      console.warn('[TTS] Web Audio 失败，回退 HTMLAudioElement:', webAudioErr.message);
+      // fallthrough
+    }
+
+    // Fallback：HTMLAudioElement（不做音量控制，只保证有声）
     return new Promise((resolve) => {
       const audioUrl = URL.createObjectURL(audioBlob);
-      // ── 关键：复用全局解锁的 Audio 实例 ──
-      // iOS Safari 的 HTMLAudioElement 解锁是"元素级"的：
-      //   new Audio() 创建的新实例必须在 user gesture 内才能 play
-      //   但一个已解锁的实例可以无限次改 src 在任何地方 play
-      // window.__unlockedAudio 是 useAudioUnlock 在用户首次点击时创建并解锁的单例
       const audio = window.__unlockedAudio || new Audio();
       const cleanup = () => {
         URL.revokeObjectURL(audioUrl);
@@ -72,14 +92,109 @@ async function playTts(text, voiceId, userName) {
       audio.onerror = () => { cleanup(); resolve(); };
       audio.src = audioUrl;
       audio.play().catch((err) => {
-        console.warn('[ChatPage] audio.play() 被拒绝:', err.message);
+        console.warn('[TTS] HTMLAudioElement.play() 被拒绝:', err.message);
         cleanup();
         resolve();
       });
     });
   } catch (err) {
-    console.warn('[ChatPage] TTS 失败，静默跳过:', err.message);
+    console.warn('[TTS] 总体失败，静默跳过:', err.message);
   }
+}
+
+// Web Audio 播放 + 可选响度归一化
+// 关键防御：
+//   1. 硬超时 —— 即使 onended 永远不触发，audioBuffer.duration * RATIO + EXTRA 秒后强制 resolve
+//      上次翻车就是因为 onended 没触发，await 永远 pending，主流程卡死
+//   2. 详细 log —— 每一步都打，方便在远程调试时定位哪一步挂
+//   3. 只在一处 resolve —— settled flag 防止重复 resolve
+async function playViaWebAudio(audioBlob) {
+  const ctx = window.__sharedAudioCtx;
+  if (!ctx) throw new Error('AudioContext 未初始化（useAudioUnlock 应该先跑）');
+  console.info('[TTS][WebAudio] start, blob.size=', audioBlob.size, 'ctx.state=', ctx.state);
+
+  // AudioContext 可能 suspended（切后台再切回来、自动暂停等）
+  if (ctx.state === 'suspended') {
+    try { await ctx.resume(); } catch (_) { /* ignore */ }
+    console.info('[TTS][WebAudio] resumed, ctx.state=', ctx.state);
+  }
+
+  const arrayBuffer = await audioBlob.arrayBuffer();
+  console.info('[TTS][WebAudio] arrayBuffer.byteLength=', arrayBuffer.byteLength);
+
+  // decodeAudioData 双路径兼容：callback 和 Promise
+  // settled flag 避免 callback 和 Promise 同时触发导致竞态
+  const audioBuffer = await new Promise((resolve, reject) => {
+    let settled = false;
+    const ok = (buf) => { if (settled) return; settled = true; resolve(buf); };
+    const fail = (e) => { if (settled) return; settled = true; reject(e || new Error('decodeAudioData 失败')); };
+    try {
+      const maybePromise = ctx.decodeAudioData(arrayBuffer, ok, fail);
+      if (maybePromise && typeof maybePromise.then === 'function') {
+        maybePromise.then(ok, fail);
+      }
+    } catch (e) { fail(e); }
+  });
+  console.info('[TTS][WebAudio] decoded, duration=', audioBuffer.duration.toFixed(2), 's, channels=', audioBuffer.numberOfChannels, 'sampleRate=', audioBuffer.sampleRate);
+
+  // 同时计算 RMS 和 peak
+  // RMS：给归一化目标响度用
+  // peak：防止放大后超过 ±1.0 产生硬 clip 失真
+  let sumSq = 0;
+  let peak = 0;
+  let count = 0;
+  for (let ch = 0; ch < audioBuffer.numberOfChannels; ch++) {
+    const data = audioBuffer.getChannelData(ch);
+    for (let i = 0; i < data.length; i++) {
+      const v = data[i];
+      sumSq += v * v;
+      const abs = v < 0 ? -v : v;
+      if (abs > peak) peak = abs;
+    }
+    count += data.length;
+  }
+  const rms = count > 0 ? Math.sqrt(sumSq / count) : 0;
+
+  // gain 计算：三者取最小值
+  //   1. RMS 归一化目标（让响度对齐到 TARGET_RMS）
+  //   2. Peak 限幅（让放大后的峰值不超过 PEAK_LIMIT，防爆音）
+  //   3. MAX_GAIN 硬上限（防止极小响度音频被过度放大暴露噪声）
+  let gain = 1;
+  if (NORMALIZE_LOUDNESS && rms > 0.001) {
+    const gainByRms = TARGET_RMS / rms;
+    const gainByPeak = peak > 0.001 ? PEAK_LIMIT / peak : MAX_GAIN;
+    gain = Math.min(gainByRms, gainByPeak, MAX_GAIN);
+  }
+  console.info('[TTS][WebAudio] rms=', rms.toFixed(4), 'peak=', peak.toFixed(4), 'gain=', gain.toFixed(3), 'normalize=', NORMALIZE_LOUDNESS);
+
+  return new Promise((resolve) => {
+    let settled = false;
+    const done = (reason) => {
+      if (settled) return;
+      settled = true;
+      console.info('[TTS][WebAudio] done, reason=', reason);
+      resolve();
+    };
+
+    const source = ctx.createBufferSource();
+    source.buffer = audioBuffer;
+    const gainNode = ctx.createGain();
+    gainNode.gain.value = gain;
+    source.connect(gainNode).connect(ctx.destination);
+    source.onended = () => done('onended');
+
+    // 硬超时兜底：即使 onended 永远不触发，这个也会 resolve，避免 await hang 住主流程
+    const timeoutMs = audioBuffer.duration * 1000 * WEB_AUDIO_TIMEOUT_RATIO + WEB_AUDIO_TIMEOUT_EXTRA_MS;
+    setTimeout(() => done('timeout'), timeoutMs);
+
+    try {
+      source.start();
+      console.info('[TTS][WebAudio] source.start() ok, timeout guard=', Math.round(timeoutMs), 'ms');
+    } catch (startErr) {
+      console.warn('[TTS][WebAudio] source.start() 抛错:', startErr.message);
+      done('start-error');
+    }
+  });
 }
 
 // 预加载脚本后续 N 条 NPC 消息的 TTS

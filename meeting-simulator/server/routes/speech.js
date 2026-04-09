@@ -81,14 +81,24 @@ router.post('/tts', async (req, res) => {
     }
 
     // ElevenLabs 结果过 ffmpeg loudnorm 归一化（解决不同 voice 响度不一致）
-    // Azure TTS 响度本身比较标准，不做处理
-    // normalizeLoudness 内部已做失败兜底：任何异常都返回原 buffer，不影响可用性
+    // 注意：normalizeLoudness 成功时输出 WAV（acompressor + loudnorm 压缩后的 PCM），
+    // 失败时返回原 MP3（兜底）。Content-Type 要根据实际返回内容决定
+    let contentType = 'audio/mpeg';
     if (ttsSource === 'elevenlabs') {
-      audioBuffer = await normalizeLoudness(audioBuffer);
+      const normalized = await normalizeLoudness(audioBuffer);
+      // 检查输出是不是 WAV（前 4 字节 "RIFF"）还是原 MP3（兜底路径）
+      // WAV 文件前 4 字节是 'RIFF'，用这个做简单判断
+      if (normalized.length >= 4 && normalized.slice(0, 4).toString() === 'RIFF') {
+        audioBuffer = normalized;
+        contentType = 'audio/wav';
+      } else {
+        // 兜底路径返回原 mp3，保持 audio/mpeg
+        audioBuffer = normalized;
+      }
     }
 
     // 返回音频流
-    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Content-Type', contentType);
     res.setHeader('Content-Length', audioBuffer.length);
     res.setHeader('Cache-Control', 'no-cache');
     return res.send(audioBuffer);

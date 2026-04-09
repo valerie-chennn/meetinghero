@@ -53,26 +53,32 @@ async function normalizeLoudness(mp3Buffer) {
 
     let ff;
     try {
-      // ⚠️ iPhone Safari 失败记录（2026-04-09 连续 4 次翻车）：
-      // 1. Web Audio + RMS 归一化：iPhone 无声（AudioContext 解锁不硬）
-      // 2. single-pass loudnorm 48 kHz：iPhone 部分无声 → 44.1 kHz 修复
-      // 3. two-pass loudnorm linear：响度差距没解决（被 TP 限幅卡死）
-      // 4. acompressor + loudnorm：Chrome LUFS 完美（差 0.13 dB），但 iPhone 播放
-      //    "itttttt" frame loop + 无声 ← acompressor 产生的 mp3 在 iPhone Safari 上解码失败
+      // 核心思路：输出 WAV 而不是 MP3
+      // 原因：mp3 是 frame 结构，任何动态 filter（acompressor/compand/dynaudnorm）
+      // 让 libmp3lame 编码出来的 mp3 在 iPhone Safari 上会 decode 崩溃（frame loop /
+      // 无声），而 Chrome 能播。WAV 是纯 PCM（header + raw samples），没有 frame 概念，
+      // iPhone Safari 的 Core Audio 原生支持 PCM，任何 filter 输出都能播。
       //
-      // 当前保守方案：single-pass loudnorm，不加前级 filter。
-      // 响度差距约 4-7 dB（用户接受过），但确保 iPhone 能播。
-      // 响度完美归一化不要在这个 filter chain 里继续加 filter，方向应该是改输出格式（WAV）
+      // filter chain: acompressor → loudnorm
+      //   acompressor 先压缩峰值，降低 crest factor，让 loudnorm 有 headroom boost 到 -16
+      //   本地实测 LUFS 差距 0.13 dB（对比 loudnorm-only 差 4-7 dB）
+      //
+      // 代价：文件大小约 10 倍（mp3 ~50 KB/3s → wav ~264 KB/3s）
+      //   Wi-Fi 秒传，移动网络略慢但可接受
+      //
+      // 参数：
+      //   -c:a pcm_s16le：PCM 16-bit little-endian（iPhone 最稳定）
+      //   -f wav：输出 WAV container
+      //   44.1 kHz mono 和 ElevenLabs 原始一致
       ff = spawn('ffmpeg', [
         '-hide_banner', '-loglevel', 'info',
         '-f', 'mp3',
         '-i', 'pipe:0',
-        '-af', 'loudnorm=I=-16:TP=-1.5:LRA=11:print_format=json',
+        '-af', 'acompressor=threshold=-20dB:ratio=4:attack=5:release=50,loudnorm=I=-16:TP=-1.5:LRA=11:print_format=json',
         '-ar', '44100',
         '-ac', '1',
-        '-c:a', 'libmp3lame',
-        '-b:a', '128k',
-        '-f', 'mp3',
+        '-c:a', 'pcm_s16le',
+        '-f', 'wav',
         'pipe:1',
       ]);
     } catch (err) {

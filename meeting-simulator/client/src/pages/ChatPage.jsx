@@ -119,6 +119,14 @@ async function playViaWebAudio(audioBlob) {
     console.info('[TTS][WebAudio] resumed, ctx.state=', ctx.state);
   }
 
+  // iOS Safari 坑：resume() 的 Promise 可能 resolve 但 state 仍然是 suspended
+  // （因为 resume 只能在 user gesture 内真正生效，而 playTts 是异步脱离 gesture 的）
+  // 此时继续走 Web Audio 会"静默无声"：source.start() 不报错也不出声。
+  // 必须 throw 触发 fallback 到 HTMLAudioElement，保证有声音
+  if (ctx.state !== 'running') {
+    throw new Error(`AudioContext 无法激活，state=${ctx.state}，回退 HTMLAudioElement`);
+  }
+
   const arrayBuffer = await audioBlob.arrayBuffer();
   console.info('[TTS][WebAudio] arrayBuffer.byteLength=', arrayBuffer.byteLength);
 

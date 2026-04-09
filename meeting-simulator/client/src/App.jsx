@@ -11,18 +11,41 @@ function useAudioUnlock() {
     const unlock = () => {
       if (unlocked) return;
       unlocked = true;
-      // 创建极短的静音音频并播放，解锁 AudioContext
       try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const buf = ctx.createBuffer(1, 1, 22050);
-        const src = ctx.createBufferSource();
-        src.buffer = buf;
-        src.connect(ctx.destination);
-        src.start(0);
-        // 同时用 Audio 元素解锁（部分浏览器需要）
-        const audio = new Audio();
-        audio.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
-        audio.play().catch(() => {});
+        // ── 关键：创建全局单例 Audio 元素并在 user gesture 内 play 一次 ──
+        // iOS Safari 的规则：每个 Audio 实例都要在 user gesture 内 play 过一次才能解锁。
+        // 一旦这个"实例"被解锁，后续改它的 src 可以在任何时候 play（跨 await 也行）。
+        // ChatPage 的 playTts 会复用 window.__unlockedAudio 这个实例，而不是 new Audio()。
+        if (!window.__unlockedAudio) {
+          const audio = new Audio();
+          audio.playsInline = true;
+          // 静音的 wav data URL
+          audio.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+          audio.play().catch(() => {});
+          window.__unlockedAudio = audio;
+        }
+        // 同时解锁 AudioContext（TTS 的 Web Audio 路径需要）
+        // iOS Safari 关键坑：光 resume() 不够，必须在 user gesture 内真正 play 过
+        // 一个 buffer source 才算"激活"，之后在任意时刻 play 新的 source 才会出声
+        // 这是 iOS Safari Web Audio 社区公认的解锁姿势
+        if (!window.__sharedAudioCtx) {
+          window.__sharedAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        const ctx = window.__sharedAudioCtx;
+        // 1. 同步 play 一个 1-sample 的静音 buffer，强制 iOS Safari 激活
+        try {
+          const silentBuffer = ctx.createBuffer(1, 1, 22050);
+          const silentSource = ctx.createBufferSource();
+          silentSource.buffer = silentBuffer;
+          silentSource.connect(ctx.destination);
+          silentSource.start(0);
+        } catch (audioUnlockErr) {
+          // 某些旧浏览器不支持 createBuffer/createBufferSource，忽略
+        }
+        // 2. 再 resume 一次兜底（有些 iOS 版本需要显式 resume）
+        if (ctx.state === 'suspended') {
+          ctx.resume().catch(() => {});
+        }
       } catch (e) { /* 静默忽略 */ }
       document.removeEventListener('click', unlock);
       document.removeEventListener('touchstart', unlock);

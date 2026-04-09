@@ -37,6 +37,23 @@ function cleanTextForTts(text, userName) {
   return out;
 }
 
+// 远程诊断日志：fire-and-forget POST 到 /api/debug/log，绝不阻塞主流程
+// 用于 iPhone 真机调试无法走 Safari 远程 console 的场景
+// UA 只在第一次调用时抓，后续用 cached 的
+let _debugUa = null;
+function remoteLog(event, data) {
+  try {
+    if (!_debugUa) _debugUa = (navigator && navigator.userAgent) || '?';
+    // 不 await，fire-and-forget
+    fetch('/api/debug/log', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event, data, ua: _debugUa, ts: Date.now() }),
+      keepalive: true, // 即使 page 跳转也尽量送出
+    }).catch(() => { /* silent */ });
+  } catch (_) { /* silent */ }
+}
+
 function prefetchTts(text, voiceId, userName) {
   if (!text) return;
   // 缓存 key 用原文（调用方也用原文），TTS 请求用清洗后的文本
@@ -47,41 +64,90 @@ function prefetchTts(text, voiceId, userName) {
 }
 
 async function playTts(text, voiceId, userName) {
+  // 用于区分多次 TTS 调用的 ID
+  const callId = Math.random().toString(36).slice(2, 8);
+  const textPreview = (text || '').slice(0, 30);
+  remoteLog('tts_call_start', { callId, voiceId, textPreview });
+
   try {
     const key = `${text}|${voiceId || ''}`;
     const cleanText = cleanTextForTts(text, userName);
     const blobPromise = ttsCache.get(key) || textToSpeech(cleanText, 'en', voiceId);
     ttsCache.delete(key);
     const audioBlob = await blobPromise;
-    if (!audioBlob) return;
+    if (!audioBlob) {
+      remoteLog('tts_blob_null', { callId });
+      return;
+    }
+    remoteLog('tts_blob_ok', { callId, size: audioBlob.size, type: audioBlob.type });
 
     return new Promise((resolve) => {
+      let settled = false;
+      const finish = (reason, extra) => {
+        if (settled) return;
+        settled = true;
+        remoteLog('tts_finish', { callId, reason, ...extra });
+        resolve();
+      };
+
       const audioUrl = URL.createObjectURL(audioBlob);
       // ── 复用全局解锁的 Audio 实例 ──
       // iOS Safari 的 HTMLAudioElement 解锁是"元素级"的：
       //   new Audio() 创建的新实例必须在 user gesture 内才能 play
       //   但一个已解锁的实例可以无限次改 src 在任何地方 play
       // window.__unlockedAudio 是 useAudioUnlock 在用户首次点击时创建并解锁的单例
-      // NOTE：Web Audio 归一化路径被撤掉了，因为 iOS Safari 对 AudioContext 的
-      // 解锁/运行要求比 Chrome 严格得多，多次尝试后放弃。音量归一化需要走别的路
-      // （手动挑音量相近的 voice，或其他方案），不要再改这个函数
       const audio = window.__unlockedAudio || new Audio();
+      const usingUnlocked = !!window.__unlockedAudio;
+      remoteLog('tts_audio_ready', {
+        callId,
+        usingUnlocked,
+        readyState: audio.readyState,
+        paused: audio.paused,
+      });
+
       const cleanup = () => {
         URL.revokeObjectURL(audioUrl);
         audio.onended = null;
         audio.onerror = null;
+        audio.onloadedmetadata = null;
+        audio.oncanplay = null;
       };
-      audio.onended = () => { cleanup(); resolve(); };
-      audio.onerror = () => { cleanup(); resolve(); };
-      audio.src = audioUrl;
-      audio.play().catch((err) => {
-        console.warn('[ChatPage] audio.play() 被拒绝:', err.message);
+
+      audio.onloadedmetadata = () => {
+        remoteLog('tts_audio_meta', {
+          callId,
+          duration: audio.duration,
+          readyState: audio.readyState,
+        });
+      };
+      audio.oncanplay = () => {
+        remoteLog('tts_audio_canplay', { callId, readyState: audio.readyState });
+      };
+      audio.onended = () => { cleanup(); finish('onended'); };
+      audio.onerror = () => {
+        const err = audio.error || {};
         cleanup();
-        resolve();
-      });
+        finish('onerror', { code: err.code, message: err.message });
+      };
+
+      audio.src = audioUrl;
+      const playPromise = audio.play();
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise
+          .then(() => remoteLog('tts_play_resolved', { callId }))
+          .catch((err) => {
+            console.warn('[ChatPage] audio.play() 被拒绝:', err.message);
+            cleanup();
+            finish('play_rejected', { error: String(err && err.message || err) });
+          });
+      }
+
+      // 硬超时兜底：10 秒没 ended 就强制 resolve，避免 hang 住主流程
+      setTimeout(() => finish('timeout'), 10000);
     });
   } catch (err) {
     console.warn('[ChatPage] TTS 失败，静默跳过:', err.message);
+    remoteLog('tts_catch', { callId, error: String(err && err.message || err) });
   }
 }
 

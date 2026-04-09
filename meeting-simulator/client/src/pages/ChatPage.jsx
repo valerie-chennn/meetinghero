@@ -1092,11 +1092,6 @@ function ChatPage() {
                 )}
               </div>
 
-              {/* 首次发言提示 */}
-              {userTurnCount === 0 && (
-                <div className={styles.firstHint}>支持母语混说哦</div>
-              )}
-
               {/* 底部操作行 */}
               <div className={styles.speakBottomRow}>
                 <button

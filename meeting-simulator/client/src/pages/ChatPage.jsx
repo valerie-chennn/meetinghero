@@ -54,28 +54,12 @@ async function playTts(text, voiceId, userName) {
     ttsCache.delete(key);
     const audioBlob = await blobPromise;
     if (!audioBlob) return;
-
     return new Promise((resolve) => {
       const audioUrl = URL.createObjectURL(audioBlob);
-      // ── 关键：复用全局解锁的 Audio 实例 ──
-      // iOS Safari 的 HTMLAudioElement 解锁是"元素级"的：
-      //   new Audio() 创建的新实例必须在 user gesture 内才能 play
-      //   但一个已解锁的实例可以无限次改 src 在任何地方 play
-      // window.__unlockedAudio 是 useAudioUnlock 在用户首次点击时创建并解锁的单例
-      const audio = window.__unlockedAudio || new Audio();
-      const cleanup = () => {
-        URL.revokeObjectURL(audioUrl);
-        audio.onended = null;
-        audio.onerror = null;
-      };
-      audio.onended = () => { cleanup(); resolve(); };
-      audio.onerror = () => { cleanup(); resolve(); };
-      audio.src = audioUrl;
-      audio.play().catch((err) => {
-        console.warn('[ChatPage] audio.play() 被拒绝:', err.message);
-        cleanup();
-        resolve();
-      });
+      const audio = new Audio(audioUrl);
+      audio.onended = () => { URL.revokeObjectURL(audioUrl); resolve(); };
+      audio.onerror = () => { URL.revokeObjectURL(audioUrl); resolve(); };
+      audio.play().catch(() => resolve());
     });
   } catch (err) {
     console.warn('[ChatPage] TTS 失败，静默跳过:', err.message);

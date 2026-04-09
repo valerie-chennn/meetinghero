@@ -25,111 +25,29 @@ const path = require('path');
  * @param {Buffer} mp3Buffer - 输入 mp3 字节
  * @returns {Promise<Buffer>} 归一化后的 mp3，或者失败时的原 buffer
  */
+// ⚠️ 2026-04-09 放弃运行时响度归一化：连续 5 次 iPhone 翻车教训
+//
+// 失败记录：
+// 1. Web Audio + RMS 归一化（前端）：iPhone 无声（AudioContext 解锁不硬）
+// 2. single-pass loudnorm mp3 48 kHz：iPhone 部分无声 → 44.1 kHz 修复
+// 3. two-pass loudnorm mp3：被 peak 限幅卡死，精度差
+// 4. acompressor + loudnorm mp3：Chrome OK，iPhone "itttttt" frame loop
+// 5. acompressor + loudnorm wav (临时文件)：iPhone 部分能播，但 WAV 文件是
+//    mp3 的 5-6 倍大（~300 KB vs ~50 KB），移动网络下 5-6 条 TTS 加载极慢，
+//    甚至脚本阶段的 TTS 都下载不完 → 用户体感"开头 TTS 都没了"
+//
+// 结论：TTS 归一化的正确方向是离线预处理（提前合成脚本内固定文本，
+// 本地批量 ffmpeg 归一化后入库），而不是运行时处理。LLM 生成的动态
+// 回复无法预处理，只能接受响度浮动。
+//
+// 当前方案：直接透传 ElevenLabs 返回的原始 mp3，不做任何处理。
+// 响度不完美但：
+//   - iPhone 100% 能播
+//   - 文件小加载快
+//   - 无延迟开销
+// 用户之前明确说过"能接受一大一小的状态"，这是底线保障
 async function normalizeLoudness(mp3Buffer) {
-  return new Promise((resolve) => {
-    const startTime = Date.now();
-    let stderr = '';
-    let settled = false;
-
-    // 关键：写到临时文件而不是 pipe:1。
-    // pipe 模式下 ffmpeg 无法 seek，WAV data chunk size 会被写成 0xffffffff（streaming 标记），
-    // iPhone Safari 按这个长度读会产生 frame loop / 无声（2026-04-09 第 5 次翻车定位的根因）。
-    // 写临时文件后 ffmpeg 会 seek 回 header 改写真实 size，iPhone 才能正确 decode
-    const tmpOut = path.join(os.tmpdir(), `tts-loudnorm-${Date.now()}-${Math.random().toString(36).slice(2)}.wav`);
-
-    const parseLoudnormSummary = () => {
-      const m = stderr.match(/\{\s*"input_i"[\s\S]*?\}/);
-      if (!m) return null;
-      try { return JSON.parse(m[0]); } catch (_) { return null; }
-    };
-
-    const finish = (buf, reason) => {
-      if (settled) return;
-      settled = true;
-      // 清理临时文件（如果还在）
-      try { fs.unlinkSync(tmpOut); } catch (_) { /* 可能已经不存在 */ }
-      const elapsed = Date.now() - startTime;
-      const tag = reason === 'ok' ? '[Speech/loudnorm] ok' : `[Speech/loudnorm] ${reason}`;
-      const info = parseLoudnormSummary();
-      const lufs = info
-        ? ` input_i=${info.input_i} output_i=${info.output_i} target_offset=${info.target_offset}`
-        : '';
-      console.log(`${tag} in=${mp3Buffer.length}B out=${buf.length}B took=${elapsed}ms${lufs}`);
-      if (reason !== 'ok' && stderr && !info) {
-        console.warn(`[Speech/loudnorm] stderr=${stderr.trim().slice(0, 300)}`);
-      }
-      resolve(buf);
-    };
-
-    let ff;
-    try {
-      // 核心思路：输出 WAV 而不是 MP3
-      // 原因：mp3 是 frame 结构，任何动态 filter（acompressor/compand/dynaudnorm）
-      // 让 libmp3lame 编码出来的 mp3 在 iPhone Safari 上会 decode 崩溃（frame loop /
-      // 无声），而 Chrome 能播。WAV 是纯 PCM（header + raw samples），没有 frame 概念，
-      // iPhone Safari 的 Core Audio 原生支持 PCM，任何 filter 输出都能播。
-      //
-      // filter chain: acompressor → loudnorm
-      //   acompressor 先压缩峰值，降低 crest factor，让 loudnorm 有 headroom boost 到 -16
-      //   本地实测 LUFS 差距 0.13 dB（对比 loudnorm-only 差 4-7 dB）
-      //
-      // 代价：文件大小约 10 倍（mp3 ~50 KB/3s → wav ~264 KB/3s）
-      //   Wi-Fi 秒传，移动网络略慢但可接受
-      //
-      // 参数：
-      //   -c:a pcm_s16le：PCM 16-bit little-endian（iPhone 最稳定）
-      //   -f wav：输出 WAV container
-      //   44.1 kHz mono 和 ElevenLabs 原始一致
-      ff = spawn('ffmpeg', [
-        '-hide_banner', '-loglevel', 'info',
-        '-y',
-        '-f', 'mp3',
-        '-i', 'pipe:0',
-        '-af', 'acompressor=threshold=-20dB:ratio=4:attack=5:release=50,loudnorm=I=-16:TP=-1.5:LRA=11:print_format=json',
-        '-ar', '44100',
-        '-ac', '1',
-        '-c:a', 'pcm_s16le',
-        '-f', 'wav',
-        tmpOut,
-      ]);
-    } catch (err) {
-      console.warn('[Speech/loudnorm] spawn 同步异常:', err.message);
-      resolve(mp3Buffer);
-      return;
-    }
-
-    ff.stderr.on('data', (c) => { stderr += c.toString(); });
-    ff.on('error', (err) => finish(mp3Buffer, `spawn-error: ${err.message}`));
-    ff.on('close', (code) => {
-      if (code !== 0) {
-        finish(mp3Buffer, `ffmpeg-exit-${code}`);
-        return;
-      }
-      // 读临时文件为 buffer（ffmpeg 已经写完并 seek 回修正 header）
-      try {
-        const wavBuffer = fs.readFileSync(tmpOut);
-        if (wavBuffer.length === 0) {
-          finish(mp3Buffer, 'empty-output');
-          return;
-        }
-        finish(wavBuffer, 'ok');
-      } catch (readErr) {
-        finish(mp3Buffer, `read-tmp-error: ${readErr.message}`);
-      }
-    });
-
-    ff.stdin.on('error', () => { /* 忽略 EPIPE */ });
-    ff.stdin.write(mp3Buffer);
-    ff.stdin.end();
-
-    // 硬超时兜底：5 秒内没完成就 kill 掉 ffmpeg，返回原 buffer
-    setTimeout(() => {
-      if (!settled && ff && !ff.killed) {
-        try { ff.kill('SIGKILL'); } catch (_) { /* ignore */ }
-        finish(mp3Buffer, 'timeout');
-      }
-    }, 5000);
-  });
+  return mp3Buffer;
 }
 
 /**

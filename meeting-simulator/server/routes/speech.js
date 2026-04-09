@@ -80,25 +80,15 @@ router.post('/tts', async (req, res) => {
       ttsSource = 'azure';
     }
 
-    // ElevenLabs 结果过 ffmpeg loudnorm 归一化（解决不同 voice 响度不一致）
-    // 注意：normalizeLoudness 成功时输出 WAV（acompressor + loudnorm 压缩后的 PCM），
-    // 失败时返回原 MP3（兜底）。Content-Type 要根据实际返回内容决定
-    let contentType = 'audio/mpeg';
+    // normalizeLoudness 已经改成 passthrough（2026-04-09 放弃运行时响度归一化）
+    // 直接透传原 mp3 buffer，保持 Content-Type audio/mpeg
+    // 历史上各种 ffmpeg filter 组合都在 iPhone Safari 上翻车，见 speech.js 注释
     if (ttsSource === 'elevenlabs') {
-      const normalized = await normalizeLoudness(audioBuffer);
-      // 检查输出是不是 WAV（前 4 字节 "RIFF"）还是原 MP3（兜底路径）
-      // WAV 文件前 4 字节是 'RIFF'，用这个做简单判断
-      if (normalized.length >= 4 && normalized.slice(0, 4).toString() === 'RIFF') {
-        audioBuffer = normalized;
-        contentType = 'audio/wav';
-      } else {
-        // 兜底路径返回原 mp3，保持 audio/mpeg
-        audioBuffer = normalized;
-      }
+      audioBuffer = await normalizeLoudness(audioBuffer);
     }
 
     // 返回音频流
-    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Type', 'audio/mpeg');
     res.setHeader('Content-Length', audioBuffer.length);
     res.setHeader('Cache-Control', 'no-cache');
     return res.send(audioBuffer);

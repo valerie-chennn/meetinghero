@@ -55,19 +55,9 @@ async function playTts(text, voiceId, userName) {
     const audioBlob = await blobPromise;
     if (!audioBlob) return;
 
-    // 优先走 Web Audio 路径做 RMS 响度归一化，解决不同 ElevenLabs voice
-    // 响度不一致的问题（ElevenLabs API 不做归一化）
-    try {
-      return await playWithWebAudio(audioBlob);
-    } catch (webAudioErr) {
-      console.warn('[ChatPage] Web Audio 归一化失败，回退到 HTMLAudioElement:', webAudioErr.message);
-      // fallthrough 到 HTMLAudioElement
-    }
-
-    // Fallback：HTMLAudioElement（不做归一化，但保证能播）
     return new Promise((resolve) => {
       const audioUrl = URL.createObjectURL(audioBlob);
-      // ── 复用全局解锁的 Audio 实例 ──
+      // ── 关键：复用全局解锁的 Audio 实例 ──
       // iOS Safari 的 HTMLAudioElement 解锁是"元素级"的：
       //   new Audio() 创建的新实例必须在 user gesture 内才能 play
       //   但一个已解锁的实例可以无限次改 src 在任何地方 play
@@ -90,68 +80,6 @@ async function playTts(text, voiceId, userName) {
   } catch (err) {
     console.warn('[ChatPage] TTS 失败，静默跳过:', err.message);
   }
-}
-
-// 用 Web Audio API 播放音频，同时做 RMS 响度归一化
-// 目的：不同 ElevenLabs voice 的原始响度差异巨大（Josh 比 Arnold 大声很多），
-// API 不做归一化，播出来一条大一条小，用户体感割裂。
-// 这里解码后计算 RMS，算出 gain 让输出接近目标响度。
-async function playWithWebAudio(audioBlob) {
-  const audioCtx = window.__sharedAudioCtx;
-  if (!audioCtx) {
-    throw new Error('AudioContext 未解锁，需要在 useAudioUnlock 里初始化');
-  }
-  // iOS Safari 在页面切后台再切回前台时 AudioContext 可能变 suspended
-  if (audioCtx.state === 'suspended') {
-    try { await audioCtx.resume(); } catch (_) { /* ignore */ }
-  }
-
-  const arrayBuffer = await audioBlob.arrayBuffer();
-
-  // decodeAudioData 在旧版 iOS Safari 只支持 callback 风格，新版同时支持 Promise。
-  // 这里两种都兼容：先用 callback，同时 hook 返回的 Promise（如果有）
-  const audioBuffer = await new Promise((resolve, reject) => {
-    let settled = false;
-    const ok = (buf) => { if (!settled) { settled = true; resolve(buf); } };
-    const fail = (e) => { if (!settled) { settled = true; reject(e || new Error('decodeAudioData 失败')); } };
-    try {
-      const maybePromise = audioCtx.decodeAudioData(arrayBuffer, ok, fail);
-      if (maybePromise && typeof maybePromise.then === 'function') {
-        maybePromise.then(ok, fail);
-      }
-    } catch (e) {
-      fail(e);
-    }
-  });
-
-  // 计算所有声道合并后的 RMS（人声 TTS 通常是 mono，循环一次即可）
-  let sumSquares = 0;
-  let sampleCount = 0;
-  for (let ch = 0; ch < audioBuffer.numberOfChannels; ch++) {
-    const data = audioBuffer.getChannelData(ch);
-    for (let i = 0; i < data.length; i++) {
-      const v = data[i];
-      sumSquares += v * v;
-    }
-    sampleCount += data.length;
-  }
-  const rms = sampleCount > 0 ? Math.sqrt(sumSquares / sampleCount) : 0.15;
-
-  // 目标 RMS 0.15（经验值，接近人声 -16 LUFS）
-  // gain 上限 3 防止把低音量音频过度放大出现噪声/爆音
-  const TARGET_RMS = 0.15;
-  const gain = Math.min(TARGET_RMS / Math.max(rms, 0.001), 3);
-
-  return new Promise((resolve) => {
-    const source = audioCtx.createBufferSource();
-    source.buffer = audioBuffer;
-    const gainNode = audioCtx.createGain();
-    gainNode.gain.value = gain;
-    source.connect(gainNode).connect(audioCtx.destination);
-    // onended 在 source.start() 后音频自然播完时触发
-    source.onended = () => resolve();
-    source.start();
-  });
 }
 
 // 预加载脚本后续 N 条 NPC 消息的 TTS

@@ -11,10 +11,20 @@
   position: relative;
 }
 
-/* ===== 滑动容器：监听拖拽和 wheel 事件 ===== */
+/* 真机模式（小屏剥壳后）：取消 max-width 限制 */
+@media (max-width: 768px) {
+  .container {
+    max-width: none;
+  }
+}
+
+/* ===== 滑动容器：监听拖拽和 wheel 事件 =====
+   注意：.container 被 App.css 的 .phone-content > * { height: 100% !important }
+   强制成 phone-content 高度，而 phone-content 本身已经 flex:1 扣掉了 Tab 栏空间，
+   所以这里直接用 100% 即可，不能再减 60px（否则会多扣一次 Tab 栏高度）。*/
 .feedContainer {
   width: 100%;
-  height: calc(100% - 60px); /* 减去 Tab 栏高度 */
+  height: 100%;
   overflow: hidden;
   user-select: none;
   -webkit-user-select: none;
@@ -55,13 +65,13 @@
   background: #1A1A1A;
 }
 
-/* ===== 卡片内容区：垂直居中 ===== */
+/* ===== 卡片内容区：顶部对齐，joinButton 自动推到底部 ===== */
 .cardBody {
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  padding: 0 28px;
+  /* 上 padding 留状态栏空间（适配真机刘海/系统状态栏）*/
+  padding: calc(var(--status-bar-h, 54px) + 24px) 28px 24px;
 }
 
 /* ===== pill 标签 ===== */
@@ -213,7 +223,8 @@
   font-size: 16px;
   font-weight: 700;
   letter-spacing: 1px;
-  margin-top: 16px;
+  /* margin-top: auto 让按钮自动吃掉上方剩余空间，贴近卡片底部 */
+  margin-top: auto;
   transition: transform 100ms;
 }
 
@@ -267,7 +278,7 @@
 
 /* ===== 加载骨架屏（暖色版）===== */
 .skeletonFullScreen {
-  height: calc(100% - 60px);
+  height: 100%;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -376,7 +387,7 @@
 
 /* ===== 错误状态 ===== */
 .errorState {
-  height: calc(100% - 60px);
+  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useLayoutEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
 import { getFeedList, getDmBanner } from '../api/index.js';
@@ -74,8 +74,10 @@ function FeedPage() {
   // 用 ref 同步最新的 cardsSinceLastChat，供闭包使用（避免捕获旧值）
   const cardsSinceLastChatRef = useRef(state.cardsSinceLastChat);
 
-  // 卡片高度 = 视口高度 - Tab 栏高度 60px
-  const cardHeight = typeof window !== 'undefined' ? window.innerHeight - 60 : 780;
+  // 卡片高度 = feedContainer 实际 clientHeight（随 resize 动态更新）
+  // 不能用 window.innerHeight - 60，因为 .phone-content 已经 flex:1 扣过 Tab 高度，
+  // 且 dvh/innerHeight/safe-area 三种口径在 iOS Safari 会偏差几十 px，导致卡片超出可视区。
+  const [cardHeight, setCardHeight] = useState(0);
 
   // 加载 Feed 列表
   const fetchFeeds = useCallback(async () => {
@@ -201,6 +203,21 @@ function FeedPage() {
       setTimeout(() => setAnimating(false), 300);
     }
   };
+
+  // 测量 feedContainer 实际高度作为 cardHeight，ResizeObserver 监听尺寸变化
+  // （真机地址栏收展、桌面缩放、切换横竖屏都能自动跟上）
+  useLayoutEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const measure = () => {
+      const h = el.clientHeight;
+      if (h > 0) setCardHeight(h);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [isLoading, error]); // 加载/错误态切回内容态时 containerRef 才挂上，需重测
 
   // 挂载 wheel 事件（passive: false 以便 preventDefault）
   useEffect(() => {

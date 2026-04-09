@@ -29,9 +29,7 @@ async function normalizeLoudness(mp3Buffer) {
     let stderr = '';
     let settled = false;
 
-    // 尝试从 stderr 里 parse 出 loudnorm 的 json 诊断输出
-    // print_format=json 会在 stderr 打印 {"input_i":"-23.73","output_i":"-16.97",...}
-    const parseLoudnormJson = () => {
+    const parseLoudnormSummary = () => {
       const m = stderr.match(/\{\s*"input_i"[\s\S]*?\}/);
       if (!m) return null;
       try { return JSON.parse(m[0]); } catch (_) { return null; }
@@ -42,9 +40,9 @@ async function normalizeLoudness(mp3Buffer) {
       settled = true;
       const elapsed = Date.now() - startTime;
       const tag = reason === 'ok' ? '[Speech/loudnorm] ok' : `[Speech/loudnorm] ${reason}`;
-      const info = parseLoudnormJson();
+      const info = parseLoudnormSummary();
       const lufs = info
-        ? ` input_i=${info.input_i} output_i=${info.output_i} input_tp=${info.input_tp} target_offset=${info.target_offset}`
+        ? ` input_i=${info.input_i} output_i=${info.output_i} target_offset=${info.target_offset}`
         : '';
       console.log(`${tag} in=${mp3Buffer.length}B out=${buf.length}B took=${elapsed}ms${lufs}`);
       if (reason !== 'ok' && stderr && !info) {
@@ -55,16 +53,30 @@ async function normalizeLoudness(mp3Buffer) {
 
     let ff;
     try {
-      // 关键 encoder 参数：
-      // -ar 44100 -ac 1 -c:a libmp3lame：强制 44.1 kHz mono libmp3lame，和 ElevenLabs 原始对齐
-      //   之前用 48 kHz default encoder 导致 iPhone Safari 某些 mp3 静默无声（2026-04-09 修复）
-      // -b:a 128k：码率对齐 ElevenLabs 原始
-      // loudnorm 加 print_format=json：在 stderr 打印归一化前后的 LUFS 数据，便于远程诊断
+      // 关键 filter chain：acompressor → loudnorm
+      // 原因：ElevenLabs 的强调/感叹句（如 LLM 生成的 "See? You get it..."）peak 很高，
+      // 但 integrated LUFS 很低。直接用 loudnorm 归一化会被 TP=-1.5 dBTP 限幅卡住，
+      // 无法 boost 到 target -16 LUFS，不同内容之间响度差距保持 4-7 dB。
+      //
+      // acompressor 先压缩峰值（threshold=-20dB ratio=4:1 快 attack/release），
+      // 降低 crest factor，然后 loudnorm 就有足够 headroom 把整体响度拉到 -16。
+      //
+      // 本地实测数据（josh-loud "Project is over..." + arnold-quiet "I carried bags..."）：
+      //   只 loudnorm single-pass：  Josh -20.78  Arnold -16.68  差 4.1 dB
+      //   loudnorm two-pass linear： Josh -20.78  Arnold -16.68  差 4.1 dB（被 peak 限幅）
+      //   acompressor + loudnorm：   Josh -16.65  Arnold -16.52  差 0.13 dB ⭐
+      //
+      // 参数说明：
+      //   acompressor: threshold=-20dB（-20 dB 以上压缩），ratio=4:1（4 dB 进压成 1 dB），
+      //                attack=5ms（快速反应 transient），release=50ms（快速释放避免 pumping）
+      //   loudnorm: I=-16 LUFS（播客标准），TP=-1.5 dBTP，LRA=11 LU
+      // -ar 44100 -ac 1 -c:a libmp3lame -b:a 128k：对齐 ElevenLabs 原始 mp3 format，
+      //   防止 iPhone Safari 对 48 kHz mono MP3 的解码兼容问题
       ff = spawn('ffmpeg', [
         '-hide_banner', '-loglevel', 'info',
         '-f', 'mp3',
         '-i', 'pipe:0',
-        '-af', 'loudnorm=I=-16:TP=-1.5:LRA=11:print_format=json',
+        '-af', 'acompressor=threshold=-20dB:ratio=4:attack=5:release=50,loudnorm=I=-16:TP=-1.5:LRA=11:print_format=json',
         '-ar', '44100',
         '-ac', '1',
         '-c:a', 'libmp3lame',
@@ -73,7 +85,6 @@ async function normalizeLoudness(mp3Buffer) {
         'pipe:1',
       ]);
     } catch (err) {
-      // spawn 同步抛错（比如 ffmpeg 不在 PATH）
       console.warn('[Speech/loudnorm] spawn 同步异常:', err.message);
       resolve(mp3Buffer);
       return;
@@ -90,12 +101,11 @@ async function normalizeLoudness(mp3Buffer) {
       finish(Buffer.concat(chunks), 'ok');
     });
 
-    ff.stdin.on('error', () => { /* 忽略 EPIPE（子进程提前退出时写 stdin 的正常情况）*/ });
+    ff.stdin.on('error', () => { /* 忽略 EPIPE */ });
     ff.stdin.write(mp3Buffer);
     ff.stdin.end();
 
     // 硬超时兜底：5 秒内没完成就 kill 掉 ffmpeg，返回原 buffer
-    // 正常情况 70-200ms，5 秒是非常宽松的上限
     setTimeout(() => {
       if (!settled && ff && !ff.killed) {
         try { ff.kill('SIGKILL'); } catch (_) { /* ignore */ }

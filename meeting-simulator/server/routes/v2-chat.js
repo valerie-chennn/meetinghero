@@ -193,47 +193,71 @@ router.post('/respond', async (req, res) => {
     console.log(`[v2-chat/respond] 会话 ${chatSessionId}，第 ${turnNum} 次发言`);
 
     // 并行调用：NPC 回复 + 更好说法
+    // 用 IIFE 分别记录两个 LLM 调用的实际耗时，wallClock 是并行总等待
+    // 如果 betterVersion 明显短于 respondChat → betterVersion 不是瓶颈，拆分无收益
+    // 如果 betterVersion 接近或超过 respondChat → betterVersion 是瓶颈，值得拆分异步
+    const llmWallStart = Date.now();
+    let respondChatMs = 0;
+    let betterVersionMs = 0;
+
     const [npcReplyResult, betterVersionResult] = await Promise.allSettled([
       // 调用 NPC 回复 prompt
-      callOpenAIJson(
-        (() => {
-          const { systemPrompt, userPrompt } = respondChatPrompt({
-            userInput: userInput.trim(),
-            respondingNpc,
-            allNpcProfiles: npcProfiles,
-            dialogueContext: contextMessages,
-            newsTopic: room.news_title,
-            groupName: room.group_name,
-            turnIndex: turnNum,
-          });
-          return [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt },
-          ];
-        })(),
-        { temperature: 0.8, maxTokens: 300 }
-      ),
+      (async () => {
+        const t0 = Date.now();
+        try {
+          return await callOpenAIJson(
+            (() => {
+              const { systemPrompt, userPrompt } = respondChatPrompt({
+                userInput: userInput.trim(),
+                respondingNpc,
+                allNpcProfiles: npcProfiles,
+                dialogueContext: contextMessages,
+                newsTopic: room.news_title,
+                groupName: room.group_name,
+                turnIndex: turnNum,
+              });
+              return [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userPrompt },
+              ];
+            })(),
+            { temperature: 0.8, maxTokens: 300 }
+          );
+        } finally {
+          respondChatMs = Date.now() - t0;
+        }
+      })(),
       // 调用"更好说法" prompt
-      callOpenAIJson(
-        (() => {
-          const contextSummary = contextMessages.slice(-3).map(t => {
-            const name = t.speaker === 'npc_a' ? npcProfiles[0]?.name : npcProfiles[1]?.name;
-            return `${name || t.speaker}: ${t.text}`;
-          }).join('\n');
-          const { systemPrompt, userPrompt } = betterVersionPrompt({
-            userInput: userInput.trim(),
-            dialogueContext: contextSummary,
-            newsTopic: room.news_title,
-            turnIndex: turnNum,
-          });
-          return [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt },
-          ];
-        })(),
-        { temperature: 0.5, maxTokens: 200 }
-      ),
+      (async () => {
+        const t0 = Date.now();
+        try {
+          return await callOpenAIJson(
+            (() => {
+              const contextSummary = contextMessages.slice(-3).map(t => {
+                const name = t.speaker === 'npc_a' ? npcProfiles[0]?.name : npcProfiles[1]?.name;
+                return `${name || t.speaker}: ${t.text}`;
+              }).join('\n');
+              const { systemPrompt, userPrompt } = betterVersionPrompt({
+                userInput: userInput.trim(),
+                dialogueContext: contextSummary,
+                newsTopic: room.news_title,
+                turnIndex: turnNum,
+              });
+              return [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userPrompt },
+              ];
+            })(),
+            { temperature: 0.5, maxTokens: 200 }
+          );
+        } finally {
+          betterVersionMs = Date.now() - t0;
+        }
+      })(),
     ]);
+
+    const llmWallClock = Date.now() - llmWallStart;
+    console.log(`[v2-chat/respond] LLM timings: respondChat=${respondChatMs}ms, betterVersion=${betterVersionMs}ms, wallClock=${llmWallClock}ms`);
 
     // 处理 NPC 回复结果
     let npcReply = null;

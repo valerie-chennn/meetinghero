@@ -153,8 +153,19 @@
   font-size: 18px;
 }
 
-/* 底部 Tab 栏占位 */
-.bottomPadding {
-  height: 80px;
-  flex-shrink: 0;
+.headerRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.backBtn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+  -webkit-tap-highlight-color: transparent;
 }

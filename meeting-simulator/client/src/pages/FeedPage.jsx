@@ -245,6 +245,17 @@ function FeedPage() {
 
   return (
     <div className={styles.container}>
+      {/* 顶部 Header */}
+      <header className={styles.feedHeader}>
+        <span className={styles.feedHeaderTitle}>每日胡说</span>
+        <div
+          className={styles.feedHeaderAvatar}
+          onClick={() => navigate('/profile')}
+        >
+          {state.userName ? state.userName[0] : '?'}
+        </div>
+      </header>
+
       {/* DmBanner 浮层（position: fixed，z-index 高于圆点指示器）*/}
       {bannerData && (
         <DmBanner

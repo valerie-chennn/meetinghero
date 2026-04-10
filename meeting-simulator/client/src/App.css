@@ -301,7 +301,7 @@ body {
   background: #1A1A1A;
 }
 
-/* 页面内容区：填满状态栏以下、Tab 栏以上的空间 */
+/* 页面内容区：填满状态栏以下的空间 */
 .phone-content {
   flex: 1;
   overflow-y: auto;

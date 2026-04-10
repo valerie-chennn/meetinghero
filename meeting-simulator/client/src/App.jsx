@@ -53,9 +53,6 @@ import SettlementPage from './pages/SettlementPage.jsx';
 import ExpressionsPage from './pages/ExpressionsPage.jsx';
 import ProfilePage from './pages/ProfilePage.jsx';
 
-// ── 共用组件 ──
-import TabNavigator from './components/TabNavigator.jsx';
-
 // 重置页面：清除所有数据并跳转到首页
 function ResetPage() {
   const { clearAll } = useApp();
@@ -75,7 +72,7 @@ function RootRedirect() {
   return <Navigate to="/onboarding" replace />;
 }
 
-// AppShell：手机壳容器 + Tab 导航栏
+// AppShell：手机壳容器
 function AppShell() {
   const [splashDone, setSplashDone] = useState(false);
   const handleSplashDone = useCallback(() => setSplashDone(true), []);
@@ -108,9 +105,6 @@ function AppShell() {
               <Route path="*" element={<Navigate to="/feed" replace />} />
             </Routes>
           </div>
-
-          {/* Tab 导航栏 */}
-          <TabNavigator />
         </div>
       </div>
     </div>

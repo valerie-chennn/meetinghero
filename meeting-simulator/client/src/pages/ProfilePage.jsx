@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
 import { getUserStats } from '../api/index.js';
 import styles from './ProfilePage.module.css';
 
 function ProfilePage() {
+  const navigate = useNavigate();
   const { state } = useApp();
   const [stats, setStats] = useState(null);
 
@@ -23,7 +25,10 @@ function ProfilePage() {
     <div className={styles.container}>
       {/* 顶部标题 */}
       <header className={styles.header}>
-        <h1 className={styles.title}>我的</h1>
+        <div className={styles.headerRow}>
+          <button className={styles.backBtn} onClick={() => navigate(-1)}>‹</button>
+          <h1 className={styles.title}>我的</h1>
+        </div>
       </header>
 
       <div className={styles.content}>
@@ -60,6 +65,10 @@ function ProfilePage() {
             <span>花名</span>
             <span className={styles.settingsValue}>{state.userName || '未设置'}</span>
           </div>
+          <div className={styles.settingsItem} onClick={() => navigate('/expressions')}>
+            <span>表达本</span>
+            <span className={styles.settingsArrow}>›</span>
+          </div>
           <div className={styles.settingsItem}>
             <span>语音设置</span>
             <span className={styles.settingsArrow}>›</span>
@@ -71,8 +80,6 @@ function ProfilePage() {
         </div>
       </div>
 
-      {/* 底部 Tab 占位 */}
-      <div className={styles.bottomPadding} />
     </div>
   );
 }

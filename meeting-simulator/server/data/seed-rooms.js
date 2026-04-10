@@ -70,6 +70,7 @@ const SEED_ROOMS = [
     header_text: '#3A2E22',
     accent_color: '#C41E1E',
     accent_dark: '#1A1A1A',
+    cover_image: '/images/covers/room-001.webp',
     likes: 2300,
     comment_count: 128,
     settlement_template: JSON.stringify({
@@ -157,6 +158,7 @@ const SEED_ROOMS = [
     header_text: '#4C0519',
     accent_color: '#BE123C',
     accent_dark: '#881337',
+    cover_image: '/images/covers/room-002.webp',
     likes: 4100,
     comment_count: 267,
     settlement_template: JSON.stringify({
@@ -244,6 +246,7 @@ const SEED_ROOMS = [
     header_text: '#3B0764',
     accent_color: '#6D28D9',
     accent_dark: '#3B0764',
+    cover_image: '/images/covers/room-003.webp',
     likes: 1800,
     comment_count: 95,
     settlement_template: JSON.stringify({
@@ -331,6 +334,7 @@ const SEED_ROOMS = [
     header_text: '#78350F',
     accent_color: '#92400E',
     accent_dark: '#78350F',
+    cover_image: '/images/covers/room-004.webp',
     likes: 3200,
     comment_count: 186,
     settlement_template: JSON.stringify({
@@ -418,6 +422,7 @@ const SEED_ROOMS = [
     header_text: '#064E3B',
     accent_color: '#047857',
     accent_dark: '#064E3B',
+    cover_image: '/images/covers/room-005.webp',
     likes: 5600,
     comment_count: 342,
     settlement_template: JSON.stringify({
@@ -462,10 +467,10 @@ function seedRooms(db) {
       group_name, group_notice,
       user_role_name, user_role_name_en, user_role_desc, npc_profiles, dialogue_script,
       settlement_template, tags, difficulty, is_active, sort_order,
-      bg_color, header_bg, header_text, accent_color, accent_dark, likes, comment_count
+      bg_color, header_bg, header_text, accent_color, accent_dark, cover_image, likes, comment_count
     ) VALUES (
       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?,
-      ?, ?, ?, ?, ?, ?, ?
+      ?, ?, ?, ?, ?, ?, ?, ?
     )
   `);
 
@@ -504,6 +509,8 @@ function seedRooms(db) {
       room.header_bg || null,
       room.header_text || null,
       room.accent_color || null,
+      room.accent_dark || null,
+      room.cover_image || null,
       room.likes || 0,
       room.comment_count || 0
     );
@@ -525,7 +532,7 @@ function seedRooms(db) {
   // 注意：likes/comment_count 是运营数据，只在值为 0 时初始化，不覆盖已有值
   const updateCodeFields = db.prepare(`
     UPDATE v2_rooms SET news_title = ?, bg_color = ?, settlement_template = ?, dialogue_script = ?, user_role_name_en = ?,
-      header_bg = ?, header_text = ?, accent_color = ?
+      header_bg = ?, header_text = ?, accent_color = ?, accent_dark = ?, cover_image = ?
     WHERE id = ?
   `);
   const initRunningData = db.prepare(`
@@ -533,7 +540,7 @@ function seedRooms(db) {
     WHERE id = ? AND likes = 0 AND comment_count = 0
   `);
   for (const room of ALL_ROOMS) {
-    updateCodeFields.run(room.news_title, room.bg_color || '#F7F2EC', room.settlement_template, room.dialogue_script, room.user_role_name_en || null, room.header_bg || null, room.header_text || null, room.accent_color || null, room.id);
+    updateCodeFields.run(room.news_title, room.bg_color || '#F7F2EC', room.settlement_template, room.dialogue_script, room.user_role_name_en || null, room.header_bg || null, room.header_text || null, room.accent_color || null, room.accent_dark || null, room.cover_image || null, room.id);
     initRunningData.run(room.likes || 0, room.comment_count || 0, room.id);
   }
 }

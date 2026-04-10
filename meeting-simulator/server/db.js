@@ -296,6 +296,7 @@ function initSchema() {
     `ALTER TABLE v2_rooms ADD COLUMN header_text TEXT`,        // Feed 卡片头部文字色
     `ALTER TABLE v2_rooms ADD COLUMN accent_color TEXT`,       // Feed 卡片强调色
     `ALTER TABLE v2_rooms ADD COLUMN accent_dark TEXT`,        // 按钮背景 + 第二个 NPC 颜色
+    `ALTER TABLE v2_rooms ADD COLUMN cover_image TEXT`,
   ];
   v2RoomsCols.forEach(sql => { try { db.exec(sql); } catch (e) {} });
 

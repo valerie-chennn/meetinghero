@@ -24,7 +24,8 @@
 .feedHeader {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  position: relative;
   padding: calc(var(--status-bar-h) + 14px) 20px 10px;
   flex-shrink: 0;
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
@@ -38,6 +39,8 @@
 }
 
 .feedHeaderAvatar {
+  position: absolute;
+  right: 20px;
   width: 28px;
   height: 28px;
   border-radius: 50%;
@@ -108,6 +111,16 @@
     clamp(16px, 3vh, 28px)
     28px
     clamp(16px, 2.5vh, 24px);
+  height: 100%;
+}
+
+/* 评论区包裹容器：flex:1 吃掉标题和按钮之间的剩余高度，内容顶部对齐 */
+.statementsSection {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  min-height: 0;
 }
 
 /* ===== pill 标签 ===== */
@@ -153,110 +166,92 @@
   overflow: hidden;
 }
 
+/* ===== 标题下方横条插图 ===== */
+.coverImage {
+  width: 100%;
+  margin: clamp(12px, 2vh, 20px) 0;
+  overflow: hidden;
+}
+
+.coverImage img {
+  width: 100%;
+  height: auto;
+  display: block;
+  aspect-ratio: 3 / 1;
+  object-fit: cover;
+}
+
 /* 每行作为独立 block，white-space: nowrap 方便测量自然宽度 */
 .headlineLine {
   display: block;
   white-space: nowrap;
 }
 
-/* ===== 标题下方细线 ===== */
-.contentRule {
-  height: 1px; /* 线条粗细保留硬编码 */
-  background: #D4CFC8;
-  /* 流体化：SE 14px / 14 16.9px / Max 18.6px */
-  margin-bottom: clamp(14px, 2vh, 20px);
-}
-
-/* ===== 角色对话白卡片 =====
-   flex: 1 + max-height 协作：卡片吃掉上方剩余空间，max-height 防止 iPad 级大屏无限膨胀；
-   内部 commentsList 用 flex:1 + space-evenly 将额外空间分散到两条评论之间，避免底部积白 */
-.commentsCard {
-  background: #FFFFFF;
-  border-radius: 12px;
-  /* 流体化：SE 12px / 14 15.2px / Max 18px（上下）；左右保持 16px */
-  padding: clamp(12px, 1.8vh, 18px) 16px;
-  display: flex;
-  flex-direction: column;
-  /* 流体化：SE 10px / 14 12.7px / Max 14px */
-  gap: clamp(10px, 1.5vh, 14px);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  /* flex: 1 吃掉上方剩余空间，让 meta+joinButton 贴近底部；
-     max-height 防止 commentsCard 在 iPad 级大屏上无限膨胀，
-     超出 max-height 的剩余空间退回给 joinButton 的 margin-top:auto 吸收（< 100px）*/
-  flex: 1;
-  max-height: clamp(240px, 42vh, 440px);
-  /* 内部 label 顶对齐，commentsList 占满剩余，避免底部积白 */
-  justify-content: flex-start;
-}
-
-.commentsLabel {
-  font-size: 10px;
-  color: #999;
-  font-weight: 600;
-  letter-spacing: 1px;
-}
-
-.commentsList {
-  display: flex;
-  flex-direction: column;
-  /* flex: 1 让评论列表撑满 commentsCard 内容区，space-evenly 把扩张的空间均匀分配到两条评论之间，
-     避免在 commentsCard 底部积白 */
-  flex: 1;
-  justify-content: space-evenly;
-  /* gap 降级兼容（当 justify-content 接管垂直分布时 gap 的作用减弱，但保留作为最小间距） */
-  gap: clamp(10px, 1.5vh, 14px);
-}
-
-.commentItem {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-}
-
-/* 头像圆形 */
-.commentAvatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 16px;
-  color: #FFFFFF;
+/* ===== 评论区报纸引用版式 ===== */
+.statementsHeader {
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 700;
-  flex-shrink: 0;
+  gap: 8px;
+  margin: clamp(10px, 1.5vh, 14px) 0 clamp(10px, 1.5vh, 12px);
 }
 
-.commentContent {
+.statementsLabel {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  color: #999;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.statementsLine {
   flex: 1;
-  min-width: 0;
+  height: 1px;
+  background: #D4CFC8;
 }
 
-.commentName {
-  font-size: 12px;
+.quoteBlock {
+  position: relative;
+  padding-left: 14px;
+  margin-bottom: clamp(10px, 1.5vh, 14px);
+}
+
+.quoteBlock::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--quote-color);
+}
+
+.quoteName {
+  font-size: 11px;
   font-weight: 700;
-  display: block;
   margin-bottom: 2px;
 }
 
-/* 英文主体 */
-.commentTextEn {
-  /* 流体化：SE 13px / 14 14.3px / Max 15px */
-  font-size: clamp(13px, 1.7vh, 15px);
+.quoteEn {
+  font-family: var(--font-serif);
+  font-size: 13px;
+  font-weight: 400;
+  font-style: italic;
+  color: #1A1A1A;
   line-height: 1.55;
-  color: #1a1a1a;
-  font-weight: 500;
-  margin: 0;
 }
 
-/* 中文翻译 */
-.commentTextZh {
-  /* 流体化：SE 10px / 14 11px / Max 12px */
-  font-size: clamp(10px, 1.3vh, 12px);
-  line-height: 1.4;
+.quoteZh {
+  font-size: 10px;
   color: #999;
-  margin: 3px 0 0;
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+.quoteSeparator {
+  height: 1px;
+  background: #D4CFC8;
+  margin-bottom: clamp(10px, 1.5vh, 14px);
 }
 
 /* ===== 时间/围观数 ===== */
@@ -285,13 +280,12 @@
   /* 流体化：SE 12px / 14 15.2px / Max 18px（上下）；左右保持 0 */
   padding: clamp(12px, 1.8vh, 18px) 0;
   border-radius: 14px;
-  background: #1A1A1A;
   color: #FFFFFF;
   /* 流体化：SE 15px / 14 16.9px / Max 18px */
   font-size: clamp(15px, 2vh, 18px);
   font-weight: 700;
   letter-spacing: 1px;
-  /* margin-top: auto 让按钮吸收 commentsCard flex:1 之后剩余的微量空间，贴近卡片底部 */
+  /* 按钮贴底：吃掉 statementsSection flex:1 之后的尾部空间 */
   margin-top: auto;
   transition: transform 100ms;
 }

@@ -80,9 +80,11 @@ function FeedPage() {
   }, [fetchFeeds]);
 
   // 过滤已完成的房间，让用户在 Feed 看到"新"卡片
-  const completedIds = state.completedRoomIds || [];
+  // TODO: 暂时禁用过滤，方便调试
+  // const completedIds = state.completedRoomIds || [];
   const rawFeed = feeds;
-  const filteredFeed = rawFeed.filter(item => !completedIds.includes(item.roomId));
+  const filteredFeed = rawFeed;
+  // const filteredFeed = rawFeed.filter(item => !completedIds.includes(item.roomId));
 
   // 标题字号自适应：找最长行，缩放到刚好填满容器宽度
   useEffect(() => {
@@ -392,6 +394,17 @@ function FeedPage() {
                           <span key={i} className={styles.headlineLine}>{line}</span>
                         ))}
                       </h1>
+
+                      {/* 横条插图 */}
+                      {item.coverImage && (
+                        <div className={styles.coverImage}>
+                          <img
+                            src={item.coverImage}
+                            alt=""
+                            loading="lazy"
+                          />
+                        </div>
+                      )}
 
                       {/* 评论区：flex:1 自适应填满标题和按钮之间的空间 */}
                       <div className={styles.statementsSection}>

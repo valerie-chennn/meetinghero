@@ -6,6 +6,10 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const { generateRoomsInBackground } = require('../services/room-generator');
+
+// 内存锁：防止 Feed 请求并发触发多次预生成
+let isGenerating = false;
 
 /**
  * GET /api/v2/feed
@@ -47,8 +51,10 @@ router.get('/', (req, res) => {
         r.header_bg,
         r.header_text,
         r.accent_color,
+        r.accent_dark,
         r.likes,
-        r.comment_count
+        r.comment_count,
+        r.cover_image
       FROM v2_feed_items fi
       JOIN v2_rooms r ON fi.room_id = r.id
       WHERE fi.is_visible = 1 AND r.is_active = 1
@@ -74,15 +80,44 @@ router.get('/', (req, res) => {
       headerBg: row.header_bg || null,
       headerText: row.header_text || null,
       accentColor: row.accent_color || null,
+      accentDark: row.accent_dark || null,
+      coverImage: row.cover_image || null,
       likes: row.likes || 0,
       commentCount: row.comment_count || 0,
     }));
 
-    return res.status(200).json({
+    // 先发送响应，再异步检查是否需要预生成
+    res.status(200).json({
       items,
       total,
       hasMore: offset + items.length < total,
     });
+
+    // 异步预生成检查（不阻塞响应）
+    // 提前保存引用，setImmediate 回调中闭包能访问到正确的值
+    const currentOffset = offset;
+    const currentItemsLength = items.length;
+
+    setImmediate(async () => {
+      if (isGenerating) return;
+      try {
+        const totalActive = db.prepare(
+          'SELECT COUNT(*) as count FROM v2_rooms r JOIN v2_feed_items fi ON fi.room_id = r.id WHERE fi.is_visible = 1 AND r.is_active = 1'
+        ).get();
+        const remaining = totalActive.count - (currentOffset + currentItemsLength);
+        if (remaining <= 5) {
+          isGenerating = true;
+          console.log(`[v2-feed] 剩余房间 ${remaining} ≤ 5，触发预生成 3 个房间...`);
+          const result = await generateRoomsInBackground(3);
+          console.log(`[v2-feed] 预生成完成: 成功 ${result.success}, 失败 ${result.failed}`);
+          isGenerating = false;
+        }
+      } catch (err) {
+        isGenerating = false;
+        console.error('[v2-feed] 预生成检查失败:', err.message);
+      }
+    });
+
   } catch (err) {
     console.error('[v2-feed/list] 错误：', err.message);
     return res.status(500).json({ error: '服务器内部错误，请稍后重试' });
@@ -129,6 +164,8 @@ router.get('/:roomId', (req, res) => {
       headerBg: row.header_bg || null,
       headerText: row.header_text || null,
       accentColor: row.accent_color || null,
+      accentDark: row.accent_dark || null,
+      coverImage: row.cover_image || null,
       likes: row.likes || 0,
       commentCount: row.comment_count || 0,
     });

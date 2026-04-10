@@ -15,7 +15,7 @@ const SEED_ROOMS = [
   // ──────────────────────────────────────────────
   {
     id: 'room-001',
-    news_title: '【东海商报】东海三太子惊现闲鱼，挂牌价两万，卖家疑为队友',
+    news_title: '【东海商报】白龙马挂闲鱼标价两万，卖家疑为队友',
     npc_a_name: '八戒',
     npc_a_reaction: '这马吃多干少，不卖留着干啥',
     npc_b_name: '白龙马',
@@ -88,7 +88,7 @@ const SEED_ROOMS = [
     tags: JSON.stringify(['西游记', '职场', '跨IP']),
     difficulty: 'A2',
     sort_order: 50,
-    news_title_en: 'Dragon Prince Listed on eBay for $2K — Seller Reportedly a Former Teammate',
+    news_title_en: 'White Dragon Horse Listed on eBay for $2K — Seller Reportedly a Teammate',
     npc_a_reaction_en: '"Eats loads, does nothing. Selling tracks."',
     npc_b_reaction_en: '"I carried bags the whole trip. Where were you?"',
   },
@@ -126,7 +126,7 @@ const SEED_ROOMS = [
     ]),
     dialogue_script: JSON.stringify([
       { type: 'npc', speaker: 'npc_a', text: "@{username}, you're HR — Thanos dropped a restructuring plan on day one. Is this real?", textZh: '@{username}，你是HR——灭霸入职第一天就交了裁员方案。这是认真的？' },
-      { type: 'npc', speaker: 'npc_b', text: "You cannot cut people like a pie chart. @{username} tell him this plan is wrong.", textZh: '人不能像饼状图一样切。@{username} 告诉他这方案不对。' },
+      { type: 'npc', speaker: 'npc_b', text: "You cannot cut people like a pie chart. @{username} is this plan okay to you?", textZh: '人不能像饼状图一样切。@{username} 你觉得这方案没问题吗？' },
       { type: 'user_cue', speaker: 'npc_a', hint: '钢铁侠找你撑场，要你确认数字是真的', hintZh: '钢铁侠找你撑场，要你确认数字是真的', options: [
         { label: '否决方案', example: "But cutting people isn't the only answer." },
         { label: '支持执行', example: "He's right. The numbers are real." },
@@ -181,7 +181,7 @@ const SEED_ROOMS = [
   // ──────────────────────────────────────────────
   {
     id: 'room-003',
-    news_title: '【中土娱乐周刊】年会现场突发事故，舞台被不明力量冻住，司仪诸葛亮哑口无言',
+    news_title: '【中土娱乐周刊】年会舞台被不明力量冻住，诸葛亮当场无语',
     npc_a_name: '诸葛亮',
     npc_a_reaction: '昨夜星象无异兆，此冻乃天意也',
     npc_b_name: 'Elsa',
@@ -209,7 +209,7 @@ const SEED_ROOMS = [
     ]),
     dialogue_script: JSON.stringify([
       { type: 'npc', speaker: 'npc_a', text: "@{username}, the stage just froze mid-show! Who did this?", textZh: '@{username}，舞台演到一半直接冻住了！谁干的？' },
-      { type: 'npc', speaker: 'npc_b', text: "Someone played 'Let It Go' without warning me. Not my fault. @{username} you saw it!", textZh: '有人没通知我就放了"随它吧"。不是我的错。@{username} 你亲眼看到了！' },
+      { type: 'npc', speaker: 'npc_b', text: "Someone played 'Let It Go' without warning me. Not my fault. @{username} who is wrong here?", textZh: '有人没通知我就放了"随它吧"。不是我的错。@{username} 到底谁的问题？' },
       { type: 'user_cue', speaker: 'npc_a', hint: '诸葛亮问你：冰雕事故谁来负责？Elsa还是主办方？', hintZh: '诸葛亮问你：冰雕事故谁来负责？Elsa还是主办方？', options: [
         { label: 'Elsa负责', example: "Honestly, Elsa should control her powers." },
         { label: '主办方负责', example: "The song was a bad choice. That started it." },
@@ -254,7 +254,7 @@ const SEED_ROOMS = [
     tags: JSON.stringify(['迪士尼', '三国', '跨IP', '年会']),
     difficulty: 'A2',
     sort_order: 30,
-    news_title_en: 'Stage Frozen Mid-Show by "Unknown Force." Emcee Zhuge Liang Had No Words.',
+    news_title_en: 'Stage Frozen by Unknown Force Mid-Show. Zhuge Liang Speechless.',
     npc_a_reaction_en: '"Stars clear. Universe overruled the plan."',
     npc_b_reaction_en: '"Ice backdrop beats the original PPT, honestly."',
   },
@@ -264,7 +264,7 @@ const SEED_ROOMS = [
   // ──────────────────────────────────────────────
   {
     id: 'room-004',
-    news_title: '【魔法日报】霍格沃茨宣布引入AI教学系统，分院帽失业，邓布利多："它比我们分得准"',
+    news_title: '【魔法日报】AI一秒分完院，分院帽失业，邓布利多：它分得更准',
     npc_a_name: '赫敏',
     npc_a_reaction: '准确率97%是真的，但不代表该用',
     npc_b_name: '马尔福',
@@ -337,7 +337,7 @@ const SEED_ROOMS = [
     tags: JSON.stringify(['哈利波特', '科技', '跨IP', 'AI']),
     difficulty: 'B1',
     sort_order: 20,
-    news_title_en: 'Hogwarts Rolls Out AI Sorting System. Sorting Hat Laid Off. Dumbledore: "It\'s More Accurate."',
+    news_title_en: 'AI Sorts in One Second. Sorting Hat Laid Off. Dumbledore: "More Accurate."',
     npc_a_reaction_en: '"97% accuracy confirmed. Still shouldn\'t use it."',
     npc_b_reaction_en: '"Hufflepuff?! System is broken. Filing complaint."',
   },
@@ -347,7 +347,7 @@ const SEED_ROOMS = [
   // ──────────────────────────────────────────────
   {
     id: 'room-005',
-    news_title: '【中土娱乐快报】"中土好声音"总决赛现场爆冷，甘道夫盲选转椅直接脱轨，导师组集体道歉',
+    news_title: '【中土娱乐快报】"中土好声音"决赛，甘道夫转椅直接飞出舞台',
     npc_a_name: '甘道夫',
     npc_a_reaction: '转椅可以解释，是魔法干扰',
     npc_b_name: '咕噜',
@@ -375,7 +375,7 @@ const SEED_ROOMS = [
     ]),
     dialogue_script: JSON.stringify([
       { type: 'npc', speaker: 'npc_a', text: "@{username}, you saw it — my chair flew off during the finals! It was NOT my fault!", textZh: '@{username}，你亲眼看到的——决赛时我的椅子飞出去了！不是我的问题！' },
-      { type: 'npc', speaker: 'npc_b', text: "Everyone saw your staff glow first. You broke the chair. @{username} tell him!", textZh: '所有人都看到你法杖先亮的。椅子是你弄坏的。@{username} 你说！' },
+      { type: 'npc', speaker: 'npc_b', text: "Everyone saw your staff glow first. You broke the chair. @{username} am I wrong?!", textZh: '所有人都看到你法杖先亮的。椅子是你弄坏的。@{username} 我说得不对吗？！' },
       { type: 'user_cue', speaker: 'npc_a', hint: '甘道夫问你：转椅事故是椅子故障还是他法杖干扰？', hintZh: '甘道夫问你：转椅事故是椅子故障还是他法杖干扰？', options: [
         { label: '是法杖', example: "Actually the staff glowed first." },
         { label: '是椅子故障', example: "Yeah, the chair looked broken." },
@@ -420,7 +420,7 @@ const SEED_ROOMS = [
     tags: JSON.stringify(['指环王', '综艺', '跨IP', '选秀']),
     difficulty: 'B1',
     sort_order: 10,
-    news_title_en: 'The Voice of Middle-Earth Grand Finale: Gandalf\'s Chair Comes Off the Rails. Literally.',
+    news_title_en: 'Voice of Middle-Earth Finals: Gandalf\'s Chair Flew Off the Stage',
     npc_a_reaction_en: '"Magical interference. Not operator error."',
     npc_b_reaction_en: '"It\'s ours, precious. Trophy is OURS. We appeal!"',
   },

@@ -3,7 +3,7 @@
 **设计版本**：v1.0  
 **设计日期**：2026-04-01  
 **设计师**：UI Designer  
-**对应 PRD**：`docs/prd-brainstorm-mode.md`
+**对应 PRD**：`../prd/prd-brainstorm-mode.md`
 
 ---
 

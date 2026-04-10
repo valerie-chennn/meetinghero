@@ -4,7 +4,7 @@
 **作者**: Product Manager
 **日期**: 2026-04-01
 **状态**: 待架构师/设计师评审
-**背景**: 基于老板对 product-pivot-plan.md 的新反馈，逐方向深度展开
+**背景**: 基于老板对 `product-pivot-plan.md` 的新反馈，逐方向深度展开
 
 ---
 

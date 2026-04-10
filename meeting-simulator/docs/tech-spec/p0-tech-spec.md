@@ -1133,4 +1133,4 @@ function markDailyComplete() {
 
 ---
 
-*文档路径：`/Users/vision/product-dev-agents/meeting-simulator/docs/p0-tech-spec.md`*
+*文档路径：`meeting-simulator/docs/tech-spec/p0-tech-spec.md`*

@@ -19,9 +19,10 @@ npm run dev          # 同时起前端 (:5173) 和后端 (:3001)
 
 需要在 `meeting-simulator/.env` 配置 Azure OpenAI / Speech / ElevenLabs 密钥。
 
-## 项目结构
+## 项目文档
 
-详见 [meeting-simulator/docs/project-structure.md](meeting-simulator/docs/project-structure.md)
+- 文档总索引： [meeting-simulator/docs/README.md](meeting-simulator/docs/README.md)
+- 项目结构： [meeting-simulator/docs/reference/project-structure.md](meeting-simulator/docs/reference/project-structure.md)
 
 ## 版本说明
 

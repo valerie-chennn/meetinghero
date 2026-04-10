@@ -97,57 +97,80 @@ function prefetchUpcoming(script, cursor, npcMap, userName, count = 2) {
 
 const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
 
-// ===== 打字机组件 =====
-// 接收 text、speed（ms/字）、onDone 回调
-function Typewriter({ text, speed, onDone, className, renderFn }) {
-  const [pos, setPos] = useState(0);
-  const [done, setDone] = useState(false);
-
-  // 预计算可见字符位置：遇到 @{username} 时整体跳过，避免逐字暴露占位符
-  const visiblePositions = React.useMemo(() => {
-    const positions = [];
+// ===== 打字机组件（全文铺底浅灰 + 逐字染色）=====
+// 接收 text、userName（用于替换 @{username}）、onDone 回调
+function Typewriter({ text, userName, onDone, className }) {
+  // 分词：@{username} 整体作为 mention token，其余每字一个 char token
+  const tokens = React.useMemo(() => {
+    const result = [];
     const placeholder = '@{username}';
-    let idx = 0;
-    while (idx <= text.length) {
-      positions.push(idx);
-      // 如果当前位置开始是占位符，整个跳过
-      if (text.startsWith(placeholder, idx)) {
-        idx += placeholder.length;
+    let i = 0;
+    while (i < text.length) {
+      if (text.startsWith(placeholder, i)) {
+        result.push({ type: 'mention' });
+        i += placeholder.length;
       } else {
-        idx++;
+        result.push({ type: 'char', char: text[i] });
+        i++;
       }
     }
-    return positions;
+    return result;
   }, [text]);
 
+  // 根据文本内容估算每个节拍的时长（ms）
+  const speed = React.useMemo(() => {
+    const isCJK = /[\u4e00-\u9fa5]/.test(text);
+    const perChar = isCJK ? 180 : 60;
+    const raw = 400 + perChar * tokens.length;
+    const total = Math.max(800, Math.min(6000, raw));
+    return tokens.length > 0 ? total / tokens.length : 50;
+  }, [text, tokens.length]);
+
+  const [highlightIdx, setHighlightIdx] = useState(0);
+  const doneRef = useRef(false);
+
+  // text 变化时重置，并启动染色 interval
   useEffect(() => {
-    // text 变化时重置
-    setPos(0);
-    setDone(false);
-    let i = 0;
+    setHighlightIdx(0);
+    doneRef.current = false;
+    if (tokens.length === 0) return;
     const iv = setInterval(() => {
-      i++;
-      if (i >= visiblePositions.length) {
-        clearInterval(iv);
-        setPos(text.length);
-        setDone(true);
-      } else {
-        setPos(visiblePositions[i]);
-      }
+      setHighlightIdx(prev => {
+        const next = prev + 1;
+        if (next >= tokens.length) {
+          clearInterval(iv);
+        }
+        return next;
+      });
     }, speed);
     return () => clearInterval(iv);
-  }, [text, speed, visiblePositions]);
+  }, [text, tokens.length, speed]);
 
-  // done 时通知父组件
+  // highlightIdx 推进到末尾时，触发一次 onDone
   useEffect(() => {
-    if (done && onDone) onDone();
-  }, [done]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (highlightIdx >= tokens.length && tokens.length > 0 && !doneRef.current) {
+      doneRef.current = true;
+      onDone?.();
+    }
+  }, [highlightIdx, tokens.length, onDone]);
 
-  const sliced = text.slice(0, pos);
   return (
     <span className={className}>
-      {renderFn ? renderFn(sliced) : sliced}
-      {!done && <span className={styles.cursor}>|</span>}
+      {tokens.map((tok, i) => {
+        const lit = i < highlightIdx;
+        if (tok.type === 'mention') {
+          return (
+            <span key={`t-${i}`} className={lit ? styles.mentionBright : styles.mentionDim}>
+              @{userName || 'you'}
+            </span>
+          );
+        }
+        return (
+          <span key={`t-${i}`} className={lit ? styles.charBright : styles.charDim}>
+            {tok.char}
+          </span>
+        );
+      })}
     </span>
   );
 }
@@ -230,6 +253,9 @@ function ChatPage() {
   // ── 用户提交防重复 ──
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // ── Task 8：Emoji 雨展示状态 ──
+  const [showEmojiRain, setShowEmojiRain] = useState(false);
+
   // ── 连续 NPC 发言计数（不超过3条不进入 user_cue 时强制暂停）──
   const consecutiveNpcRef = useRef(0);
 
@@ -289,15 +315,6 @@ function ChatPage() {
         const nm = {};
         (data.npcProfiles || []).forEach(p => { nm[p.id] = p; });
         npcMapRef.current = nm;
-
-        // 如果有群公告，插入系统消息
-        if (data.groupNotice) {
-          setMessages([{
-            id: 'notice',
-            type: 'system',
-            text: `📌 群公告：${data.groupNotice}`,
-          }]);
-        }
 
         setIsLoading(false);
 
@@ -489,10 +506,19 @@ function ChatPage() {
 
   // ── 打字机打完中文后的回调 ──
   const onZhDone = useCallback(() => {
-    // 打字机完成，但 TTS 可能还在播 → 进 typing_done 阶段（气泡保持高亮）
+    // 中文不再走打字机染色（直接静态呈现），但仍需推进状态机到 typing_done
     // 引擎会在 await ttsPromise 后再切到 wait_tap
     setPhase('typing_done');
   }, []);
+
+  // ── 中文不做打字机效果：进入 typing_zh 后立即推进到 typing_done ──
+  // （保留 typing_zh → typing_done 的两段状态是为了让 state machine 的
+  //  waitForPhase('typing_zh') / waitForPhase('typing_done') 依次 resolve）
+  useEffect(() => {
+    if (phase === 'typing_zh') {
+      onZhDone();
+    }
+  }, [phase, onZhDone]);
 
   // ── 整屏点击推进 ──
   function handleScreenTap() {
@@ -566,6 +592,12 @@ function ChatPage() {
       await Promise.all([dotsMinWait, ttsCachePromise]);
       if (!shouldContinueRef.current) return;
 
+      // Task 7：第 2 轮 + emotion 为 angry/sad 时标记 shake
+      const replyEmotion = result.npcReply.emotion || 'neutral';
+      const shouldShake = currentTurnCount === 2 && (replyEmotion === 'angry' || replyEmotion === 'sad');
+      // Task 8：第 3 轮 + emotion 为 happy 时触发 emoji 雨
+      const shouldEmojiRain = currentTurnCount === 3 && replyEmotion === 'happy';
+
       // 把 NPC 回复挂到打字机 state
       setDotsPreview(null); // 清除预览，pendingNpcReply 接管
       setPendingNpcReply({
@@ -576,6 +608,7 @@ function ChatPage() {
         zh: result.npcReply.textZh,
         voiceId: replyVoiceId,
         id: `npc-reply-${Date.now()}`,
+        shake: shouldShake,
       });
       setPhase('typing_en');
       // 开始播放 TTS（与打字机同步）
@@ -586,6 +619,11 @@ function ChatPage() {
       if (!shouldContinueRef.current) return;
       await waitForPhase('typing_done');
       if (!shouldContinueRef.current) return;
+
+      // 打字机完成后触发 emoji 雨（Task 8）
+      if (shouldEmojiRain) {
+        setShowEmojiRain(true);
+      }
 
       // 等 TTS 播完（气泡在 typing_done 阶段保持高亮色）
       await ttsPromise;
@@ -601,6 +639,7 @@ function ChatPage() {
         en: result.npcReply.text,
         zh: result.npcReply.textZh,
         voiceId: replyVoiceId,
+        shake: shouldShake,
       };
       setPendingNpcReply(null);
       appendMessage(pendingMsg);
@@ -795,6 +834,9 @@ function ChatPage() {
 
   return (
     <div className={styles.container}>
+      {/* Task 8：Emoji 雨特效层 */}
+      {showEmojiRain && <EmojiRain onDone={() => setShowEmojiRain(false)} />}
+
       {/* ===== 顶部导航栏 ===== */}
       <header className={styles.header}>
         <button
@@ -828,6 +870,34 @@ function ChatPage() {
         ref={chatAreaRef}
         className={(isMicMode && !micCollapsed) ? styles.messageListCompact : styles.messageList}
       >
+        {/* ── 三层系统消息区块（静态，不走 messages state）── */}
+        {sessionData && (
+          <div className={styles.headerInfo}>
+            {/* 第 1 层：群公告 */}
+            {sessionData.groupNotice && (
+              <div className={styles.headerInfoNotice}>📌 {sessionData.groupNotice}</div>
+            )}
+            {/* 第 2 层：谁拉你进群 */}
+            <div className={styles.headerInfoInvite}>
+              {(sessionData.npcProfiles && sessionData.npcProfiles[0]
+                ? sessionData.npcProfiles.find(p => p.id === 'npc_a')?.name || sessionData.npcProfiles[0].name
+                : ''
+              )} invited you to the group
+            </div>
+            {/* 第 3 层：你的角色（英文，左右横线）*/}
+            {sessionData.userRoleNameEn && (
+              <div className={styles.headerInfoRole}>
+                <span className={styles.headerInfoRoleLine} />
+                <span className={styles.headerInfoRoleText}>
+                  <span className={styles.headerInfoRoleYoure}>{"You're "}</span>
+                  <span className={styles.headerInfoRoleName}>{sessionData.userRoleNameEn}</span>
+                </span>
+                <span className={styles.headerInfoRoleLine} />
+              </div>
+            )}
+          </div>
+        )}
+
         {/* 已完成消息 */}
         {messages.map(msg => (
           <MessageBubble key={msg.id} msg={msg} userName={state.userName} />
@@ -852,7 +922,7 @@ function ChatPage() {
 
         {/* ── typing/typing_done 阶段：打字机气泡（高亮色，TTS播完才消失）── */}
         {(phase === 'typing_en' || phase === 'typing_zh' || phase === 'typing_done') && typingSource && (
-          <div className={styles.npcRow}>
+          <div className={`${styles.npcRow}${typingSource.shake ? ` ${styles.npcRowShake}` : ''}`}>
             <div
               className={styles.npcAvatar}
               style={{ background: typingSource.speakerColor }}
@@ -867,33 +937,19 @@ function ChatPage() {
                 {typingSource.speakerName}
               </div>
               <div className={styles.npcBubbleTyping}>
-                {phase === 'typing_en' && (
+                {/* 英文：typing_en 阶段走打字机染色，其余阶段静态呈现 */}
+                {phase === 'typing_en' ? (
                   <Typewriter
                     text={typingSource.en || ''}
-                    speed={30}
+                    userName={state.userName}
                     onDone={onEnDone}
                     className={styles.bubbleEn}
-                    renderFn={(t) => renderTextWithMention(t, state.userName)}
                   />
+                ) : (
+                  <div className={styles.bubbleEn}>{renderTextWithMention(typingSource.en, state.userName)}</div>
                 )}
-                {(phase === 'typing_zh' || phase === 'typing_done') && (
-                  <>
-                    {/* typing_zh/done 阶段英文已完成，替换 @{username} 为高亮花名 */}
-                    <div className={styles.bubbleEn}>{renderTextWithMention(typingSource.en, state.userName)}</div>
-                    {phase === 'typing_zh' ? (
-                      <Typewriter
-                        text={typingSource.zh || ''}
-                        speed={25}
-                        onDone={onZhDone}
-                        className={styles.bubbleZh}
-                        renderFn={(t) => renderTextWithMention(t, state.userName)}
-                      />
-                    ) : (
-                      /* typing_done 阶段中文也已完成，替换 @{username} */
-                      <div className={styles.bubbleZh}>{renderTextWithMention(typingSource.zh, state.userName)}</div>
-                    )}
-                  </>
-                )}
+                {/* 中文：所有阶段都静态呈现，气泡从一开始就是完整尺寸，不会因为中文晚到而跳变 */}
+                <div className={styles.bubbleZh}>{renderTextWithMention(typingSource.zh, state.userName)}</div>
               </div>
             </div>
           </div>
@@ -1197,7 +1253,7 @@ function MessageBubble({ msg, userName }) {
 
   if (msg.type === 'npc') {
     return (
-      <div className={styles.npcRow}>
+      <div className={`${styles.npcRow}${msg.shake ? ` ${styles.npcRowShake}` : ''}`}>
         <div
           className={styles.npcAvatar}
           style={{ background: msg.speakerColor }}
@@ -1226,6 +1282,51 @@ function MessageBubble({ msg, userName }) {
   }
 
   return null;
+}
+
+// ===== Task 8：Emoji 雨组件 =====
+function EmojiRain({ onDone }) {
+  const emojis = ['👏', '🎉', '🙌', '✨'];
+  const count = 18 + Math.floor(Math.random() * 5); // 18-22 个
+  const items = React.useMemo(() => {
+    return Array.from({ length: count }, (_, i) => ({
+      id: i,
+      emoji: emojis[Math.floor(Math.random() * emojis.length)],
+      left: Math.random() * 100, // 随机 x 位置 (%)
+      size: 18 + Math.random() * 14, // 18-32px
+      duration: 1.8 + Math.random() * 1.2, // 1.8-3s
+      delay: i * 0.1, // 每个间隔 100ms
+      swayAmount: 15 + Math.random() * 20, // 左右摇摆幅度
+    }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    // 最长的动画完成后清理
+    const maxTime = Math.max(...items.map(i => (i.delay + i.duration) * 1000));
+    const timer = setTimeout(() => onDone(), maxTime + 200);
+    return () => clearTimeout(timer);
+  }, [items, onDone]);
+
+  return (
+    <div className={styles.emojiRainContainer}>
+      {items.map(item => (
+        <span
+          key={item.id}
+          className={styles.emojiRainItem}
+          style={{
+            left: `${item.left}%`,
+            fontSize: `${item.size}px`,
+            animationDuration: `${item.duration}s`,
+            animationDelay: `${item.delay}s`,
+            '--sway': `${item.swayAmount}px`,
+          }}
+        >
+          {item.emoji}
+        </span>
+      ))}
+    </div>
+  );
 }
 
 // ===== 小喇叭 TTS 图标按钮 =====

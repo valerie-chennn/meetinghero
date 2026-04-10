@@ -122,6 +122,62 @@
   cursor: grabbing;
 }
 
+/* ===== 三层静态顶部信息区块 ===== */
+.headerInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 16px;
+  padding-bottom: 12px;
+  gap: 0;
+}
+
+/* 第 1 层：群公告 */
+.headerInfoNotice {
+  font-size: 12px;
+  color: #b8aa98;
+  text-align: center;
+  line-height: 1.5;
+  margin-bottom: 6px;
+}
+
+/* 第 2 层：谁拉你进群 */
+.headerInfoInvite {
+  font-size: 12px;
+  color: #b8aa98;
+  text-align: center;
+  line-height: 1.5;
+  margin-bottom: 10px;
+}
+
+/* 第 3 层：角色身份（左右横线 + 文字）*/
+.headerInfoRole {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.headerInfoRoleLine {
+  flex: 1;
+  height: 1px;
+  background: #d4c4b0;
+}
+
+.headerInfoRoleText {
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.headerInfoRoleYoure {
+  color: #5a4a3a;
+}
+
+.headerInfoRoleName {
+  color: #B8532A;
+  font-weight: 500;
+}
+
 /* ===== 系统消息 ===== */
 .systemMessage {
   display: flex;
@@ -298,12 +354,6 @@
 
 .dot:nth-child(3) {
   animation-delay: 0.3s;
-}
-
-/* ===== 打字机光标 ===== */
-.cursor {
-  animation: blink 0.8s infinite;
-  color: #7C5CBF;
 }
 
 /* ===== 底部状态区（非发言模式）===== */
@@ -763,12 +813,6 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* 打字机光标闪烁 */
-@keyframes blink {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0; }
-}
-
 /* 三个点弹跳 */
 @keyframes dotBounce {
   0%, 80%, 100% { transform: translateY(0); }
@@ -802,4 +846,70 @@
 /* 旋转加载 */
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* ===== Task 7：气泡抖动 ===== */
+@keyframes angryShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-3px); }
+  40% { transform: translateX(3px); }
+  60% { transform: translateX(-2px); }
+  80% { transform: translateX(2px); }
+}
+
+.npcRowShake {
+  animation: angryShake 0.4s ease-out;
+}
+
+/* ===== Task 8：Emoji 雨 ===== */
+.emojiRainContainer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 100;
+  overflow: hidden;
+}
+
+.emojiRainItem {
+  position: absolute;
+  bottom: -50px;
+  opacity: 0;
+  animation: emojiFloat linear forwards;
+}
+
+@keyframes emojiFloat {
+  0% {
+    transform: translateY(0) translateX(0) rotate(0deg);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(calc(-100vh - 60px)) translateX(var(--sway)) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+/* ===== 逐字染色（仅英文行使用，中文直接静态渲染）===== */
+.charDim {
+  color: #ccc;
+  transition: color 0.15s ease;
+}
+.charBright {
+  color: #1a1a1a; /* 对齐 .bubbleEn 的最终色，避免染完切到定型态时颜色跳变 */
+  transition: color 0.15s ease;
+}
+.mentionDim {
+  color: #ccc;
+  font-weight: 600;
+  transition: color 0.15s ease;
+}
+.mentionBright {
+  color: #7C5CBF;
+  font-weight: 600;
+  transition: color 0.15s ease;
 }

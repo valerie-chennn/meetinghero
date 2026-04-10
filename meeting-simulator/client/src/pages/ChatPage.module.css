@@ -858,7 +858,7 @@
 }
 
 .npcRowShake {
-  animation: angryShake 0.4s ease-out;
+  animation: angryShake 0.4s ease-out 0.6s both;
 }
 
 /* ===== Task 8：Emoji 雨 ===== */

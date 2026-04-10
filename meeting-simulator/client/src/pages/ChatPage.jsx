@@ -603,9 +603,9 @@ function ChatPage() {
       // Task 7：第 2 轮 + emotion 为 angry/sad 时标记 shake
       const replyEmotion = result.npcReply.emotion || 'neutral';
       console.log(`[ChatPage] 特效判断: turn=${currentTurnCount}, emotion=${replyEmotion}`);
-      // 第 2 轮：happy 那方抖（被帮到了，开心）
+      // 第 2 轮：无条件抖
       // 第 3 轮：angry/sad 抖（输家不服）
-      const shouldShake = (currentTurnCount === 2 && replyEmotion === 'happy')
+      const shouldShake = currentTurnCount === 2
         || (currentTurnCount === 3 && (replyEmotion === 'angry' || replyEmotion === 'sad'));
       // 第 3 轮 + happy → emoji 雨（赢家庆祝）
       const shouldEmojiRain = currentTurnCount === 3 && replyEmotion === 'happy';
@@ -632,10 +632,8 @@ function ChatPage() {
       await waitForPhase('typing_done');
       if (!shouldContinueRef.current) return;
 
-      // 打字机完成后触发 emoji 雨（Task 8）
-      if (shouldEmojiRain) {
-        setShowEmojiRain(true);
-      }
+      // emoji 雨已封存，暂不触发
+      // if (shouldEmojiRain) { setShowEmojiRain(true); }
 
       // 等 TTS 播完（气泡在 typing_done 阶段保持高亮色）
       await ttsPromise;
@@ -719,6 +717,7 @@ function ChatPage() {
         speakerColor: getNpcColor(s.speaker),
         en: s.text,
         zh: s.textZh,
+        shake: curIdx === 3, // 第 1 次发言后的预制 NPC 消息 dots 阶段抖动
       };
     }
     return null;
@@ -822,7 +821,8 @@ function ChatPage() {
   return (
     <div className={styles.container}>
       {/* Task 8：Emoji 雨特效层 */}
-      {showEmojiRain && <EmojiRain onDone={() => setShowEmojiRain(false)} />}
+      {/* emoji 雨已封存 */}
+      {/* {showEmojiRain && <EmojiRain onDone={() => setShowEmojiRain(false)} />} */}
 
       {/* ===== 顶部导航栏 ===== */}
       <header className={styles.header}>
@@ -909,7 +909,7 @@ function ChatPage() {
 
         {/* ── typing/typing_done 阶段：打字机气泡（高亮色，TTS播完才消失）── */}
         {(phase === 'typing_en' || phase === 'typing_zh' || phase === 'typing_done') && typingSource && (
-          <div className={`${styles.npcRow}${typingSource.shake ? ` ${styles.npcRowShake}` : ''}`}>
+          <div className={`${styles.npcRow}${typingSource?.shake ? ` ${styles.npcRowShake}` : ''}`}>
             <div
               className={styles.npcAvatar}
               style={{ background: typingSource.speakerColor }}

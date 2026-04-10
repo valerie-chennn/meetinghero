@@ -471,9 +471,17 @@ function ChatPage() {
       }
     }
 
-    // 脚本播放完毕
+    // 脚本播放完毕 → 触发结算
     if (shouldContinueRef.current && i >= script.length) {
       setPhase('done');
+      setIsCompleting(true);
+      try {
+        await completeChat(sessionId);  // 用参数而不是闭包
+      } catch (err) {
+        console.warn('[ChatPage] completeChat 失败:', err.message);
+      } finally {
+        if (shouldContinueRef.current) setIsCompleting(false);
+      }
     }
   }
 
@@ -594,8 +602,12 @@ function ChatPage() {
 
       // Task 7：第 2 轮 + emotion 为 angry/sad 时标记 shake
       const replyEmotion = result.npcReply.emotion || 'neutral';
-      const shouldShake = currentTurnCount === 2 && (replyEmotion === 'angry' || replyEmotion === 'sad');
-      // Task 8：第 3 轮 + emotion 为 happy 时触发 emoji 雨
+      console.log(`[ChatPage] 特效判断: turn=${currentTurnCount}, emotion=${replyEmotion}`);
+      // 第 2 轮：happy 那方抖（被帮到了，开心）
+      // 第 3 轮：angry/sad 抖（输家不服）
+      const shouldShake = (currentTurnCount === 2 && replyEmotion === 'happy')
+        || (currentTurnCount === 3 && (replyEmotion === 'angry' || replyEmotion === 'sad'));
+      // 第 3 轮 + happy → emoji 雨（赢家庆祝）
       const shouldEmojiRain = currentTurnCount === 3 && replyEmotion === 'happy';
 
       // 把 NPC 回复挂到打字机 state
@@ -651,50 +663,25 @@ function ChatPage() {
       setUserTurnCount(currentTurnCount);
       updateState({ userTurnCount: currentTurnCount });
 
-      if (result.isLastTurn) {
-        // 最后一次：等用户点击后跳结算
-        await new Promise((resolve) => {
-          advanceRef.current = () => {
-            waitingTapRef.current = false;
-            advanceRef.current = null;
-            resolve();
-          };
-          waitingTapRef.current = true;
-        });
-        if (!shouldContinueRef.current) return;
-        // 先进 done 显示按钮（loading 状态），后台 await completeChat
-        // 完成后 setIsCompleting(false) 按钮才可点击，避免提前跳转
-        setPhase('done');
-        setIsCompleting(true);
-        await sleep(500);
-        try {
-          await completeChat(sessionData.chatSessionId);
-          if (!shouldContinueRef.current) return;
-        } catch (err) {
-          console.warn('[ChatPage] completeChat 失败:', err.message);
-        } finally {
-          if (shouldContinueRef.current) setIsCompleting(false);
-        }
-      } else {
-        // 继续脚本
-        await new Promise((resolve) => {
-          advanceRef.current = () => {
-            waitingTapRef.current = false;
-            advanceRef.current = null;
-            resolve();
-          };
-          waitingTapRef.current = true;
-        });
-        if (!shouldContinueRef.current) return;
-        await sleep(300);
-        const nextIdx = curIdxRef.current + 1;
-        startPlayback(
-          sessionData.dialogueScript,
-          npcMap,
-          sessionData.chatSessionId,
-          nextIdx,
-        );
-      }
+      // 所有 turn（包括第 3 次）统一等 tap 后恢复脚本
+      // 最后一条预制消息播完后，startPlayback 末尾处理结算
+      await new Promise((resolve) => {
+        advanceRef.current = () => {
+          waitingTapRef.current = false;
+          advanceRef.current = null;
+          resolve();
+        };
+        waitingTapRef.current = true;
+      });
+      if (!shouldContinueRef.current) return;
+      await sleep(300);
+      const nextIdx = curIdxRef.current + 1;
+      startPlayback(
+        sessionData.dialogueScript,
+        npcMapRef.current,
+        sessionData.chatSessionId,
+        nextIdx,
+      );
     } catch (err) {
       console.error('[ChatPage] respondChat 失败:', err);
       setPhase('mic'); // 回到发言模式重试

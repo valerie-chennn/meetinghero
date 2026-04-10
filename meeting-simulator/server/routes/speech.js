@@ -22,8 +22,17 @@ const upload = multer({
     fileSize: 10 * 1024 * 1024, // 10MB
   },
   fileFilter: (req, file, cb) => {
-    // 只接受音频文件
-    if (file.mimetype.startsWith('audio/')) {
+    const allowedMimeTypes = new Set([
+      'audio/aac',
+      'audio/m4a',
+      'audio/mp4',
+      'audio/mpeg',
+      'audio/webm',
+      'audio/x-m4a',
+      'video/mp4',
+    ]);
+
+    if (file.mimetype.startsWith('audio/') || allowedMimeTypes.has(file.mimetype)) {
       cb(null, true);
     } else {
       cb(new Error('只接受音频文件'), false);
@@ -123,7 +132,10 @@ router.post('/stt', (req, res) => {
       console.log(`[Speech/STT] 使用 Whisper 识别语音，language=${language}, fileSize=${req.file.size}`);
 
       // 调用 Azure Whisper STT
-      const result = await speechToText(req.file.buffer, language);
+      const result = await speechToText(req.file.buffer, language, {
+        mimeType: req.file.mimetype,
+        originalName: req.file.originalname,
+      });
 
       return res.status(200).json({
         text: result.text,

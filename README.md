@@ -1,32 +1,80 @@
-# MeetingHero 推流版
+# MeetingHero
 
-英语群聊模拟器 — 用户在手机壳 UI 中参与预制+AI实时的英文群聊对话，练习职场英语。
+MeetingHero 现在的正式交付形态是 React Native App + 独立 API 服务。
+
+用户在 iPhone、Android 和 tablets 上进入剧情化英文群聊，完成 `Feed -> Chat -> Settlement -> Expressions / Profile` 的完整练习链路。Web 前端不再作为正式发布面维护，仓库里的旧 `client/` 目录只保留作历史参考。
 
 ## 技术栈
 
-- 前端：React 18 + Vite
-- 后端：Node.js + Express + SQLite (better-sqlite3)
-- AI：Azure OpenAI
-- 语音：ElevenLabs TTS + Azure Whisper STT
-- 部署：Docker + Nginx + 腾讯云
+- Mobile: Expo Managed + React Native + Expo Router + TypeScript
+- API: Node.js + Express + SQLite (`better-sqlite3`)
+- AI: Azure OpenAI
+- Voice: ElevenLabs / Azure TTS + Azure Whisper STT
+- Release: EAS Build + Docker + Nginx(API-only)
 
-## 本地运行
+## 本地开发
 
 ```bash
 cd meeting-simulator
-npm run dev          # 同时起前端 (:5173) 和后端 (:3001)
+npm run install:all
+npm run dev
 ```
 
-需要在 `meeting-simulator/.env` 配置 Azure OpenAI / Speech / ElevenLabs 密钥。
+默认会同时启动：
 
-## 项目文档
+- API: `http://localhost:3001`
+- Expo Metro: `http://localhost:8081`
 
-- 文档总索引： [meeting-simulator/docs/README.md](meeting-simulator/docs/README.md)
-- 项目结构： [meeting-simulator/docs/reference/project-structure.md](meeting-simulator/docs/reference/project-structure.md)
+真机调试时，在 `meeting-simulator/mobile/.env` 或 shell 环境里提供：
 
-## 版本说明
+```bash
+EXPO_PUBLIC_API_BASE_URL=https://your-api-host
+```
 
-| 版本 | 分支/标签 | 说明 |
-|------|----------|------|
-| 推流版 (v2) | `main` HEAD | 当前版本，Feed 流 + 群聊模式 |
-| 双门版 (v1) | tag `v0.1-dual-mode` | 已封存，正经开会 + 脑洞模式 |
+后端支持的关键环境变量：
+
+- `AZURE_OPENAI_ENDPOINT`
+- `AZURE_OPENAI_API_KEY`
+- `AZURE_SPEECH_KEY`
+- `AZURE_SPEECH_REGION`
+- `AZURE_WHISPER_API_KEY`
+- `AZURE_WHISPER_ENDPOINT`
+- `AZURE_WHISPER_DEPLOYMENT`
+- `AZURE_WHISPER_API_VERSION`
+- `ELEVENLABS_API_KEY`
+- `CORS_ALLOWED_ORIGINS`
+
+## 测试
+
+```bash
+cd meeting-simulator
+npm test
+```
+
+当前已覆盖：
+
+- Server: `join -> respond -> complete -> settlement` 主链路，STT 多 mime/扩展名，未配置与超时分支
+- Mobile: onboarding、feed、chat 基础态、settlement、expressions、profile、状态持久化
+
+## 发布
+
+移动端构建：
+
+```bash
+cd meeting-simulator/mobile
+npm run doctor
+eas build --platform ios --profile production
+eas build --platform android --profile production
+```
+
+服务端部署：
+
+- Docker 镜像只构建 API，不再打包 Web 静态文件
+- Nginx 只负责反向代理和 TLS
+- 生产 API 必须使用 HTTPS，且能被真机访问
+
+## 文档
+
+- 项目 README: [meeting-simulator/README.md](/Users/nathanshan/Desktop/meetinghero/meeting-simulator/README.md)
+- 文档索引: [meeting-simulator/docs/README.md](/Users/nathanshan/Desktop/meetinghero/meeting-simulator/docs/README.md)
+- 项目结构: [meeting-simulator/docs/reference/project-structure.md](/Users/nathanshan/Desktop/meetinghero/meeting-simulator/docs/reference/project-structure.md)

@@ -13,6 +13,23 @@ function isElevenLabsConfigured() {
   return !!process.env.ELEVENLABS_API_KEY;
 }
 
+function normalizeAudioMeta({ mimeType, originalName } = {}) {
+  const defaultExtension = 'webm';
+  const hasNamedExtension = typeof originalName === 'string' && originalName.includes('.');
+  const rawExtension = hasNamedExtension ? originalName.split('.').pop()?.toLowerCase() : null;
+  const extensionFromMime = mimeType?.split('/').pop()?.toLowerCase();
+
+  let extension = rawExtension || extensionFromMime || defaultExtension;
+  if (extension === 'mpeg') extension = 'mp3';
+  if (extension === 'x-m4a') extension = 'm4a';
+
+  const normalizedMime = mimeType || `audio/${extension}`;
+  return {
+    filename: `audio.${extension}`,
+    mimeType: normalizedMime,
+  };
+}
+
 /**
  * 文字转语音（ElevenLabs TTS）
  * 调用 ElevenLabs REST API 生成音频数据
@@ -187,9 +204,10 @@ function isWhisperConfigured() {
  * 支持 webm / mp4 / wav 等多种格式，无需转换
  * @param {Buffer} audioBuffer - 音频数据
  * @param {string} language - 识别语言，如 "en-US" 或 "zh-CN"
+ * @param {{ mimeType?: string, originalName?: string }} audioMeta - 上传文件元信息
  * @returns {Promise<{text: string, language: string}>}
  */
-async function speechToText(audioBuffer, language = 'en-US') {
+async function speechToText(audioBuffer, language = 'en-US', audioMeta = {}) {
   if (!isWhisperConfigured()) {
     const err = new Error('Azure Whisper 服务未配置，请检查 AZURE_WHISPER_* 环境变量');
     err.code = 'WHISPER_NOT_CONFIGURED';
@@ -218,14 +236,13 @@ async function speechToText(audioBuffer, language = 'en-US') {
   // 包含 file（音频 buffer）和 language 字段
   const boundary = `----FormBoundary${Date.now().toString(16)}`;
 
-  // 判断音频格式，用于设置 Content-Disposition 的文件名
-  // Whisper 根据文件扩展名自动识别格式
-  const filename = 'audio.webm';
+  // Whisper 根据文件扩展名自动识别格式，这里透传客户端真实类型。
+  const { filename, mimeType } = normalizeAudioMeta(audioMeta);
 
   const preamble = Buffer.from(
     `--${boundary}\r\n` +
     `Content-Disposition: form-data; name="file"; filename="${filename}"\r\n` +
-    `Content-Type: audio/webm\r\n` +
+    `Content-Type: ${mimeType}\r\n` +
     `\r\n`
   );
 
@@ -317,6 +334,7 @@ module.exports = {
   isElevenLabsConfigured,
   isSpeechConfigured,
   isWhisperConfigured,
+  normalizeAudioMeta,
   textToSpeechElevenLabs,
   textToSpeech,
   speechToText,

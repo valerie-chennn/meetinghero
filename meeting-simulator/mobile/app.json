@@ -1,0 +1,41 @@
+{
+  "expo": {
+    "name": "MeetingHero",
+    "slug": "meetinghero",
+    "version": "1.0.0",
+    "scheme": "meetinghero",
+    "orientation": "default",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.meetinghero.app.dev",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "MeetingHero needs microphone access so you can practice speaking in chat."
+      }
+    },
+    "android": {
+      "package": "com.meetinghero.app.dev",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-audio",
+      "expo-asset"
+    ]
+  }
+}

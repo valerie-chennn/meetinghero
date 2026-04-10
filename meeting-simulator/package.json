@@ -2,12 +2,13 @@
   "name": "meeting-simulator",
   "version": "1.0.0",
   "private": true,
-  "description": "职场会议模拟器 MVP",
+  "description": "MeetingHero React Native + API 服务",
   "scripts": {
-    "install:all": "cd server && npm install && cd ../client && npm install",
-    "dev": "concurrently \"cd server && npm run dev\" \"cd client && npm run dev\"",
+    "install:all": "cd server && npm install && cd ../mobile && npm install",
+    "dev": "concurrently \"cd server && npm run dev\" \"cd mobile && npm run start\"",
     "dev:server": "cd server && npm run dev",
-    "dev:client": "cd client && npm run dev"
+    "dev:mobile": "cd mobile && npm run start",
+    "test": "concurrently \"cd server && npm test\" \"cd mobile && npm test -- --runInBand\""
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

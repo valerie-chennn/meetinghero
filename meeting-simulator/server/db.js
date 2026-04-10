@@ -8,12 +8,12 @@ const path = require('path');
 const fs = require('fs');
 
 // 确保 data 目录存在
-const dataDir = path.join(__dirname, 'data');
+const defaultDataDir = path.join(__dirname, 'data');
+const DB_PATH = process.env.DB_PATH || path.join(defaultDataDir, 'meeting-simulator.db');
+const dataDir = path.dirname(DB_PATH);
 if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }
-
-const DB_PATH = path.join(dataDir, 'meeting-simulator.db');
 
 // 初始化数据库连接
 const db = new Database(DB_PATH);

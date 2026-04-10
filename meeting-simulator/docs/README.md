@@ -1,27 +1,37 @@
 # MeetingHero 文档索引
 
-当前项目文档统一收敛在 `meeting-simulator/docs/` 下，按用途分为 5 类：
+当前仓库已经切到 React Native 正式发布形态，文档使用建议如下：
 
-- `prd/`：产品需求、交互方案、体验问题拆解
-- `tech-spec/`：技术方案、架构设计、实现约束
-- `design/`：视觉和交互设计稿
-- `strategy/`：产品方向、路线图、转型讨论
-- `reference/`：代码协作时会频繁查阅的参考文档
+- 先看 [../README.md](/Users/nathanshan/Desktop/meetinghero/meeting-simulator/README.md)：本地开发、环境变量、EAS 发布、API 部署
+- 再看 [reference/project-structure.md](/Users/nathanshan/Desktop/meetinghero/meeting-simulator/docs/reference/project-structure.md)：目录、状态、接口、部署入口
+
+文档目录仍按 5 类维护：
+
+- `prd/`: 产品需求、交互方案、体验问题拆解
+- `tech-spec/`: 技术方案、架构设计、实现约束
+- `design/`: 视觉和交互设计稿
+- `strategy/`: 产品方向、路线图、转型讨论
+- `reference/`: 当前代码协作最常查的事实文档
 
 ## 当前主线
 
-当前代码主线是 v2 推流版：`Feed -> Chat -> Settlement -> Expressions/Profile`。
+当前正式版本：
+
+- 前端：Expo React Native
+- 后端：Express + SQLite API-only
+- 主链路：`Feed -> Chat -> Settlement -> Expressions / Profile`
 
 优先参考：
 
 - `reference/project-structure.md`
 - `tech-spec/arch-feed-version.md`
-- `prd/meeting-hero-review-flow-prd.md`
+- `../README.md`
 
-说明：
+注意：
 
-- 一部分文档来自旧会议版或转型讨论期，不等于“已实现”
-- 设计/PRD/技术方案可能存在时间差，落地前应再对照当前代码
+- `client/` 相关内容属于旧 Web 版本遗留参考，不再代表正式交付面
+- 旧会议版和转型期文档依然保留，但不等于已实现现状
+- 落地前始终以当前代码和 `reference/` 文档为准
 
 ## PRD
 
@@ -63,5 +73,5 @@
 
 | 文件 | 主题 | 用途 |
 | --- | --- | --- |
-| `reference/project-structure.md` | 项目结构说明 | 查目录、入口、数据流 |
+| `reference/project-structure.md` | 项目结构说明 | 查目录、入口、状态、部署方式 |
 | `reference/dialogue-flow-spec.md` | 对话流规范 | 查旧会议版交互约束 |

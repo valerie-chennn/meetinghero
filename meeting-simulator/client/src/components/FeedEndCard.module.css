@@ -1,0 +1,180 @@
+/* ===== FeedEndCard — 刷完所有卡片后的"生成中"全屏状态 ===== */
+
+.endCard {
+  width: 100%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 40px;
+}
+
+/* ===== 报纸印刷动画 ===== */
+.printAnim {
+  margin-bottom: 28px;
+}
+
+.paper {
+  position: relative;
+  width: 60px;
+  height: 80px;
+  background: #fff;
+  border-radius: 3px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+/* 右上角折角 */
+.paperFold {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  background: linear-gradient(135deg, #F5F3EE 50%, #e8e5de 50%);
+}
+
+/* 5 条横线依次从浅灰变深（模拟油墨印上去） */
+.inkLines {
+  position: absolute;
+  top: 18px;
+  left: 8px;
+  right: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.inkLine {
+  display: block;
+  height: 3px;
+  border-radius: 1px;
+  background: #1A1A1A;
+  animation: inkPrint 3s ease-in-out infinite;
+}
+
+.inkLine:nth-child(4) { width: 75%; }
+.inkLine:nth-child(5) { width: 50%; }
+
+@keyframes inkPrint {
+  0%, 100% { opacity: 0.08; }
+  30%, 70% { opacity: 0.6; }
+}
+
+/* 底部淡墨上升再消失 */
+.inkWash {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 30px;
+  background: linear-gradient(to top, rgba(26, 26, 26, 0.06), transparent);
+  animation: inkRise 3s ease-in-out infinite;
+}
+
+@keyframes inkRise {
+  0%   { transform: translateY(100%); opacity: 0; }
+  40%  { transform: translateY(0); opacity: 1; }
+  70%  { transform: translateY(-50%); opacity: 0; }
+  100% { transform: translateY(-50%); opacity: 0; }
+}
+
+/* ===== 文字 ===== */
+.title {
+  font-family: 'Playfair Display', var(--font-serif);
+  font-size: 21px;
+  font-weight: 700;
+  color: #2C2C2A;
+  margin: 0 0 6px;
+}
+
+.subtitle {
+  font-family: 'DM Sans', var(--font-sans);
+  font-size: 13px;
+  color: #888780;
+  margin: 0;
+}
+
+/* ===== 分隔线 ===== */
+.divider {
+  width: 40px;
+  height: 0.5px;
+  background: #D3D1C7;
+  margin: 28px 0;
+}
+
+/* ===== 表达本入口卡片 ===== */
+.exprCard {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  max-width: 300px;
+  padding: 14px 16px;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.exprCard:active {
+  transform: scale(0.98);
+}
+
+.exprIcon {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #2C2C2A;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  background: #E53935;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+
+.exprText {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.exprTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #2C2C2A;
+}
+
+.exprSub {
+  font-size: 12px;
+  color: #888780;
+}
+
+.exprArrow {
+  flex-shrink: 0;
+}

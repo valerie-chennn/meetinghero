@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
 import { getFeedList, getDmBanner } from '../api/index.js';
 import DmBanner from '../components/DmBanner.jsx';
+import FeedEndCard from '../components/FeedEndCard.jsx';
 import styles from './FeedPage.module.css';
 
 // 格式化互动数据：超过万显示 x.xw，超过千显示 x.xk
@@ -19,30 +20,6 @@ function parseNewsTitle(title) {
   return { source: '', headline: title };
 }
 
-// tag → 主题色映射表（按改动说明 6 套主题）
-const TAG_THEMES = {
-  '西游记':   { bgColor: '#F7F2EC', headerBg: '#F0EBE4', headerText: '#3A2E22', accentColor: '#C41E1E' },
-  '三国':     { bgColor: '#F7F2EC', headerBg: '#F0EBE4', headerText: '#3A2E22', accentColor: '#C41E1E' },
-  '哈利波特': { bgColor: '#FFF7ED', headerBg: '#FEF3C7', headerText: '#78350F', accentColor: '#92400E' },
-  '综艺':     { bgColor: '#FFF7ED', headerBg: '#FEF3C7', headerText: '#78350F', accentColor: '#92400E' },
-  '迪士尼':   { bgColor: '#F5F3FF', headerBg: '#EDE9FE', headerText: '#3B0764', accentColor: '#6D28D9' },
-  '指环王':   { bgColor: '#ECFDF5', headerBg: '#D1FAE5', headerText: '#064E3B', accentColor: '#047857' },
-  '宫斗':     { bgColor: '#FFF1F2', headerBg: '#FFE4E6', headerText: '#4C0519', accentColor: '#BE123C' },
-};
-const DEFAULT_THEME = { bgColor: '#F7F2EC', headerBg: '#F0EBE4', headerText: '#3A2E22', accentColor: '#C41E1E' };
-
-// 按 tags 列表查表，命中第一个有映射的 tag
-function getThemeFromTags(tags) {
-  if (!tags || tags.length === 0) return DEFAULT_THEME;
-  for (const tag of tags) {
-    if (TAG_THEMES[tag]) return TAG_THEMES[tag];
-  }
-  return DEFAULT_THEME;
-}
-
-// NPC 固定颜色：A 紫色系，B 青绿系
-const NPC_A_COLOR = '#8B6CC1';
-const NPC_B_COLOR = '#2A9D8F';
 
 function FeedPage() {
   const navigate = useNavigate();
@@ -146,7 +123,7 @@ function FeedPage() {
 
   // filteredFeed 长度变化时，确保 cardIndex 不越界（例如过滤后列表变短）
   useEffect(() => {
-    if (filteredFeed.length > 0 && cardIndex >= filteredFeed.length) {
+    if (filteredFeed.length > 0 && cardIndex >= filteredFeed.length + 1) {
       setCardIndex(0);
     }
   }, [filteredFeed.length]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -200,7 +177,7 @@ function FeedPage() {
   const goToCard = useCallback((dir) => {
     if (animating) return;
     const next = cardIndex + dir;
-    if (next < 0 || next >= filteredFeed.length) return;
+    if (next < 0 || next >= filteredFeed.length + 1) return;
     setAnimating(true);
     setDragY(-dir * cardHeight);
     setTimeout(() => {
@@ -277,21 +254,20 @@ function FeedPage() {
     setBannerData(null);
   };
 
-  // 当前卡片 + 对应主题色（用于 header 跟随色系）
-  const currentCard = filteredFeed.length > 0 ? filteredFeed[cardIndex] : null;
-  const currentTheme = currentCard ? getThemeFromTags(currentCard.tags) : DEFAULT_THEME;
+  // 当前卡片（用于 header 跟随色系，颜色直接读 API 字段）
+  const currentCard = (filteredFeed.length > 0 && cardIndex < filteredFeed.length) ? filteredFeed[cardIndex] : null;
 
   return (
     <div className={styles.container}>
-      {/* 顶部 Header：背景和文字色跟随当前卡片色系 */}
+      {/* 顶部 Header：背景和文字色直接读当前卡片 API 字段 */}
       <header
         className={styles.feedHeader}
         style={{
-          backgroundColor: currentTheme.headerBg,
-          color: currentTheme.headerText,
+          backgroundColor: currentCard?.headerBg || '#F0EBE4',
+          color: currentCard?.headerText || '#3A2E22',
         }}
       >
-        <span className={styles.feedHeaderTitle} style={{ color: currentTheme.headerText }}>每日胡说</span>
+        <span className={styles.feedHeaderTitle} style={{ color: currentCard?.headerText || '#3A2E22' }}>每日胡说</span>
         <div
           className={styles.feedHeaderAvatar}
           onClick={() => navigate('/profile')}
@@ -375,32 +351,31 @@ function FeedPage() {
             >
               {filteredFeed.map((item) => {
                 const { source, headline } = parseNewsTitle(item.newsTitle);
-                const theme = getThemeFromTags(item.tags);
                 return (
                   <article
                     key={item.roomId}
                     className={styles.card}
                     data-card-id={item.roomId}
-                    style={{ backgroundColor: theme.bgColor, height: cardHeight }}
+                    style={{ backgroundColor: item.bgColor || '#F7F2EC', height: cardHeight }}
                   >
                     {/* 报纸顶部双线装饰 */}
                     <div className={styles.topRule} />
                     <div className={styles.topRuleThin} />
 
                     <div className={styles.cardBody}>
-                      {/* pill 标签：背景/文字色跟随主题 accentColor */}
+                      {/* pill 标签 */}
                       {item.tags && item.tags.length > 0 && (
                         <span
                           className={styles.pill}
-                          style={{ background: theme.accentColor + '1a', color: theme.accentColor }}
+                          style={item.accentColor ? { background: item.accentColor + '1a', color: item.accentColor } : undefined}
                         >
                           {item.tags[0]}
                         </span>
                       )}
 
-                      {/* 报纸来源（颜色跟随主题）*/}
+                      {/* 报纸来源 */}
                       {source && (
-                        <div className={styles.source} style={{ color: theme.accentColor }}>
+                        <div className={styles.source} style={{ color: item.accentColor || '#C41E1E' }}>
                           {source}
                         </div>
                       )}
@@ -408,7 +383,7 @@ function FeedPage() {
                       {/* 标题上方粗线 */}
                       <div className={styles.headlineRule} />
 
-                      {/* 大标题（衬线体）：分行渲染，字号由 useEffect 自适应 */}
+                      {/* 大标题：分行渲染，字号由 useEffect 自适应 */}
                       <h1
                         className={styles.headline}
                         ref={el => { headlineRefs.current[item.roomId] = el; }}
@@ -418,64 +393,46 @@ function FeedPage() {
                         ))}
                       </h1>
 
-                      {/* 标题下方细线 */}
-                      <div className={styles.contentRule} />
+                      {/* 评论区：flex:1 自适应填满标题和按钮之间的空间 */}
+                      <div className={styles.statementsSection}>
+                        <div className={styles.statementsHeader}>
+                          <span className={styles.statementsLabel}>Statements</span>
+                          <span className={styles.statementsLine} />
+                        </div>
 
-                      {/* 角色对话白卡片 */}
-                      <div className={styles.commentsCard}>
-                        <div className={styles.commentsLabel}>当事人回应 / Statements</div>
-                        <div className={styles.commentsList}>
-                          {/* NPC A */}
-                          <div className={styles.commentItem}>
-                            <div
-                              className={styles.commentAvatar}
-                              style={{ background: NPC_A_COLOR }}
-                            >
-                              {item.npcAName[0]}
-                            </div>
-                            <div className={styles.commentContent}>
-                              <span
-                                className={styles.commentName}
-                                style={{ color: NPC_A_COLOR }}
-                              >
-                                {item.npcAName}
-                              </span>
-                              <p className={styles.commentTextEn}>{item.npcAReactionEn || item.npcAReaction}</p>
-                              <p className={styles.commentTextZh}>{item.npcAReaction}</p>
-                            </div>
+                        {/* NPC A 引用 */}
+                        <div className={styles.quoteBlock} style={{ '--quote-color': item.accentColor || '#C41E1E' }}>
+                          <div className={styles.quoteName} style={{ color: item.accentColor || '#C41E1E' }}>
+                            {item.npcAName}
                           </div>
-                          {/* NPC B */}
-                          <div className={styles.commentItem}>
-                            <div
-                              className={styles.commentAvatar}
-                              style={{ background: NPC_B_COLOR }}
-                            >
-                              {item.npcBName[0]}
-                            </div>
-                            <div className={styles.commentContent}>
-                              <span
-                                className={styles.commentName}
-                                style={{ color: NPC_B_COLOR }}
-                              >
-                                {item.npcBName}
-                              </span>
-                              <p className={styles.commentTextEn}>{item.npcBReactionEn || item.npcBReaction}</p>
-                              <p className={styles.commentTextZh}>{item.npcBReaction}</p>
-                            </div>
+                          <div className={styles.quoteEn}>{item.npcAReactionEn || item.npcAReaction}</div>
+                          <div className={styles.quoteZh}>{item.npcAReaction}</div>
+                        </div>
+
+                        {/* 引用分隔线 */}
+                        <div className={styles.quoteSeparator} />
+
+                        {/* NPC B 引用 */}
+                        <div className={styles.quoteBlock} style={{ '--quote-color': item.accentDark || '#1A1A1A' }}>
+                          <div className={styles.quoteName} style={{ color: item.accentDark || '#1A1A1A' }}>
+                            {item.npcBName}
                           </div>
+                          <div className={styles.quoteEn}>{item.npcBReactionEn || item.npcBReaction}</div>
+                          <div className={styles.quoteZh}>{item.npcBReaction}</div>
+                        </div>
+
+                        {/* 时间和围观数 */}
+                        <div className={styles.meta}>
+                          <span>{formatCount(item.likes || 0)}人围观</span>
+                          <span className={styles.metaDot} />
+                          <span>{formatCount(item.commentCount || 0)}条评论</span>
                         </div>
                       </div>
 
-                      {/* 时间和围观数 */}
-                      <div className={styles.meta}>
-                        <span>{formatCount(item.likes || 0)}人围观</span>
-                        <span className={styles.metaDot} />
-                        <span>{formatCount(item.commentCount || 0)}条评论</span>
-                      </div>
-
-                      {/* 加入讨论按钮 */}
+                      {/* 加入讨论按钮：背景色用 accentDark */}
                       <button
                         className={styles.joinButton}
+                        style={{ backgroundColor: item.accentDark || '#1A1A1A' }}
                         onClick={() => handleJoinChat(item.roomId)}
                       >
                         Join Chat
@@ -483,17 +440,7 @@ function FeedPage() {
 
                       {/* 上划提示 */}
                       <div className={styles.swipeHint}>
-                        <svg
-                          width="12"
-                          height="12"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          aria-hidden="true"
-                        >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                           <polyline points="18 15 12 9 6 15" />
                         </svg>
                         上划看下一条
@@ -502,13 +449,15 @@ function FeedPage() {
                   </article>
                 );
               })}
+              {/* 末尾"生成中"卡片 */}
+              <FeedEndCard height={cardHeight} expressionCount={0} />
             </div>
           </div>
 
           {/* 右侧圆点指示器 */}
-          {filteredFeed.length > 1 && (
+          {filteredFeed.length > 0 && (
             <div className={styles.dotIndicator}>
-              {filteredFeed.map((_, i) => (
+              {Array.from({ length: filteredFeed.length + 1 }, (_, i) => (
                 <span
                   key={i}
                   className={`${styles.dot} ${cardIndex === i ? styles.dotActive : ''}`}

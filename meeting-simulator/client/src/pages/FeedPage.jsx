@@ -14,29 +14,30 @@ function formatCount(n) {
 
 // 从 "【东海商报】东海三太子..." 解析出报纸来源和标题
 function parseNewsTitle(title) {
-  const match = title.match(/【(.+?)】(.+)/);
+  const match = title.match(/【(.+?)】([\s\S]+)/);
   if (match) return { source: match[1], headline: match[2] };
   return { source: '', headline: title };
 }
 
-// tag → 报纸来源色映射
-const SOURCE_COLORS = {
-  '西游记': '#C41E1E',
-  '漫威':   '#1A56DB',
-  '迪士尼': '#7C3AED',
-  '哈利波特': '#B45309',
-  '指环王': '#1A56DB',
-  '三国':   '#C41E1E',
-  '宫斗':   '#9B2C5E',
-  '综艺':   '#B45309',
+// tag → 主题色映射表（按改动说明 6 套主题）
+const TAG_THEMES = {
+  '西游记':   { bgColor: '#F7F2EC', headerBg: '#F0EBE4', headerText: '#3A2E22', accentColor: '#C41E1E' },
+  '三国':     { bgColor: '#F7F2EC', headerBg: '#F0EBE4', headerText: '#3A2E22', accentColor: '#C41E1E' },
+  '哈利波特': { bgColor: '#FFF7ED', headerBg: '#FEF3C7', headerText: '#78350F', accentColor: '#92400E' },
+  '综艺':     { bgColor: '#FFF7ED', headerBg: '#FEF3C7', headerText: '#78350F', accentColor: '#92400E' },
+  '迪士尼':   { bgColor: '#F5F3FF', headerBg: '#EDE9FE', headerText: '#3B0764', accentColor: '#6D28D9' },
+  '指环王':   { bgColor: '#ECFDF5', headerBg: '#D1FAE5', headerText: '#064E3B', accentColor: '#047857' },
+  '宫斗':     { bgColor: '#FFF1F2', headerBg: '#FFE4E6', headerText: '#4C0519', accentColor: '#BE123C' },
 };
+const DEFAULT_THEME = { bgColor: '#F7F2EC', headerBg: '#F0EBE4', headerText: '#3A2E22', accentColor: '#C41E1E' };
 
-function getSourceColor(tags) {
-  if (!tags || tags.length === 0) return '#C41E1E';
+// 按 tags 列表查表，命中第一个有映射的 tag
+function getThemeFromTags(tags) {
+  if (!tags || tags.length === 0) return DEFAULT_THEME;
   for (const tag of tags) {
-    if (SOURCE_COLORS[tag]) return SOURCE_COLORS[tag];
+    if (TAG_THEMES[tag]) return TAG_THEMES[tag];
   }
-  return '#C41E1E';
+  return DEFAULT_THEME;
 }
 
 // NPC 固定颜色：A 紫色系，B 青绿系
@@ -62,6 +63,9 @@ function FeedPage() {
 
   // DmBanner 相关状态
   const [bannerData, setBannerData] = useState(null); // { npcName, message, messageZh } | null
+
+  // 标题 DOM ref 池：用于字号自适应
+  const headlineRefs = useRef({});
 
   // 拖拽起始 Y 坐标
   const startYRef = useRef(0);
@@ -102,6 +106,36 @@ function FeedPage() {
   const completedIds = state.completedRoomIds || [];
   const rawFeed = feeds;
   const filteredFeed = rawFeed.filter(item => !completedIds.includes(item.roomId));
+
+  // 标题字号自适应：找最长行，缩放到刚好填满容器宽度
+  useEffect(() => {
+    filteredFeed.forEach(item => {
+      const { headline } = parseNewsTitle(item.newsTitle);
+      if (!headline.includes('\n')) return; // 无分行则不处理
+      const el = headlineRefs.current[item.roomId];
+      if (!el) return;
+      const lines = el.querySelectorAll('.' + styles.headlineLine);
+      const containerW = el.offsetWidth;
+      if (containerW <= 0 || lines.length === 0) return;
+
+      const maxFs = 32;
+      const minFs = 16;
+
+      // 先用最大字号量出每行自然宽度
+      lines.forEach(l => { l.style.fontSize = maxFs + 'px'; });
+
+      // 找到最长行
+      let longest = 0;
+      lines.forEach(l => { if (l.scrollWidth > longest) longest = l.scrollWidth; });
+
+      // 统一缩放到最长行刚好 = 容器宽度
+      let fs = maxFs;
+      if (longest > containerW) {
+        fs = Math.max(minFs, Math.floor(maxFs * (containerW / longest)));
+      }
+      lines.forEach(l => { l.style.fontSize = fs + 'px'; });
+    });
+  }, [filteredFeed]);
 
   // 兜底：如果全部做完（过滤后为空但原始列表非空），清空已完成列表让所有房间重新出现
   useEffect(() => {
@@ -243,11 +277,21 @@ function FeedPage() {
     setBannerData(null);
   };
 
+  // 当前卡片 + 对应主题色（用于 header 跟随色系）
+  const currentCard = filteredFeed.length > 0 ? filteredFeed[cardIndex] : null;
+  const currentTheme = currentCard ? getThemeFromTags(currentCard.tags) : DEFAULT_THEME;
+
   return (
     <div className={styles.container}>
-      {/* 顶部 Header */}
-      <header className={styles.feedHeader}>
-        <span className={styles.feedHeaderTitle}>每日胡说</span>
+      {/* 顶部 Header：背景和文字色跟随当前卡片色系 */}
+      <header
+        className={styles.feedHeader}
+        style={{
+          backgroundColor: currentTheme.headerBg,
+          color: currentTheme.headerText,
+        }}
+      >
+        <span className={styles.feedHeaderTitle} style={{ color: currentTheme.headerText }}>每日胡说</span>
         <div
           className={styles.feedHeaderAvatar}
           onClick={() => navigate('/profile')}
@@ -331,27 +375,32 @@ function FeedPage() {
             >
               {filteredFeed.map((item) => {
                 const { source, headline } = parseNewsTitle(item.newsTitle);
-                const sourceColor = getSourceColor(item.tags);
+                const theme = getThemeFromTags(item.tags);
                 return (
                   <article
                     key={item.roomId}
                     className={styles.card}
                     data-card-id={item.roomId}
-                    style={{ backgroundColor: item.bgColor || '#F7F2EC', height: cardHeight }}
+                    style={{ backgroundColor: theme.bgColor, height: cardHeight }}
                   >
                     {/* 报纸顶部双线装饰 */}
                     <div className={styles.topRule} />
                     <div className={styles.topRuleThin} />
 
                     <div className={styles.cardBody}>
-                      {/* pill 标签：显示第一个 tag */}
+                      {/* pill 标签：背景/文字色跟随主题 accentColor */}
                       {item.tags && item.tags.length > 0 && (
-                        <span className={styles.pill}>{item.tags[0]}</span>
+                        <span
+                          className={styles.pill}
+                          style={{ background: theme.accentColor + '1a', color: theme.accentColor }}
+                        >
+                          {item.tags[0]}
+                        </span>
                       )}
 
-                      {/* 报纸来源（按 tag 匹配颜色）*/}
+                      {/* 报纸来源（颜色跟随主题）*/}
                       {source && (
-                        <div className={styles.source} style={{ color: sourceColor }}>
+                        <div className={styles.source} style={{ color: theme.accentColor }}>
                           {source}
                         </div>
                       )}
@@ -359,8 +408,15 @@ function FeedPage() {
                       {/* 标题上方粗线 */}
                       <div className={styles.headlineRule} />
 
-                      {/* 大标题（衬线体）*/}
-                      <h1 className={styles.headline}>{headline}</h1>
+                      {/* 大标题（衬线体）：分行渲染，字号由 useEffect 自适应 */}
+                      <h1
+                        className={styles.headline}
+                        ref={el => { headlineRefs.current[item.roomId] = el; }}
+                      >
+                        {headline.split('\n').map((line, i) => (
+                          <span key={i} className={styles.headlineLine}>{line}</span>
+                        ))}
+                      </h1>
 
                       {/* 标题下方细线 */}
                       <div className={styles.contentRule} />

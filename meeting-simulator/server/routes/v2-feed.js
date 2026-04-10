@@ -44,6 +44,9 @@ router.get('/', (req, res) => {
         r.tags,
         r.difficulty,
         r.bg_color,
+        r.header_bg,
+        r.header_text,
+        r.accent_color,
         r.likes,
         r.comment_count
       FROM v2_feed_items fi
@@ -68,6 +71,9 @@ router.get('/', (req, res) => {
       tags: row.tags ? JSON.parse(row.tags) : [],
       difficulty: row.difficulty,
       bgColor: row.bg_color || '#F7F2EC',
+      headerBg: row.header_bg || null,
+      headerText: row.header_text || null,
+      accentColor: row.accent_color || null,
       likes: row.likes || 0,
       commentCount: row.comment_count || 0,
     }));
@@ -120,6 +126,9 @@ router.get('/:roomId', (req, res) => {
       tags: row.tags ? JSON.parse(row.tags) : [],
       difficulty: row.difficulty,
       bgColor: row.bg_color || '#F7F2EC',
+      headerBg: row.header_bg || null,
+      headerText: row.header_text || null,
+      accentColor: row.accent_color || null,
       likes: row.likes || 0,
       commentCount: row.comment_count || 0,
     });

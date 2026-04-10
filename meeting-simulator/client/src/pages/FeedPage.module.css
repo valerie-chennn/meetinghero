@@ -28,6 +28,7 @@
   padding: calc(var(--status-bar-h) + 14px) 20px 10px;
   flex-shrink: 0;
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  transition: background-color 0.3s, color 0.3s;
 }
 
 .feedHeaderTitle {
@@ -141,17 +142,21 @@
   margin-bottom: clamp(12px, 1.8vh, 18px);
 }
 
-/* ===== 大标题（衬线体）===== */
+/* ===== 大标题（衬线体）字号由 JS 自适应控制，CSS 只负责布局 ===== */
 .headline {
   font-family: var(--font-serif);
-  /* 流体化：SE 22px / 14 28.4px / Max 32px（clamp 到 max） */
-  font-size: clamp(22px, 5vh, 32px);
   font-weight: 900;
-  line-height: 1.3;
+  line-height: 1.35;
   color: #1A1A1A;
   letter-spacing: 0.5px;
-  /* 流体化：SE 14px / 14 18.6px / Max 22px */
   margin: 0 0 clamp(14px, 2.2vh, 22px);
+  overflow: hidden;
+}
+
+/* 每行作为独立 block，white-space: nowrap 方便测量自然宽度 */
+.headlineLine {
+  display: block;
+  white-space: nowrap;
 }
 
 /* ===== 标题下方细线 ===== */

@@ -292,6 +292,10 @@ function initSchema() {
     `ALTER TABLE v2_rooms ADD COLUMN likes INTEGER DEFAULT 0`,
     `ALTER TABLE v2_rooms ADD COLUMN comment_count INTEGER DEFAULT 0`,
     `ALTER TABLE v2_rooms ADD COLUMN user_role_name_en TEXT`,  // 用户角色英文名（A2 级别短语）
+    `ALTER TABLE v2_rooms ADD COLUMN header_bg TEXT`,          // Feed 卡片头部背景色
+    `ALTER TABLE v2_rooms ADD COLUMN header_text TEXT`,        // Feed 卡片头部文字色
+    `ALTER TABLE v2_rooms ADD COLUMN accent_color TEXT`,       // Feed 卡片强调色
+    `ALTER TABLE v2_rooms ADD COLUMN accent_dark TEXT`,        // 按钮背景 + 第二个 NPC 颜色
   ];
   v2RoomsCols.forEach(sql => { try { db.exec(sql); } catch (e) {} });
 

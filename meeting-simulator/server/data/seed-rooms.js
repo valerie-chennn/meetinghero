@@ -9,13 +9,15 @@
  * - options[0].example 严格 A2 级别，最多 1-2 句，每句不超过 8 词
  */
 
+const { NEW_SEED_ROOMS } = require('./new-seed-rooms-006-020');
+
 const SEED_ROOMS = [
   // ──────────────────────────────────────────────
   // 房间 1：西游记 × 职场 — 东海三太子闲鱼挂牌
   // ──────────────────────────────────────────────
   {
     id: 'room-001',
-    news_title: '【东海商报】白龙马挂闲鱼标价两万，卖家疑为队友',
+    news_title: '【东海商报】白龙马挂闲鱼标价两万\n卖家疑为队友',
     npc_a_name: '八戒',
     npc_a_reaction: '这马吃多干少，不卖留着干啥',
     npc_b_name: '白龙马',
@@ -64,6 +66,10 @@ const SEED_ROOMS = [
       { type: 'npc', speaker: 'npc_a', text: "Anyway, I'm hungry. Let's eat first.", textZh: '算了，我饿了。先吃饭吧。' },
     ]),
     bg_color: '#F7F2EC',
+    header_bg: '#F0EBE4',
+    header_text: '#3A2E22',
+    accent_color: '#C41E1E',
+    accent_dark: '#1A1A1A',
     likes: 2300,
     comment_count: 128,
     settlement_template: JSON.stringify({
@@ -98,7 +104,7 @@ const SEED_ROOMS = [
   // ──────────────────────────────────────────────
   {
     id: 'room-002',
-    news_title: '【复联内部周报】灭霸入职首日提交裁员方案，饼状图获CEO好评',
+    news_title: '【复联内部周报】灭霸入职首日提交裁员方案\n饼状图获CEO好评',
     npc_a_name: '钢铁侠',
     npc_a_reaction: '数学上成立，但我不支持这么做',
     npc_b_name: '甄嬛',
@@ -146,7 +152,11 @@ const SEED_ROOMS = [
       ]},
       { type: 'npc', speaker: 'npc_a', text: "Meeting over. I need coffee. Strong coffee.", textZh: '散会。我需要咖啡。浓的。' },
     ]),
-    bg_color: '#ECF0F7',
+    bg_color: '#FFF1F2',
+    header_bg: '#FFE4E6',
+    header_text: '#4C0519',
+    accent_color: '#BE123C',
+    accent_dark: '#881337',
     likes: 4100,
     comment_count: 267,
     settlement_template: JSON.stringify({
@@ -181,7 +191,7 @@ const SEED_ROOMS = [
   // ──────────────────────────────────────────────
   {
     id: 'room-003',
-    news_title: '【中土娱乐周刊】年会舞台被不明力量冻住，诸葛亮当场无语',
+    news_title: '【中土娱乐周刊】年会舞台被不明力量冻住\n诸葛亮当场无语',
     npc_a_name: '诸葛亮',
     npc_a_reaction: '昨夜星象无异兆，此冻乃天意也',
     npc_b_name: 'Elsa',
@@ -229,7 +239,11 @@ const SEED_ROOMS = [
       ]},
       { type: 'npc', speaker: 'npc_a', text: "Next year, I check the playlist myself.", textZh: '明年，歌单我自己审。' },
     ]),
-    bg_color: '#F7F4EC',
+    bg_color: '#F5F3FF',
+    header_bg: '#EDE9FE',
+    header_text: '#3B0764',
+    accent_color: '#6D28D9',
+    accent_dark: '#3B0764',
     likes: 1800,
     comment_count: 95,
     settlement_template: JSON.stringify({
@@ -264,7 +278,7 @@ const SEED_ROOMS = [
   // ──────────────────────────────────────────────
   {
     id: 'room-004',
-    news_title: '【魔法日报】AI一秒分完院，分院帽失业，邓布利多：它分得更准',
+    news_title: '【魔法日报】AI一秒分完院\n分院帽失业\n邓布利多：它分得更准',
     npc_a_name: '赫敏',
     npc_a_reaction: '准确率97%是真的，但不代表该用',
     npc_b_name: '马尔福',
@@ -312,7 +326,11 @@ const SEED_ROOMS = [
       ]},
       { type: 'npc', speaker: 'npc_a', text: "Noted. I'll update the report tonight.", textZh: '记下了。今晚我更新报告。' },
     ]),
-    bg_color: '#ECF3F7',
+    bg_color: '#FFF7ED',
+    header_bg: '#FEF3C7',
+    header_text: '#78350F',
+    accent_color: '#92400E',
+    accent_dark: '#78350F',
     likes: 3200,
     comment_count: 186,
     settlement_template: JSON.stringify({
@@ -347,7 +365,7 @@ const SEED_ROOMS = [
   // ──────────────────────────────────────────────
   {
     id: 'room-005',
-    news_title: '【中土娱乐快报】"中土好声音"决赛，甘道夫转椅直接飞出舞台',
+    news_title: '【中土娱乐快报】"中土好声音"决赛\n甘道夫转椅直接飞出舞台',
     npc_a_name: '甘道夫',
     npc_a_reaction: '转椅可以解释，是魔法干扰',
     npc_b_name: '咕噜',
@@ -395,7 +413,11 @@ const SEED_ROOMS = [
       ]},
       { type: 'npc', speaker: 'npc_a', text: "Fine. But this stays off my Wikipedia page.", textZh: '行。但这事不许上我的维基百科。' },
     ]),
-    bg_color: '#F5ECF7',
+    bg_color: '#ECFDF5',
+    header_bg: '#D1FAE5',
+    header_text: '#064E3B',
+    accent_color: '#047857',
+    accent_dark: '#064E3B',
     likes: 5600,
     comment_count: 342,
     settlement_template: JSON.stringify({
@@ -440,10 +462,10 @@ function seedRooms(db) {
       group_name, group_notice,
       user_role_name, user_role_name_en, user_role_desc, npc_profiles, dialogue_script,
       settlement_template, tags, difficulty, is_active, sort_order,
-      bg_color, likes, comment_count
+      bg_color, header_bg, header_text, accent_color, accent_dark, likes, comment_count
     ) VALUES (
       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?,
-      ?, ?, ?
+      ?, ?, ?, ?, ?, ?, ?
     )
   `);
 
@@ -454,7 +476,9 @@ function seedRooms(db) {
 
   let insertedCount = 0;
 
-  for (const room of SEED_ROOMS) {
+  const ALL_ROOMS = [...SEED_ROOMS, ...NEW_SEED_ROOMS];
+
+  for (const room of ALL_ROOMS) {
     const result = insertRoom.run(
       room.id,
       room.news_title,
@@ -477,6 +501,9 @@ function seedRooms(db) {
       room.difficulty || 'A2',
       room.sort_order || 0,
       room.bg_color || '#F7F2EC',
+      room.header_bg || null,
+      room.header_text || null,
+      room.accent_color || null,
       room.likes || 0,
       room.comment_count || 0
     );
@@ -497,15 +524,16 @@ function seedRooms(db) {
   // 更新已有房间的代码版本字段（INSERT OR IGNORE 不会更新已存在的记录）
   // 注意：likes/comment_count 是运营数据，只在值为 0 时初始化，不覆盖已有值
   const updateCodeFields = db.prepare(`
-    UPDATE v2_rooms SET bg_color = ?, settlement_template = ?, dialogue_script = ?, user_role_name_en = ?
+    UPDATE v2_rooms SET news_title = ?, bg_color = ?, settlement_template = ?, dialogue_script = ?, user_role_name_en = ?,
+      header_bg = ?, header_text = ?, accent_color = ?
     WHERE id = ?
   `);
   const initRunningData = db.prepare(`
     UPDATE v2_rooms SET likes = ?, comment_count = ?
     WHERE id = ? AND likes = 0 AND comment_count = 0
   `);
-  for (const room of SEED_ROOMS) {
-    updateCodeFields.run(room.bg_color || '#F7F2EC', room.settlement_template, room.dialogue_script, room.user_role_name_en || null, room.id);
+  for (const room of ALL_ROOMS) {
+    updateCodeFields.run(room.news_title, room.bg_color || '#F7F2EC', room.settlement_template, room.dialogue_script, room.user_role_name_en || null, room.header_bg || null, room.header_text || null, room.accent_color || null, room.id);
     initRunningData.run(room.likes || 0, room.comment_count || 0, room.id);
   }
 }

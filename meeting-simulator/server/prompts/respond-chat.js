@@ -97,12 +97,21 @@ ${otherNpcNote || '（仅你一人）'}
 - 如果这是第 ${turnIndex}/3 次用户发言，${turnIndex < 3 ? '可以顺带问一个简单问题让对话延续' : '用一句轻松的话收尾，不用问问题'}
 - 不要每次都以问题结尾，有时单纯回应就好
 
+### 情绪标注
+在 emotion 字段标注这条回复的情绪状态：
+- happy：高兴、得意、庆祝
+- angry：生气、不满、反驳
+- sad：委屈、失望、无奈
+- neutral：平静、陈述
+根据角色性格和对话情境选择最贴切的情绪。
+
 ## 输出格式
 必须返回严格的 JSON，不添加任何额外内容：
 {
   "speaker": "${respondingNpc.id}",
   "text": "英文回复内容",
-  "textZh": "中文翻译"
+  "textZh": "中文翻译",
+  "emotion": "angry"
 }`;
 
   const userPrompt = `## 对话上下文（最近几条）

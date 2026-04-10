@@ -23,6 +23,7 @@ const SEED_ROOMS = [
     group_name: '取经项目推进群（已解散待定）',
     group_notice: '取经任务结项，各成员请处理个人物品，白龙马问题请联系HR',
     user_role_name: '外部审计顾问',
+    user_role_name_en: 'Outside Auditor',
     user_role_desc: '你是天庭派来做项目复盘的审计员，刚被拉进群，不太清楚来龙去脉。',
     npc_profiles: JSON.stringify([
       {
@@ -41,10 +42,9 @@ const SEED_ROOMS = [
       },
     ]),
     dialogue_script: JSON.stringify([
-      { type: 'system', text: '你被拉入群聊「取经项目推进群（已解散待定）」' },
       // 核心冲突：卖白龙马 vs 不卖白龙马
       // 八戒立场：应该卖，项目结束了留着没用
-      { type: 'npc', speaker: 'npc_a', text: "Project is over. We should sell the horse. He costs money every day.", textZh: '项目结束了。我们应该卖马。它每天都要花钱。' },
+      { type: 'npc', speaker: 'npc_a', text: "@{username}, perfect timing! They listed this horse for 20k — help me sell him!", textZh: '@{username}，你来得正好！他们把这马挂了两万——帮我卖了它！' },
       // 白龙马直接反驳：凭什么卖，我干了所有活
       { type: 'npc', speaker: 'npc_b', text: "I carried bags for fourteen years. You want to SELL me for that?", textZh: '我驮了十四年行李。你要因为这个把我卖掉？' },
       // 八戒接住白龙马"十四年"这个点，@用户站队
@@ -142,6 +142,7 @@ const SEED_ROOMS = [
     group_name: '复联×后宫战略资源整合委员会',
     group_notice: '本群禁止使用无限手套，违者取消午膳资格',
     user_role_name: '新入职HR专员',
+    user_role_name_en: 'New HR Hire',
     user_role_desc: '你是今天刚入职的HR，负责给灭霸做入职培训，没想到第一天就摊上了这件事。',
     npc_profiles: JSON.stringify([
       {
@@ -160,10 +161,9 @@ const SEED_ROOMS = [
       },
     ]),
     dialogue_script: JSON.stringify([
-      { type: 'system', text: '你被拉入群聊「复联×后宫战略资源整合委员会」' },
       // 核心冲突：灭霸的裁员方案该不该执行
       // 钢铁侠立场：方案数学上成立，可以考虑
-      { type: 'npc', speaker: 'npc_a', text: "Thanos's plan cuts fifty percent of costs. The math works. We should at least look at it.", textZh: '灭霸的方案削减了百分之五十的成本。数学上成立。我们至少应该看一看。' },
+      { type: 'npc', speaker: 'npc_a', text: "@{username}, you're HR — Thanos filed a restructuring plan. Help me tell her it's real!", textZh: '@{username}，你是HR——灭霸提交了裁员方案。帮我告诉她这是认真的！' },
       // 甄嬛直接反驳：数学成立不代表该执行
       { type: 'npc', speaker: 'npc_b', text: "Math is not the point. You cannot cut people like a pie chart. This plan is wrong.", textZh: '数学不是重点。人不能像饼状图一样切。这个方案不对。' },
       // 钢铁侠接住"不对"，反驳：那你拿出更好的方案，@用户站队
@@ -261,6 +261,7 @@ const SEED_ROOMS = [
     group_name: '联合年会应急处理群',
     group_notice: '请Elsa同学不要再冻东西了，甘道夫的法杖还在冰里',
     user_role_name: '活动执行助理',
+    user_role_name_en: 'Event Assistant',
     user_role_desc: '你是这次年会的执行助理，刚刚亲眼目睹舞台被冻住，现在需要向两位大佬汇报情况。',
     npc_profiles: JSON.stringify([
       {
@@ -279,10 +280,9 @@ const SEED_ROOMS = [
       },
     ]),
     dialogue_script: JSON.stringify([
-      { type: 'system', text: '你被拉入群聊「联合年会应急处理群」' },
       // 核心冲突：冰雕事故的责任归属 — Elsa说是外部触发，诸葛亮说Elsa没有控制
       // 诸葛亮立场：Elsa应该为事故负责
-      { type: 'npc', speaker: 'npc_a', text: "Stage frozen. Mic frozen. Speaker chairs frozen. Elsa, this is your responsibility.", textZh: '舞台冻住了。麦克风冻住了。嘉宾椅子冻住了。Elsa，这是你的责任。' },
+      { type: 'npc', speaker: 'npc_a', text: "@{username}, good — the stage got frozen mid-show. Tell me who is responsible here!", textZh: '@{username}，来得正好——舞台在演出中途被冻住了。帮我判断一下谁该负责！' },
       // Elsa直接反驳：不是我的错，有人放了触发音乐
       { type: 'npc', speaker: 'npc_b', text: "Someone played 'Let It Go' without warning me. That triggered it. Not my fault.", textZh: '有人没提前告诉我就放了"随它吧"。那触发了我。不是我的错。' },
       // 诸葛亮接住"触发"论据，反驳：你本应该能控制，@用户站队
@@ -380,6 +380,7 @@ const SEED_ROOMS = [
     group_name: '霍格沃茨数字化转型工作组',
     group_notice: 'AI系统正在学习中，请勿对它施咒，上次有人试了，它现在只会说拉丁语',
     user_role_name: '技术顾问实习生',
+    user_role_name_en: 'Tech Intern',
     user_role_desc: '你是麻瓜科技公司派来的技术顾问实习生，负责协助AI系统落地，第一天就碰上了分院帽失业风波。',
     npc_profiles: JSON.stringify([
       {
@@ -398,10 +399,9 @@ const SEED_ROOMS = [
       },
     ]),
     dialogue_script: JSON.stringify([
-      { type: 'system', text: '你被拉入群聊「霍格沃茨数字化转型工作组」' },
       // 核心冲突：AI分院系统该不该用
       // 赫敏立场：数据准确，应该用
-      { type: 'npc', speaker: 'npc_a', text: "The AI sorted 847 students in three seconds with 97% accuracy. We should use it.", textZh: 'AI三秒内分配了847名学生，准确率97%。我们应该用。' },
+      { type: 'npc', speaker: 'npc_a', text: "@{username}, you're the tech consultant — the AI sorting system went live. Was it the right call?", textZh: '@{username}，你是技术顾问——AI分院系统上线了。这个决定对吗？' },
       // 马尔福直接反驳：我就是那3%，结果是错的
       { type: 'npc', speaker: 'npc_b', text: "I am the three percent. The result is wrong. You cannot call that a success.", textZh: '我就是那3%。结果是错的。你不能说那是成功。' },
       // 赫敏接住马尔福，反驳"3%就否定全部"，@用户站队
@@ -499,6 +499,7 @@ const SEED_ROOMS = [
     group_name: '中土好声音决赛后台紧急群',
     group_notice: '请所有选手和导师保持冷静，禁止在后台使用魔法道具，甘道夫你的椅子已经修好了',
     user_role_name: '节目组现场记者',
+    user_role_name_en: 'On-Site Reporter',
     user_role_desc: '你是节目组派来的现场记者，全程目击了转椅脱轨事故，现在需要采访当事人了解情况。',
     npc_profiles: JSON.stringify([
       {
@@ -517,10 +518,9 @@ const SEED_ROOMS = [
       },
     ]),
     dialogue_script: JSON.stringify([
-      { type: 'system', text: '你被拉入群聊「中土好声音决赛后台紧急群」' },
       // 核心冲突：转椅事故是魔法干扰还是操作失误
       // 甘道夫立场：是魔法场干扰，不是我的问题
-      { type: 'npc', speaker: 'npc_a', text: "The chair moved on its own. A magical field in the venue caused it. Not my fault.", textZh: '椅子自己转出去的。场馆里有魔法场干扰。不是我的问题。' },
+      { type: 'npc', speaker: 'npc_a', text: "@{username}, you saw it — the chair flew out by itself! Back me up here!", textZh: '@{username}，你亲眼看见了——椅子自己飞出去的！帮我说一句！' },
       // 咕噜直接反驳：我们都看到你抓了法杖
       { type: 'npc', speaker: 'npc_b', text: "Everyone saw your staff glow. The magic came FROM you. Not the venue.", textZh: '所有人都看见你的法杖发光了。魔法是从你那里来的。不是场馆。' },
       // 甘道夫接住"法杖发光"，解释是反应动作，@用户站队
@@ -618,11 +618,11 @@ function seedRooms(db) {
       npc_b_name, npc_b_reaction,
       news_title_en, npc_a_reaction_en, npc_b_reaction_en,
       group_name, group_notice,
-      user_role_name, user_role_desc, npc_profiles, dialogue_script,
+      user_role_name, user_role_name_en, user_role_desc, npc_profiles, dialogue_script,
       settlement_template, tags, difficulty, is_active, sort_order,
       bg_color, likes, comment_count
     ) VALUES (
-      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?,
+      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?,
       ?, ?, ?
     )
   `);
@@ -648,6 +648,7 @@ function seedRooms(db) {
       room.group_name,
       room.group_notice || null,
       room.user_role_name,
+      room.user_role_name_en || null,
       room.user_role_desc || null,
       room.npc_profiles,
       room.dialogue_script,
@@ -676,7 +677,7 @@ function seedRooms(db) {
   // 更新已有房间的代码版本字段（INSERT OR IGNORE 不会更新已存在的记录）
   // 注意：likes/comment_count 是运营数据，只在值为 0 时初始化，不覆盖已有值
   const updateCodeFields = db.prepare(`
-    UPDATE v2_rooms SET bg_color = ?, settlement_template = ?, dialogue_script = ?
+    UPDATE v2_rooms SET bg_color = ?, settlement_template = ?, dialogue_script = ?, user_role_name_en = ?
     WHERE id = ?
   `);
   const initRunningData = db.prepare(`
@@ -684,7 +685,7 @@ function seedRooms(db) {
     WHERE id = ? AND likes = 0 AND comment_count = 0
   `);
   for (const room of SEED_ROOMS) {
-    updateCodeFields.run(room.bg_color || '#F7F2EC', room.settlement_template, room.dialogue_script, room.id);
+    updateCodeFields.run(room.bg_color || '#F7F2EC', room.settlement_template, room.dialogue_script, room.user_role_name_en || null, room.id);
     initRunningData.run(room.likes || 0, room.comment_count || 0, room.id);
   }
 }

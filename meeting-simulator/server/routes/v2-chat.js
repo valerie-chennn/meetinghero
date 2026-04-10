@@ -99,6 +99,7 @@ router.post('/join', (req, res) => {
       groupName: room.group_name,
       groupNotice: room.group_notice || null,
       userRoleName: room.user_role_name,
+      userRoleNameEn: room.user_role_name_en || null,
       userRoleDesc: room.user_role_desc || null,
       npcProfiles: JSON.parse(room.npc_profiles),
       dialogueScript: JSON.parse(room.dialogue_script),
@@ -267,6 +268,7 @@ router.post('/respond', async (req, res) => {
         speaker: replyData.speaker || respondingNpc.id,
         text: replyData.text || '',
         textZh: replyData.textZh || '',
+        emotion: replyData.emotion || 'neutral',
         voiceId: respondingNpc.voiceId || '',
       };
     } else {
@@ -276,6 +278,7 @@ router.post('/respond', async (req, res) => {
         speaker: respondingNpc.id,
         text: 'Interesting point!',
         textZh: '有意思的观点！',
+        emotion: 'neutral',
         voiceId: respondingNpc.voiceId || '',
       };
     }

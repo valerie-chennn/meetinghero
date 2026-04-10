@@ -291,6 +291,7 @@ function initSchema() {
     `ALTER TABLE v2_rooms ADD COLUMN bg_color TEXT DEFAULT '#1a1028'`,
     `ALTER TABLE v2_rooms ADD COLUMN likes INTEGER DEFAULT 0`,
     `ALTER TABLE v2_rooms ADD COLUMN comment_count INTEGER DEFAULT 0`,
+    `ALTER TABLE v2_rooms ADD COLUMN user_role_name_en TEXT`,  // 用户角色英文名（A2 级别短语）
   ];
   v2RoomsCols.forEach(sql => { try { db.exec(sql); } catch (e) {} });
 

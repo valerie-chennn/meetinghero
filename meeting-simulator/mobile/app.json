@@ -15,13 +15,13 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.meetinghero.app.dev",
+      "bundleIdentifier": "com.visionflow.meetinghero.dev",
       "infoPlist": {
         "NSMicrophoneUsageDescription": "MeetingHero needs microphone access so you can practice speaking in chat."
       }
     },
     "android": {
-      "package": "com.meetinghero.app.dev",
+      "package": "com.visionflow.meetinghero.dev",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"

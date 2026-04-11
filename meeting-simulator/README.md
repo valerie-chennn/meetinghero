@@ -64,8 +64,8 @@ npm test
 
 - App name: `MeetingHero`
 - URL scheme: `meetinghero`
-- iOS bundle id: `com.meetinghero.app.dev`
-- Android package: `com.meetinghero.app.dev`
+- iOS bundle id: `com.visionflow.meetinghero.dev`
+- Android package: `com.visionflow.meetinghero.dev`
 - iPad / tablet 支持: 已开启
 - 麦克风权限文案: 已配置
 

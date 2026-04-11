@@ -1,332 +1,395 @@
 /**
- * 数据库初始化模块
- * 使用 better-sqlite3 初始化 SQLite 数据库并创建所需表结构
+ * MySQL 数据库初始化模块
+ * 负责连接池、建库建表、增量补列，以及统一查询辅助方法
  */
 
-const Database = require('better-sqlite3');
-const path = require('path');
-const fs = require('fs');
+const mysql = require('mysql2/promise');
+const { seedRooms } = require('./data/seed-rooms');
 
-// 确保 data 目录存在
-const defaultDataDir = path.join(__dirname, 'data');
-const DB_PATH = process.env.DB_PATH || path.join(defaultDataDir, 'meeting-simulator.db');
-const dataDir = path.dirname(DB_PATH);
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
+const MYSQL_HOST = process.env.MYSQL_HOST || '127.0.0.1';
+const MYSQL_PORT = parseInt(process.env.MYSQL_PORT || '3306', 10);
+const MYSQL_USER = process.env.MYSQL_USER || 'root';
+const MYSQL_PASSWORD = process.env.MYSQL_PASSWORD || '';
+const MYSQL_DATABASE = process.env.MYSQL_DATABASE || 'meetinghero';
+const MYSQL_CONNECTION_LIMIT = parseInt(process.env.MYSQL_CONNECTION_LIMIT || '10', 10);
+
+let pool = null;
+let initPromise = null;
+
+function quoteIdentifier(identifier) {
+  return `\`${String(identifier).replace(/`/g, '``')}\``;
 }
 
-// 初始化数据库连接
-const db = new Database(DB_PATH);
-
-// 开启 WAL 模式提升并发性能
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
-
-/**
- * 检查 sessions 表中 job_title 列是否有 NOT NULL 约束
- * 通过 PRAGMA table_info 查询列定义
- * @returns {boolean} true 表示需要迁移
- */
-function needsMigration() {
-  try {
-    const columns = db.pragma('table_info(sessions)');
-    const jobTitleCol = columns.find(col => col.name === 'job_title');
-    // notnull=1 说明有 NOT NULL 约束，需要迁移
-    return jobTitleCol && jobTitleCol.notnull === 1;
-  } catch (e) {
-    // 表不存在时不需要迁移
-    return false;
-  }
+function getBaseConnectionConfig() {
+  return {
+    host: MYSQL_HOST,
+    port: MYSQL_PORT,
+    user: MYSQL_USER,
+    password: MYSQL_PASSWORD,
+    charset: 'utf8mb4',
+  };
 }
 
-/**
- * 迁移 sessions 表：将 job_title 和 industry 从 NOT NULL 改为可空
- * SQLite 不支持 ALTER COLUMN，采用建新表→迁移数据→重命名的方式
- * 整个迁移包裹在事务中，失败时自动回滚
- */
-function migrateSessionsTable() {
-  console.log('[DB] 检测到 sessions 表需要迁移（job_title/industry NOT NULL → 可空）...');
-
-  // 迁移前备份数据库文件
-  const backupPath = DB_PATH + '.backup.' + Date.now();
-  try {
-    fs.copyFileSync(DB_PATH, backupPath);
-    console.log(`[DB] 已备份数据库到：${backupPath}`);
-  } catch (e) {
-    console.warn('[DB] 备份失败（可能是新数据库），继续迁移：', e.message);
-  }
-
-  // SQLite PRAGMA 必须在事务外执行，先关闭外键约束
-  db.pragma('foreign_keys = OFF');
-
-  // 使用事务确保迁移操作的原子性
-  const migrate = db.transaction(() => {
-    // 1. 创建新表（job_title 和 industry 改为可空）
-    db.exec(`
-      CREATE TABLE sessions_new (
-        id TEXT PRIMARY KEY,
-        english_level TEXT NOT NULL,
-        job_title TEXT DEFAULT NULL,
-        industry TEXT DEFAULT NULL,
-        user_name TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    // 2. 迁移旧数据
-    db.exec(`
-      INSERT INTO sessions_new (id, english_level, job_title, industry, user_name, created_at)
-      SELECT id, english_level, job_title, industry, user_name, created_at
-      FROM sessions
-    `);
-
-    // 3. 删除旧表
-    db.exec('DROP TABLE sessions');
-
-    // 4. 重命名新表
-    db.exec('ALTER TABLE sessions_new RENAME TO sessions');
-
-    console.log('[DB] sessions 表迁移成功');
-  });
+async function createDatabaseIfNeeded() {
+  const connection = await mysql.createConnection(getBaseConnectionConfig());
 
   try {
-    migrate();
-  } catch (e) {
-    console.error('[DB] sessions 表迁移失败，已回滚：', e.message);
-    throw e;
+    await connection.query(
+      `CREATE DATABASE IF NOT EXISTS ${quoteIdentifier(MYSQL_DATABASE)} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`
+    );
   } finally {
-    // 迁移完成后恢复外键约束
-    db.pragma('foreign_keys = ON');
+    await connection.end();
   }
 }
 
-/**
- * 初始化数据库表结构
- * 如果表已存在则跳过（IF NOT EXISTS）
- */
-function initSchema() {
-  // 如果 sessions 表已存在且有 NOT NULL 约束，先迁移
-  if (needsMigration()) {
-    migrateSessionsTable();
+function getPool() {
+  if (!pool) {
+    pool = mysql.createPool({
+      ...getBaseConnectionConfig(),
+      database: MYSQL_DATABASE,
+      waitForConnections: true,
+      connectionLimit: MYSQL_CONNECTION_LIMIT,
+      queueLimit: 0,
+      timezone: 'Z',
+    });
   }
 
-  // 用户会话表：存储 onboarding 信息（job_title 和 industry 为可选）
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS sessions (
-      id TEXT PRIMARY KEY,
-      english_level TEXT NOT NULL,
-      job_title TEXT DEFAULT NULL,
-      industry TEXT DEFAULT NULL,
-      user_name TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
+  return pool;
+}
 
-  // 会议表：存储完整会议数据（JSON 序列化存储）
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS meetings (
-      id TEXT PRIMARY KEY,
-      session_id TEXT NOT NULL,
-      source TEXT DEFAULT 'system',
-      briefing TEXT,
-      memo TEXT,
-      roles TEXT,
-      dialogue TEXT,
-      key_nodes TEXT,
-      ref_phrases TEXT,
-      status TEXT DEFAULT 'created',
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (session_id) REFERENCES sessions(id)
-    )
-  `);
+async function rawQueryAll(sql, params = [], connection = null) {
+  const executor = connection || getPool();
+  const [rows] = await executor.query(sql, params);
+  return rows;
+}
 
-  // 为 meetings 表添加 user_role 列（如果不存在）
+async function rawQueryOne(sql, params = [], connection = null) {
+  const rows = await rawQueryAll(sql, params, connection);
+  return rows[0] || null;
+}
+
+async function rawExecute(sql, params = [], connection = null) {
+  const executor = connection || getPool();
+  const [result] = await executor.execute(sql, params);
+
+  return {
+    insertId: result.insertId,
+    affectedRows: result.affectedRows,
+    changedRows: result.changedRows,
+    warningStatus: result.warningStatus,
+  };
+}
+
+async function queryAll(sql, params = [], connection = null) {
+  await init();
+  return rawQueryAll(sql, params, connection);
+}
+
+async function queryOne(sql, params = [], connection = null) {
+  await init();
+  return rawQueryOne(sql, params, connection);
+}
+
+async function execute(sql, params = [], connection = null) {
+  await init();
+  return rawExecute(sql, params, connection);
+}
+
+async function transaction(work) {
+  await init();
+  const connection = await getPool().getConnection();
+
+  const tx = {
+    queryAll(sql, params = []) {
+      return rawQueryAll(sql, params, connection);
+    },
+    queryOne(sql, params = []) {
+      return rawQueryOne(sql, params, connection);
+    },
+    execute(sql, params = []) {
+      return rawExecute(sql, params, connection);
+    },
+  };
+
   try {
-    db.exec(`ALTER TABLE meetings ADD COLUMN user_role TEXT`);
-  } catch (e) {
-    // 列已存在则忽略
+    await connection.beginTransaction();
+    const result = await work(tx);
+    await connection.commit();
+    return result;
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
+async function ensureColumnExists(tableName, columnName, definitionSql) {
+  const existing = await rawQueryOne(
+    `
+      SELECT COLUMN_NAME
+      FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ?
+    `,
+    [MYSQL_DATABASE, tableName, columnName]
+  );
+
+  if (!existing) {
+    await rawQueryAll(`ALTER TABLE ${quoteIdentifier(tableName)} ADD COLUMN ${definitionSql}`);
+  }
+}
+
+async function ensureIndexExists(tableName, indexName, createSql) {
+  const existing = await rawQueryOne(
+    `
+      SELECT INDEX_NAME
+      FROM information_schema.STATISTICS
+      WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND INDEX_NAME = ?
+    `,
+    [MYSQL_DATABASE, tableName, indexName]
+  );
+
+  if (!existing) {
+    await rawQueryAll(createSql);
+  }
+}
+
+async function ensureSchema() {
+  await rawQueryAll(`
+    CREATE TABLE IF NOT EXISTS sessions (
+      id VARCHAR(191) PRIMARY KEY,
+      english_level VARCHAR(64) NOT NULL,
+      job_title VARCHAR(255) DEFAULT NULL,
+      industry VARCHAR(255) DEFAULT NULL,
+      user_name VARCHAR(255) DEFAULT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  await rawQueryAll(`
+    CREATE TABLE IF NOT EXISTS meetings (
+      id VARCHAR(191) PRIMARY KEY,
+      session_id VARCHAR(191) NOT NULL,
+      source VARCHAR(64) DEFAULT 'system',
+      briefing LONGTEXT,
+      memo LONGTEXT,
+      roles LONGTEXT,
+      dialogue LONGTEXT,
+      key_nodes LONGTEXT,
+      ref_phrases LONGTEXT,
+      status VARCHAR(64) DEFAULT 'created',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT fk_meetings_session FOREIGN KEY (session_id) REFERENCES sessions(id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  await ensureColumnExists('meetings', 'user_role', 'user_role TEXT');
+  await ensureColumnExists('meetings', 'scene_type', "scene_type VARCHAR(64) DEFAULT 'formal'");
+  await ensureColumnExists('meetings', 'brainstorm_world', 'brainstorm_world LONGTEXT');
+  await ensureColumnExists('meetings', 'brainstorm_characters', 'brainstorm_characters LONGTEXT');
+
+  await rawQueryAll(`
+    CREATE TABLE IF NOT EXISTS conversations (
+      id BIGINT AUTO_INCREMENT PRIMARY KEY,
+      meeting_id VARCHAR(191) NOT NULL,
+      node_index INT,
+      user_input LONGTEXT,
+      input_language VARCHAR(64),
+      system_english LONGTEXT,
+      system_response LONGTEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT fk_conversations_meeting FOREIGN KEY (meeting_id) REFERENCES meetings(id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  await rawQueryAll(`
+    CREATE TABLE IF NOT EXISTS reviews (
+      id VARCHAR(191) PRIMARY KEY,
+      meeting_id VARCHAR(191) NOT NULL,
+      achievement LONGTEXT,
+      improvement LONGTEXT,
+      nodes LONGTEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT fk_reviews_meeting FOREIGN KEY (meeting_id) REFERENCES meetings(id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  await rawQueryAll(`
+    CREATE TABLE IF NOT EXISTS v2_users (
+      id VARCHAR(191) PRIMARY KEY,
+      nickname VARCHAR(255) DEFAULT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  await rawQueryAll(`
+    CREATE TABLE IF NOT EXISTS v2_rooms (
+      id VARCHAR(191) PRIMARY KEY,
+      news_title TEXT NOT NULL,
+      npc_a_name VARCHAR(255) NOT NULL,
+      npc_a_reaction TEXT NOT NULL,
+      npc_b_name VARCHAR(255) NOT NULL,
+      npc_b_reaction TEXT NOT NULL,
+      news_title_en TEXT,
+      npc_a_reaction_en TEXT,
+      npc_b_reaction_en TEXT,
+      group_name VARCHAR(255) NOT NULL,
+      group_notice TEXT,
+      user_role_name VARCHAR(255) NOT NULL,
+      user_role_desc TEXT,
+      npc_profiles LONGTEXT NOT NULL,
+      dialogue_script LONGTEXT NOT NULL,
+      settlement_template LONGTEXT NOT NULL,
+      tags LONGTEXT,
+      difficulty VARCHAR(32) DEFAULT 'A2',
+      is_active TINYINT(1) DEFAULT 1,
+      sort_order INT DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  await ensureColumnExists('v2_rooms', 'bg_color', "bg_color VARCHAR(32) DEFAULT '#1a1028'");
+  await ensureColumnExists('v2_rooms', 'likes', 'likes INT DEFAULT 0');
+  await ensureColumnExists('v2_rooms', 'comment_count', 'comment_count INT DEFAULT 0');
+  await ensureColumnExists('v2_rooms', 'user_role_name_en', 'user_role_name_en VARCHAR(255)');
+
+  await rawQueryAll(`
+    CREATE TABLE IF NOT EXISTS v2_feed_items (
+      id VARCHAR(191) PRIMARY KEY,
+      room_id VARCHAR(191) NOT NULL,
+      sort_order INT DEFAULT 0,
+      is_visible TINYINT(1) DEFAULT 1,
+      UNIQUE KEY uk_v2_feed_items_room_id (room_id),
+      CONSTRAINT fk_v2_feed_items_room FOREIGN KEY (room_id) REFERENCES v2_rooms(id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  await rawQueryAll(`
+    CREATE TABLE IF NOT EXISTS v2_chat_sessions (
+      id VARCHAR(191) PRIMARY KEY,
+      user_id VARCHAR(191) NOT NULL,
+      room_id VARCHAR(191) NOT NULL,
+      status VARCHAR(64) DEFAULT 'active',
+      user_turn_count INT DEFAULT 0,
+      npc_turn_count INT DEFAULT 0,
+      dm_sent_count INT DEFAULT 0,
+      started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      completed_at DATETIME DEFAULT NULL,
+      CONSTRAINT fk_v2_chat_sessions_user FOREIGN KEY (user_id) REFERENCES v2_users(id),
+      CONSTRAINT fk_v2_chat_sessions_room FOREIGN KEY (room_id) REFERENCES v2_rooms(id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  await ensureColumnExists('v2_chat_sessions', 'absurd_attributes', 'absurd_attributes LONGTEXT');
+  await ensureColumnExists('v2_chat_sessions', 'settlement_newsletter', 'settlement_newsletter LONGTEXT');
+
+  await rawQueryAll(`
+    CREATE TABLE IF NOT EXISTS v2_user_messages (
+      id BIGINT AUTO_INCREMENT PRIMARY KEY,
+      chat_session_id VARCHAR(191) NOT NULL,
+      turn_index INT NOT NULL,
+      user_input LONGTEXT NOT NULL,
+      better_version LONGTEXT,
+      context_note LONGTEXT,
+      npc_reply LONGTEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT fk_v2_user_messages_session FOREIGN KEY (chat_session_id) REFERENCES v2_chat_sessions(id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  await rawQueryAll(`
+    CREATE TABLE IF NOT EXISTS v2_expression_cards (
+      id BIGINT AUTO_INCREMENT PRIMARY KEY,
+      user_id VARCHAR(191) NOT NULL,
+      chat_session_id VARCHAR(191) NOT NULL,
+      turn_index INT NOT NULL,
+      user_said LONGTEXT NOT NULL,
+      better_version LONGTEXT NOT NULL,
+      context_note LONGTEXT,
+      is_saved TINYINT(1) DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT fk_v2_expression_cards_user FOREIGN KEY (user_id) REFERENCES v2_users(id),
+      CONSTRAINT fk_v2_expression_cards_session FOREIGN KEY (chat_session_id) REFERENCES v2_chat_sessions(id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  await ensureColumnExists('v2_expression_cards', 'is_practiced', 'is_practiced TINYINT(1) DEFAULT 0');
+  await ensureColumnExists('v2_expression_cards', 'feedback_type', 'feedback_type VARCHAR(255)');
+  await ensureColumnExists('v2_expression_cards', 'highlighted_phrases', 'highlighted_phrases LONGTEXT');
+  await ensureColumnExists('v2_expression_cards', 'explanation', 'explanation LONGTEXT');
+  await ensureColumnExists('v2_expression_cards', 'is_featured', 'is_featured TINYINT(1) DEFAULT 0');
+  await ensureColumnExists('v2_expression_cards', 'intent_analysis', 'intent_analysis LONGTEXT');
+  await ensureColumnExists('v2_expression_cards', 'learning_type', 'learning_type VARCHAR(64)');
+  await ensureColumnExists('v2_expression_cards', 'pattern', 'pattern LONGTEXT');
+  await ensureColumnExists('v2_expression_cards', 'collocations_json', 'collocations_json LONGTEXT');
+
+  await ensureIndexExists(
+    'v2_chat_sessions',
+    'idx_v2_chat_sessions_user',
+    'CREATE INDEX idx_v2_chat_sessions_user ON v2_chat_sessions(user_id)'
+  );
+  await ensureIndexExists(
+    'v2_chat_sessions',
+    'idx_v2_chat_sessions_room',
+    'CREATE INDEX idx_v2_chat_sessions_room ON v2_chat_sessions(room_id)'
+  );
+  await ensureIndexExists(
+    'v2_expression_cards',
+    'idx_v2_expression_cards_user',
+    'CREATE INDEX idx_v2_expression_cards_user ON v2_expression_cards(user_id, is_saved)'
+  );
+
+  await seedRooms({
+    execute: rawExecute,
+  });
+}
+
+async function init() {
+  if (initPromise) {
+    return initPromise;
   }
 
-  // 为 meetings 表添加脑洞模式相关列（如果不存在）
-  const meetingNewCols = [
-    `ALTER TABLE meetings ADD COLUMN scene_type TEXT DEFAULT 'formal'`,
-    `ALTER TABLE meetings ADD COLUMN brainstorm_world TEXT`,
-    `ALTER TABLE meetings ADD COLUMN brainstorm_characters TEXT`,
-  ];
-  meetingNewCols.forEach(sql => {
-    try {
-      db.exec(sql);
-    } catch (e) {
-      // 列已存在则忽略
+  initPromise = (async () => {
+    await createDatabaseIfNeeded();
+    getPool();
+    await ensureSchema();
+
+    console.log(
+      `MySQL 数据库初始化完成：${MYSQL_USER}@${MYSQL_HOST}:${MYSQL_PORT}/${MYSQL_DATABASE}`
+    );
+  })().catch((error) => {
+    initPromise = null;
+    if (pool) {
+      pool.end().catch(() => {});
+      pool = null;
     }
+    throw error;
   });
 
-  // 会话对话记录表：存储用户在关键节点的发言记录
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS conversations (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      meeting_id TEXT NOT NULL,
-      node_index INTEGER,
-      user_input TEXT,
-      input_language TEXT,
-      system_english TEXT,
-      system_response TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (meeting_id) REFERENCES meetings(id)
-    )
-  `);
-
-  // 复盘表：存储会后复盘内容
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS reviews (
-      id TEXT PRIMARY KEY,
-      meeting_id TEXT NOT NULL,
-      achievement TEXT,
-      improvement TEXT,
-      nodes TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (meeting_id) REFERENCES meetings(id)
-    )
-  `);
-
-  // ==================== v2 推流版新表 ====================
-
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS v2_users (
-      id TEXT PRIMARY KEY,
-      nickname TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS v2_rooms (
-      id TEXT PRIMARY KEY,
-      news_title TEXT NOT NULL,
-      npc_a_name TEXT NOT NULL,
-      npc_a_reaction TEXT NOT NULL,
-      npc_b_name TEXT NOT NULL,
-      npc_b_reaction TEXT NOT NULL,
-      news_title_en TEXT,          -- 新闻标题英文翻译
-      npc_a_reaction_en TEXT,      -- NPC A 反应英文翻译
-      npc_b_reaction_en TEXT,      -- NPC B 反应英文翻译
-      group_name TEXT NOT NULL,
-      group_notice TEXT,
-      user_role_name TEXT NOT NULL,
-      user_role_desc TEXT,
-      npc_profiles TEXT NOT NULL,
-      dialogue_script TEXT NOT NULL,
-      settlement_template TEXT NOT NULL,
-      tags TEXT,
-      difficulty TEXT DEFAULT 'A2',
-      is_active INTEGER DEFAULT 1,
-      sort_order INTEGER DEFAULT 0,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS v2_feed_items (
-      id TEXT PRIMARY KEY,
-      room_id TEXT NOT NULL UNIQUE,
-      sort_order INTEGER DEFAULT 0,
-      is_visible INTEGER DEFAULT 1,
-      FOREIGN KEY (room_id) REFERENCES v2_rooms(id)
-    )
-  `);
-
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS v2_chat_sessions (
-      id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL,
-      room_id TEXT NOT NULL,
-      status TEXT DEFAULT 'active',
-      user_turn_count INTEGER DEFAULT 0,
-      npc_turn_count INTEGER DEFAULT 0,
-      dm_sent_count INTEGER DEFAULT 0,
-      started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      completed_at DATETIME,
-      FOREIGN KEY (user_id) REFERENCES v2_users(id),
-      FOREIGN KEY (room_id) REFERENCES v2_rooms(id)
-    )
-  `);
-
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS v2_user_messages (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      chat_session_id TEXT NOT NULL,
-      turn_index INTEGER NOT NULL,
-      user_input TEXT NOT NULL,
-      better_version TEXT,
-      context_note TEXT,
-      npc_reply TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (chat_session_id) REFERENCES v2_chat_sessions(id)
-    )
-  `);
-
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS v2_expression_cards (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id TEXT NOT NULL,
-      chat_session_id TEXT NOT NULL,
-      turn_index INTEGER NOT NULL,
-      user_said TEXT NOT NULL,
-      better_version TEXT NOT NULL,
-      context_note TEXT,
-      is_saved INTEGER DEFAULT 0,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (user_id) REFERENCES v2_users(id),
-      FOREIGN KEY (chat_session_id) REFERENCES v2_chat_sessions(id)
-    )
-  `);
-
-  // v2 索引
-  try { db.exec(`CREATE INDEX IF NOT EXISTS idx_v2_chat_sessions_user ON v2_chat_sessions(user_id)`); } catch (e) {}
-  try { db.exec(`CREATE INDEX IF NOT EXISTS idx_v2_chat_sessions_room ON v2_chat_sessions(room_id)`); } catch (e) {}
-  try { db.exec(`CREATE INDEX IF NOT EXISTS idx_v2_expression_cards_user ON v2_expression_cards(user_id, is_saved)`); } catch (e) {}
-
-  // v2_rooms 补列：深色背景色、点赞数、评论数
-  const v2RoomsCols = [
-    `ALTER TABLE v2_rooms ADD COLUMN bg_color TEXT DEFAULT '#1a1028'`,
-    `ALTER TABLE v2_rooms ADD COLUMN likes INTEGER DEFAULT 0`,
-    `ALTER TABLE v2_rooms ADD COLUMN comment_count INTEGER DEFAULT 0`,
-    `ALTER TABLE v2_rooms ADD COLUMN user_role_name_en TEXT`,  // 用户角色英文名（A2 级别短语）
-  ];
-  v2RoomsCols.forEach(sql => { try { db.exec(sql); } catch (e) {} });
-
-  // v2_expression_cards 补列：是否已练习
-  try { db.exec(`ALTER TABLE v2_expression_cards ADD COLUMN is_practiced INTEGER DEFAULT 0`); } catch (e) {}
-
-  // v2_expression_cards 补列：结算页新字段（增量迁移，列已存在时静默忽略）
-  const expressionCardNewCols = [
-    `ALTER TABLE v2_expression_cards ADD COLUMN feedback_type TEXT`,          // 反馈类型："更地道的说法" / "进阶表达" / "同样好用的说法"
-    `ALTER TABLE v2_expression_cards ADD COLUMN highlighted_phrases TEXT`,    // 高亮短语 JSON 数组字符串
-    `ALTER TABLE v2_expression_cards ADD COLUMN explanation TEXT`,            // 针对高亮短语的详细解释
-    `ALTER TABLE v2_expression_cards ADD COLUMN is_featured INTEGER DEFAULT 0`, // AI 挑出的最有学习价值的一张（默认 0）
-  ];
-  expressionCardNewCols.forEach(sql => { try { db.exec(sql); } catch (e) {} });
-
-  // v2_chat_sessions 补列：荒诞属性 JSON
-  try { db.exec(`ALTER TABLE v2_chat_sessions ADD COLUMN absurd_attributes TEXT`); } catch (e) {}
-
-  // v2_chat_sessions 补列：AI 动态生成的结算新闻（JSON字符串）
-  try { db.exec(`ALTER TABLE v2_chat_sessions ADD COLUMN settlement_newsletter TEXT`); } catch (e) {}
-
-  // v2_expression_cards 补列：意图分析 + 学习类型 + 句型/搭配（增量迁移，列已存在时静默忽略）
-  try { db.exec(`ALTER TABLE v2_expression_cards ADD COLUMN intent_analysis TEXT`); } catch (e) {}
-  try { db.exec(`ALTER TABLE v2_expression_cards ADD COLUMN learning_type TEXT`); } catch (e) {}
-  try { db.exec(`ALTER TABLE v2_expression_cards ADD COLUMN pattern TEXT`); } catch (e) {}
-  try { db.exec(`ALTER TABLE v2_expression_cards ADD COLUMN collocations_json TEXT`); } catch (e) {}
-
-  // 插入种子数据
-  const { seedRooms } = require('./data/seed-rooms');
-  seedRooms(db);
-
-  console.log('数据库初始化完成，路径：', DB_PATH);
+  return initPromise;
 }
 
-// 执行 schema 初始化
-initSchema();
+async function close() {
+  if (pool) {
+    const closingPool = pool;
+    pool = null;
+    initPromise = null;
+    await closingPool.end();
+  }
+}
 
-module.exports = db;
+module.exports = {
+  init,
+  close,
+  queryAll,
+  queryOne,
+  execute,
+  transaction,
+  config: {
+    host: MYSQL_HOST,
+    port: MYSQL_PORT,
+    user: MYSQL_USER,
+    database: MYSQL_DATABASE,
+    connectionLimit: MYSQL_CONNECTION_LIMIT,
+  },
+};

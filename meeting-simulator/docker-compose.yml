@@ -1,4 +1,24 @@
 services:
+  mysql:
+    image: mysql:8.0
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-meetinghero}
+      MYSQL_USER: ${MYSQL_USER:-meetinghero}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-meetinghero}
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-root}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
   # Node.js API 服务
   api:
     build:
@@ -10,8 +30,15 @@ services:
       - NODE_ENV=production
       - PORT=3001
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-}
-    volumes:
-      - ./server/data:/app/server/data
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_USER=${MYSQL_USER:-meetinghero}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-meetinghero}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-meetinghero}
+      - MYSQL_CONNECTION_LIMIT=${MYSQL_CONNECTION_LIMIT:-10}
+    depends_on:
+      mysql:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/health', r => process.exit(r.statusCode === 200 ? 0 : 1))"]
@@ -32,3 +59,6 @@ services:
       api:
         condition: service_healthy
     restart: unless-stopped
+
+volumes:
+  mysql_data:

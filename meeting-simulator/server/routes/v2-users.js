@@ -13,7 +13,7 @@ const db = require('../db');
  * 入参: { userId, nickname? }
  * 出参: { userId, nickname, isNew }
  */
-router.post('/init', (req, res) => {
+router.post('/init', async (req, res) => {
   try {
     const { userId, nickname } = req.body;
 
@@ -23,18 +23,17 @@ router.post('/init', (req, res) => {
 
     const trimmedUserId = userId.trim();
 
-    // 查询用户是否已存在
-    const existing = db.prepare('SELECT * FROM v2_users WHERE id = ?').get(trimmedUserId);
+    const existing = await db.queryOne('SELECT * FROM v2_users WHERE id = ?', [trimmedUserId]);
 
     if (existing) {
-      // 用户已存在：如果传了 nickname 则更新，否则保留原值
       if (nickname !== undefined) {
-        db.prepare('UPDATE v2_users SET nickname = ? WHERE id = ?').run(
+        await db.execute('UPDATE v2_users SET nickname = ? WHERE id = ?', [
           nickname ? nickname.trim() : null,
-          trimmedUserId
-        );
+          trimmedUserId,
+        ]);
       }
-      const updated = db.prepare('SELECT * FROM v2_users WHERE id = ?').get(trimmedUserId);
+
+      const updated = await db.queryOne('SELECT * FROM v2_users WHERE id = ?', [trimmedUserId]);
       return res.status(200).json({
         userId: updated.id,
         nickname: updated.nickname,
@@ -42,11 +41,10 @@ router.post('/init', (req, res) => {
       });
     }
 
-    // 用户不存在：创建新记录
-    db.prepare('INSERT INTO v2_users (id, nickname) VALUES (?, ?)').run(
+    await db.execute('INSERT INTO v2_users (id, nickname) VALUES (?, ?)', [
       trimmedUserId,
-      nickname ? nickname.trim() : null
-    );
+      nickname ? nickname.trim() : null,
+    ]);
 
     return res.status(201).json({
       userId: trimmedUserId,
@@ -64,7 +62,7 @@ router.post('/init', (req, res) => {
  * 获取用户统计数据
  * 出参: { chatCount, messageCount, savedCount }
  */
-router.get('/:userId/stats', (req, res) => {
+router.get('/:userId/stats', async (req, res) => {
   try {
     const { userId } = req.params;
     if (!userId || !userId.trim()) {
@@ -72,27 +70,29 @@ router.get('/:userId/stats', (req, res) => {
     }
     const uid = userId.trim();
 
-    // 参与群聊数（已完成的会话）
-    const chatCount = db.prepare(
-      'SELECT COUNT(*) as count FROM v2_chat_sessions WHERE user_id = ? AND status = ?'
-    ).get(uid, 'completed')?.count || 0;
+    const chatCountRow = await db.queryOne(
+      'SELECT COUNT(*) AS count FROM v2_chat_sessions WHERE user_id = ? AND status = ?',
+      [uid, 'completed']
+    );
 
-    // 总发言次数
-    const messageCount = db.prepare(`
-      SELECT COUNT(*) as count FROM v2_user_messages um
-      JOIN v2_chat_sessions cs ON um.chat_session_id = cs.id
-      WHERE cs.user_id = ?
-    `).get(uid)?.count || 0;
+    const messageCountRow = await db.queryOne(
+      `
+        SELECT COUNT(*) AS count FROM v2_user_messages um
+        JOIN v2_chat_sessions cs ON um.chat_session_id = cs.id
+        WHERE cs.user_id = ?
+      `,
+      [uid]
+    );
 
-    // 表达收藏数
-    const savedCount = db.prepare(
-      'SELECT COUNT(*) as count FROM v2_expression_cards WHERE user_id = ? AND is_saved = 1'
-    ).get(uid)?.count || 0;
+    const savedCountRow = await db.queryOne(
+      'SELECT COUNT(*) AS count FROM v2_expression_cards WHERE user_id = ? AND is_saved = 1',
+      [uid]
+    );
 
     return res.status(200).json({
-      chatCount,
-      messageCount,
-      savedCount,
+      chatCount: chatCountRow?.count || 0,
+      messageCount: messageCountRow?.count || 0,
+      savedCount: savedCountRow?.count || 0,
     });
   } catch (err) {
     console.error('[v2-users/stats] 错误：', err.message);

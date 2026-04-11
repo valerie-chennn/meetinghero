@@ -9,8 +9,7 @@ require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const express = require('express');
 const cors = require('cors');
 
-// 初始化数据库（触发 schema 创建）
-require('./db');
+const db = require('./db');
 
 // 导入路由
 const speechRouter = require('./routes/speech');
@@ -87,6 +86,7 @@ function createApp() {
       status: 'ok',
       timestamp: new Date().toISOString(),
       env: {
+        mysql: !!(process.env.MYSQL_HOST && process.env.MYSQL_USER && process.env.MYSQL_DATABASE),
         azureOpenAI: !!(process.env.AZURE_OPENAI_ENDPOINT && process.env.AZURE_OPENAI_API_KEY),
         azureSpeech: !!(process.env.AZURE_SPEECH_KEY && process.env.AZURE_SPEECH_REGION),
       },
@@ -111,12 +111,15 @@ function createApp() {
   return app;
 }
 
-function startServer(port = PORT) {
+async function startServer(port = PORT) {
+  await db.init();
   const app = createApp();
+
   return app.listen(port, () => {
     console.log('\nMeetingHero API 服务已启动');
     console.log(`监听端口：${port}`);
     console.log(`健康检查：http://localhost:${port}/health`);
+    console.log(`MySQL：${db.config.user}@${db.config.host}:${db.config.port}/${db.config.database}`);
     console.log(`Azure OpenAI：${process.env.AZURE_OPENAI_ENDPOINT ? '已配置' : '未配置'}`);
     console.log(`Azure Speech：${process.env.AZURE_SPEECH_KEY ? '已配置' : '未配置'}`);
     console.log(`CORS 白名单：${getAllowedOrigins().join(', ') || '未配置'}\n`);
@@ -124,7 +127,10 @@ function startServer(port = PORT) {
 }
 
 if (require.main === module) {
-  startServer();
+  startServer().catch((error) => {
+    console.error('[启动失败]', error.message);
+    process.exit(1);
+  });
 }
 
 module.exports = {

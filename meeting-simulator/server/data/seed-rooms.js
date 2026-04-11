@@ -1,7 +1,7 @@
 /**
  * v2 推流版种子房间数据
  * 首次启动时自动插入 5 个预制房间
- * 使用 INSERT OR IGNORE 避免重复插入
+ * 使用 INSERT IGNORE 避免重复插入
  *
  * NPC 消息写作规则：
  * - 每条最多 2 句短句，接住上一条，一条只说一个点
@@ -429,11 +429,14 @@ const SEED_ROOMS = [
 /**
  * 将种子房间数据插入数据库
  * 同时在 v2_feed_items 中创建对应的展示记录
- * @param {import('better-sqlite3').Database} db
+ * @param {{ execute(sql: string, params?: any[]): Promise<{affectedRows: number}> }} db
  */
-function seedRooms(db) {
-  const insertRoom = db.prepare(`
-    INSERT OR IGNORE INTO v2_rooms (
+async function seedRooms(db) {
+  let insertedCount = 0;
+
+  for (const room of SEED_ROOMS) {
+    const result = await db.execute(`
+    INSERT IGNORE INTO v2_rooms (
       id, news_title, npc_a_name, npc_a_reaction,
       npc_b_name, npc_b_reaction,
       news_title_en, npc_a_reaction_en, npc_b_reaction_en,
@@ -445,17 +448,7 @@ function seedRooms(db) {
       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?,
       ?, ?, ?
     )
-  `);
-
-  const insertFeedItem = db.prepare(`
-    INSERT OR IGNORE INTO v2_feed_items (id, room_id, sort_order, is_visible)
-    VALUES (?, ?, ?, 1)
-  `);
-
-  let insertedCount = 0;
-
-  for (const room of SEED_ROOMS) {
-    const result = insertRoom.run(
+  `, [
       room.id,
       room.news_title,
       room.npc_a_name,
@@ -479,11 +472,14 @@ function seedRooms(db) {
       room.bg_color || '#F7F2EC',
       room.likes || 0,
       room.comment_count || 0
-    );
+    ]);
 
-    if (result.changes > 0) {
+    if (result.affectedRows > 0) {
       // 同时插入 feed_items 记录（feed item id = "fi-" + room id）
-      insertFeedItem.run(`fi-${room.id}`, room.id, room.sort_order || 0);
+      await db.execute(`
+        INSERT IGNORE INTO v2_feed_items (id, room_id, sort_order, is_visible)
+        VALUES (?, ?, ?, 1)
+      `, [`fi-${room.id}`, room.id, room.sort_order || 0]);
       insertedCount++;
     }
   }
@@ -494,19 +490,26 @@ function seedRooms(db) {
     console.log('[Seed] 种子房间已存在，跳过插入');
   }
 
-  // 更新已有房间的代码版本字段（INSERT OR IGNORE 不会更新已存在的记录）
+  // 更新已有房间的代码版本字段（INSERT IGNORE 不会更新已存在的记录）
   // 注意：likes/comment_count 是运营数据，只在值为 0 时初始化，不覆盖已有值
-  const updateCodeFields = db.prepare(`
-    UPDATE v2_rooms SET bg_color = ?, settlement_template = ?, dialogue_script = ?, user_role_name_en = ?
-    WHERE id = ?
-  `);
-  const initRunningData = db.prepare(`
-    UPDATE v2_rooms SET likes = ?, comment_count = ?
-    WHERE id = ? AND likes = 0 AND comment_count = 0
-  `);
   for (const room of SEED_ROOMS) {
-    updateCodeFields.run(room.bg_color || '#F7F2EC', room.settlement_template, room.dialogue_script, room.user_role_name_en || null, room.id);
-    initRunningData.run(room.likes || 0, room.comment_count || 0, room.id);
+    await db.execute(`
+      UPDATE v2_rooms
+      SET bg_color = ?, settlement_template = ?, dialogue_script = ?, user_role_name_en = ?
+      WHERE id = ?
+    `, [
+      room.bg_color || '#F7F2EC',
+      room.settlement_template,
+      room.dialogue_script,
+      room.user_role_name_en || null,
+      room.id,
+    ]);
+
+    await db.execute(`
+      UPDATE v2_rooms
+      SET likes = ?, comment_count = ?
+      WHERE id = ? AND likes = 0 AND comment_count = 0
+    `, [room.likes || 0, room.comment_count || 0, room.id]);
   }
 }
 

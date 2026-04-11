@@ -13,29 +13,27 @@ const { betterVersionPrompt } = require('../prompts/better-version');
 const { generateHintPrompt } = require('../prompts/generate-hint');
 const { generateSettlementPrompt } = require('../prompts/generate-settlement');
 
-/**
- * 统计英文词数
- * 将文本按空白切分，保留含至少一个英文字母的 token
- * @param {string} text - 待统计文本（可以是英文/中文混合）
- * @returns {number} 英文词数
- */
 function countEnglishWords(text) {
   if (!text || typeof text !== 'string') return 0;
   const tokens = text.trim().split(/\s+/);
-  return tokens.filter(token => /[a-zA-Z]/.test(token)).length;
+  return tokens.filter((token) => /[a-zA-Z]/.test(token)).length;
 }
 
-/**
- * 格式化秒数为 m:ss 格式
- * @param {number} sec - 秒数（非负整数）
- * @returns {string} 如 "3:42"、"0:00"
- */
 function formatDuration(sec) {
   const s = Math.max(0, Math.floor(sec));
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
-// NPC 私信 Banner 硬编码文案（避免 AI 调用延迟）
+function safeJsonParse(value, fallback) {
+  if (!value) return fallback;
+
+  try {
+    return JSON.parse(value);
+  } catch (error) {
+    return fallback;
+  }
+}
+
 const DM_BANNERS = [
   {
     message: "Hey! You did great back there. I honestly wasn't expecting you to have that take.",
@@ -59,13 +57,7 @@ const DM_BANNERS = [
   },
 ];
 
-/**
- * POST /api/v2/chat/join
- * 加入群聊，创建新会话并返回完整对话脚本
- * 入参: { userId, roomId }
- * 出参: { chatSessionId, groupName, groupNotice, userRoleName, userRoleDesc, npcProfiles, dialogueScript, totalUserTurns }
- */
-router.post('/join', (req, res) => {
+router.post('/join', async (req, res) => {
   try {
     const { userId, roomId } = req.body;
 
@@ -76,21 +68,27 @@ router.post('/join', (req, res) => {
       return res.status(400).json({ error: 'roomId 不能为空' });
     }
 
-    // 查询房间是否存在且激活
-    const room = db.prepare('SELECT * FROM v2_rooms WHERE id = ? AND is_active = 1').get(roomId.trim());
+    const trimmedUserId = userId.trim();
+    const trimmedRoomId = roomId.trim();
+
+    const room = await db.queryOne(
+      'SELECT * FROM v2_rooms WHERE id = ? AND is_active = 1',
+      [trimmedRoomId]
+    );
     if (!room) {
       return res.status(404).json({ error: '房间不存在或已下线' });
     }
 
-    // 确保用户存在（自动创建，避免外键约束失败）
-    db.prepare('INSERT OR IGNORE INTO v2_users (id) VALUES (?)').run(userId.trim());
+    await db.execute('INSERT IGNORE INTO v2_users (id) VALUES (?)', [trimmedUserId]);
 
-    // 创建新会话（每次 join 都创建新会话，允许重复进入同一房间）
     const chatSessionId = randomUUID();
-    db.prepare(`
-      INSERT INTO v2_chat_sessions (id, user_id, room_id, status, user_turn_count, npc_turn_count, dm_sent_count)
-      VALUES (?, ?, ?, 'active', 0, 0, 0)
-    `).run(chatSessionId, userId.trim(), roomId.trim());
+    await db.execute(
+      `
+        INSERT INTO v2_chat_sessions (id, user_id, room_id, status, user_turn_count, npc_turn_count, dm_sent_count)
+        VALUES (?, ?, ?, 'active', 0, 0, 0)
+      `,
+      [chatSessionId, trimmedUserId, trimmedRoomId]
+    );
 
     console.log(`[v2-chat/join] 用户 ${userId} 加入房间 ${roomId}，会话 ${chatSessionId}`);
 
@@ -101,8 +99,8 @@ router.post('/join', (req, res) => {
       userRoleName: room.user_role_name,
       userRoleNameEn: room.user_role_name_en || null,
       userRoleDesc: room.user_role_desc || null,
-      npcProfiles: JSON.parse(room.npc_profiles),
-      dialogueScript: JSON.parse(room.dialogue_script),
+      npcProfiles: safeJsonParse(room.npc_profiles, []),
+      dialogueScript: safeJsonParse(room.dialogue_script, []),
       totalUserTurns: 3,
     });
   } catch (err) {
@@ -111,33 +109,29 @@ router.post('/join', (req, res) => {
   }
 });
 
-/**
- * POST /api/v2/chat/respond
- * 处理用户发言，同步生成 NPC 回复和"更好说法"
- * 入参: { chatSessionId, turnIndex, userInput }
- * 出参: { messageId, npcReply, betterVersion, isLastTurn }
- */
 router.post('/respond', async (req, res) => {
   try {
     const { chatSessionId, turnIndex, userInput } = req.body;
 
-    // 参数校验
     if (!chatSessionId || !chatSessionId.trim()) {
       return res.status(400).json({ error: 'chatSessionId 不能为空' });
     }
     if (turnIndex === undefined || turnIndex === null) {
       return res.status(400).json({ error: 'turnIndex 不能为空' });
     }
-    const turnNum = parseInt(turnIndex);
-    if (isNaN(turnNum) || turnNum < 1 || turnNum > 3) {
+
+    const turnNum = parseInt(turnIndex, 10);
+    if (Number.isNaN(turnNum) || turnNum < 1 || turnNum > 3) {
       return res.status(409).json({ error: 'turnIndex 必须为 1、2 或 3' });
     }
     if (!userInput || !userInput.trim()) {
       return res.status(400).json({ error: 'userInput 不能为空' });
     }
 
-    // 查询会话是否存在且激活
-    const session = db.prepare('SELECT * FROM v2_chat_sessions WHERE id = ?').get(chatSessionId.trim());
+    const trimmedSessionId = chatSessionId.trim();
+    const trimmedUserInput = userInput.trim();
+
+    const session = await db.queryOne('SELECT * FROM v2_chat_sessions WHERE id = ?', [trimmedSessionId]);
     if (!session) {
       return res.status(404).json({ error: '会话不存在' });
     }
@@ -147,45 +141,43 @@ router.post('/respond', async (req, res) => {
     if (session.user_turn_count >= 3) {
       return res.status(409).json({ error: '已达到最大发言次数（3次）' });
     }
-    // 乱序发言保护：turnIndex 必须等于当前次数 +1
     if (turnNum !== session.user_turn_count + 1) {
-      return res.status(409).json({ error: `发言顺序错误，期望 turnIndex=${session.user_turn_count + 1}，收到 ${turnNum}` });
+      return res.status(409).json({
+        error: `发言顺序错误，期望 turnIndex=${session.user_turn_count + 1}，收到 ${turnNum}`,
+      });
     }
 
-    // 查询房间数据
-    const room = db.prepare('SELECT * FROM v2_rooms WHERE id = ?').get(session.room_id);
+    const room = await db.queryOne('SELECT * FROM v2_rooms WHERE id = ?', [session.room_id]);
     if (!room) {
       return res.status(404).json({ error: '房间数据异常' });
     }
 
-    const npcProfiles = JSON.parse(room.npc_profiles);
-    const dialogueScript = JSON.parse(room.dialogue_script);
-
-    // 确定回复的 NPC：轮流（奇数轮 npc_a，偶数轮 npc_b）
+    const npcProfiles = safeJsonParse(room.npc_profiles, []);
+    const dialogueScript = safeJsonParse(room.dialogue_script, []);
     const respondingNpcIndex = (turnNum - 1) % npcProfiles.length;
     const respondingNpc = npcProfiles[respondingNpcIndex];
 
-    // 构建对话上下文：预制脚本 + 用户之前的发言和 NPC 回复
     const scriptContext = dialogueScript
-      .filter(t => t.type !== 'user_cue')
+      .filter((turn) => turn.type !== 'user_cue')
       .slice(0, turnNum * 4)
-      .map(t => ({ type: t.type, speaker: t.speaker, text: t.text }));
+      .map((turn) => ({ type: turn.type, speaker: turn.speaker, text: turn.text }));
 
-    // 加载该会话之前的用户消息和 NPC 回复，让后续轮次有连贯上下文
-    const priorMessages = db.prepare(`
-      SELECT user_input, npc_reply FROM v2_user_messages
-      WHERE chat_session_id = ? AND turn_index < ?
-      ORDER BY turn_index ASC
-    `).all(chatSessionId.trim(), turnNum);
+    const priorMessages = await db.queryAll(
+      `
+        SELECT user_input, npc_reply FROM v2_user_messages
+        WHERE chat_session_id = ? AND turn_index < ?
+        ORDER BY turn_index ASC
+      `,
+      [trimmedSessionId, turnNum]
+    );
 
     const userHistory = [];
-    for (const pm of priorMessages) {
-      userHistory.push({ type: 'user', speaker: 'user', text: pm.user_input });
-      if (pm.npc_reply) {
-        try {
-          const reply = JSON.parse(pm.npc_reply);
-          userHistory.push({ type: 'npc', speaker: reply.speaker, text: reply.text });
-        } catch (e) { /* 解析失败跳过 */ }
+    for (const priorMessage of priorMessages) {
+      userHistory.push({ type: 'user', speaker: 'user', text: priorMessage.user_input });
+
+      const parsedReply = safeJsonParse(priorMessage.npc_reply, null);
+      if (parsedReply) {
+        userHistory.push({ type: 'npc', speaker: parsedReply.speaker, text: parsedReply.text });
       }
     }
 
@@ -193,74 +185,76 @@ router.post('/respond', async (req, res) => {
 
     console.log(`[v2-chat/respond] 会话 ${chatSessionId}，第 ${turnNum} 次发言`);
 
-    // 并行调用：NPC 回复 + 更好说法
-    // 用 IIFE 分别记录两个 LLM 调用的实际耗时，wallClock 是并行总等待
-    // 如果 betterVersion 明显短于 respondChat → betterVersion 不是瓶颈，拆分无收益
-    // 如果 betterVersion 接近或超过 respondChat → betterVersion 是瓶颈，值得拆分异步
     const llmWallStart = Date.now();
     let respondChatMs = 0;
     let betterVersionMs = 0;
 
     const [npcReplyResult, betterVersionResult] = await Promise.allSettled([
-      // 调用 NPC 回复 prompt
       (async () => {
-        const t0 = Date.now();
+        const startedAt = Date.now();
         try {
+          const { systemPrompt, userPrompt } = respondChatPrompt({
+            userInput: trimmedUserInput,
+            respondingNpc,
+            allNpcProfiles: npcProfiles,
+            dialogueContext: contextMessages,
+            newsTopic: room.news_title,
+            groupName: room.group_name,
+            turnIndex: turnNum,
+          });
+
           return await callOpenAIJson(
-            (() => {
-              const { systemPrompt, userPrompt } = respondChatPrompt({
-                userInput: userInput.trim(),
-                respondingNpc,
-                allNpcProfiles: npcProfiles,
-                dialogueContext: contextMessages,
-                newsTopic: room.news_title,
-                groupName: room.group_name,
-                turnIndex: turnNum,
-              });
-              return [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: userPrompt },
-              ];
-            })(),
+            [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt },
+            ],
             { temperature: 0.8, maxTokens: 300 }
           );
         } finally {
-          respondChatMs = Date.now() - t0;
+          respondChatMs = Date.now() - startedAt;
         }
       })(),
-      // 调用"更好说法" prompt
       (async () => {
-        const t0 = Date.now();
+        const startedAt = Date.now();
         try {
+          const contextSummary = contextMessages
+            .slice(-3)
+            .map((turn) => {
+              const speakerName = turn.speaker === 'npc_a'
+                ? npcProfiles[0]?.name
+                : turn.speaker === 'npc_b'
+                  ? npcProfiles[1]?.name
+                  : turn.speaker;
+
+              return `${speakerName || turn.speaker}: ${turn.text}`;
+            })
+            .join('\n');
+
+          const { systemPrompt, userPrompt } = betterVersionPrompt({
+            userInput: trimmedUserInput,
+            dialogueContext: contextSummary,
+            newsTopic: room.news_title,
+            turnIndex: turnNum,
+          });
+
           return await callOpenAIJson(
-            (() => {
-              const contextSummary = contextMessages.slice(-3).map(t => {
-                const name = t.speaker === 'npc_a' ? npcProfiles[0]?.name : npcProfiles[1]?.name;
-                return `${name || t.speaker}: ${t.text}`;
-              }).join('\n');
-              const { systemPrompt, userPrompt } = betterVersionPrompt({
-                userInput: userInput.trim(),
-                dialogueContext: contextSummary,
-                newsTopic: room.news_title,
-                turnIndex: turnNum,
-              });
-              return [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: userPrompt },
-              ];
-            })(),
+            [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt },
+            ],
             { temperature: 0.5, maxTokens: 200 }
           );
         } finally {
-          betterVersionMs = Date.now() - t0;
+          betterVersionMs = Date.now() - startedAt;
         }
       })(),
     ]);
 
     const llmWallClock = Date.now() - llmWallStart;
-    console.log(`[v2-chat/respond] LLM timings: respondChat=${respondChatMs}ms, betterVersion=${betterVersionMs}ms, wallClock=${llmWallClock}ms`);
+    console.log(
+      `[v2-chat/respond] LLM timings: respondChat=${respondChatMs}ms, betterVersion=${betterVersionMs}ms, wallClock=${llmWallClock}ms`
+    );
 
-    // 处理 NPC 回复结果
     let npcReply = null;
     if (npcReplyResult.status === 'fulfilled') {
       const replyData = npcReplyResult.value;
@@ -273,7 +267,6 @@ router.post('/respond', async (req, res) => {
       };
     } else {
       console.error('[v2-chat/respond] NPC 回复生成失败：', npcReplyResult.reason?.message);
-      // 降级：使用兜底文案
       npcReply = {
         speaker: respondingNpc.id,
         text: 'Interesting point!',
@@ -283,30 +276,30 @@ router.post('/respond', async (req, res) => {
       };
     }
 
-    // 处理"更好说法"结果（失败时不影响主流程）
     let betterVersion = null;
     let feedbackType = null;
-    let highlights = null;       // 数组，高亮短语（用于前端紫色加粗）
-    let intentAnalysis = null;   // 意图分析（内部用，不返回给前端）
-    let learningType = null;     // 'pattern' | 'collocations'
-    let pattern = null;          // 句型骨架字符串 | null
-    let collocations = null;     // [{phrase, meaning}] | null
+    let highlights = null;
+    let intentAnalysis = null;
+    let learningType = null;
+    let pattern = null;
+    let collocations = null;
+
     if (betterVersionResult.status === 'fulfilled') {
-      const bvData = betterVersionResult.value;
-      betterVersion = bvData.betterVersion || null;
-      feedbackType = bvData.feedbackType || null;
-      intentAnalysis = bvData.intentAnalysis || null;
-      learningType = bvData.learningType || null;
-      pattern = bvData.pattern || null;
-      // collocations 必须是数组，最多 2 个
-      if (Array.isArray(bvData.collocations) && bvData.collocations.length > 0) {
-        collocations = bvData.collocations.slice(0, 2);
+      const betterVersionData = betterVersionResult.value;
+      betterVersion = betterVersionData.betterVersion || null;
+      feedbackType = betterVersionData.feedbackType || null;
+      intentAnalysis = betterVersionData.intentAnalysis || null;
+      learningType = betterVersionData.learningType || null;
+      pattern = betterVersionData.pattern || null;
+
+      if (Array.isArray(betterVersionData.collocations) && betterVersionData.collocations.length > 0) {
+        collocations = betterVersionData.collocations.slice(0, 2);
       }
-      // highlights：后端已经填好，直接取；降级从 collocations 派生
-      if (Array.isArray(bvData.highlights) && bvData.highlights.length > 0) {
-        highlights = bvData.highlights;
+
+      if (Array.isArray(betterVersionData.highlights) && betterVersionData.highlights.length > 0) {
+        highlights = betterVersionData.highlights;
       } else if (collocations) {
-        highlights = collocations.map(c => c.phrase);
+        highlights = collocations.map((item) => item.phrase);
       } else {
         highlights = [];
       }
@@ -314,51 +307,57 @@ router.post('/respond', async (req, res) => {
       console.error('[v2-chat/respond] 更好说法生成失败：', betterVersionResult.reason?.message);
     }
 
-    // 存入 v2_user_messages（只存原有字段，新字段在 expression_cards 里存）
-    const insertResult = db.prepare(`
-      INSERT INTO v2_user_messages (chat_session_id, turn_index, user_input, better_version, context_note, npc_reply)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(
-      chatSessionId.trim(),
-      turnNum,
-      userInput.trim(),
-      betterVersion || null,
-      null,   // context_note 字段废弃，不再写入
-      JSON.stringify(npcReply)
-    );
-
-    // 同步写入 v2_expression_cards（包含新字段），让 complete 接口无需再次生成
-    if (betterVersion) {
-      db.prepare(`
-        INSERT INTO v2_expression_cards
-          (user_id, chat_session_id, turn_index, user_said, better_version,
-           feedback_type, highlighted_phrases, intent_analysis,
-           learning_type, pattern, collocations_json, is_saved)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
-      `).run(
-        session.user_id,
-        chatSessionId.trim(),
-        turnNum,
-        userInput.trim(),
-        betterVersion,
-        feedbackType || null,
-        highlights ? JSON.stringify(highlights) : null,
-        intentAnalysis || null,
-        learningType || null,
-        pattern || null,
-        collocations ? JSON.stringify(collocations) : null
+    const writeResult = await db.transaction(async (tx) => {
+      const insertMessageResult = await tx.execute(
+        `
+          INSERT INTO v2_user_messages (chat_session_id, turn_index, user_input, better_version, context_note, npc_reply)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `,
+        [
+          trimmedSessionId,
+          turnNum,
+          trimmedUserInput,
+          betterVersion || null,
+          null,
+          JSON.stringify(npcReply),
+        ]
       );
-    }
 
-    // 更新会话的发言次数
-    db.prepare('UPDATE v2_chat_sessions SET user_turn_count = user_turn_count + 1 WHERE id = ?').run(
-      chatSessionId.trim()
-    );
+      if (betterVersion) {
+        await tx.execute(
+          `
+            INSERT INTO v2_expression_cards
+              (user_id, chat_session_id, turn_index, user_said, better_version,
+               feedback_type, highlighted_phrases, intent_analysis,
+               learning_type, pattern, collocations_json, is_saved)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+          `,
+          [
+            session.user_id,
+            trimmedSessionId,
+            turnNum,
+            trimmedUserInput,
+            betterVersion,
+            feedbackType || null,
+            highlights ? JSON.stringify(highlights) : null,
+            intentAnalysis || null,
+            learningType || null,
+            pattern || null,
+            collocations ? JSON.stringify(collocations) : null,
+          ]
+        );
+      }
 
-    const isLastTurn = turnNum >= 3;
+      await tx.execute(
+        'UPDATE v2_chat_sessions SET user_turn_count = user_turn_count + 1 WHERE id = ?',
+        [trimmedSessionId]
+      );
+
+      return insertMessageResult;
+    });
 
     return res.status(200).json({
-      messageId: insertResult.lastInsertRowid,
+      messageId: writeResult.insertId,
       npcReply,
       betterVersion,
       feedbackType,
@@ -366,7 +365,7 @@ router.post('/respond', async (req, res) => {
       pattern,
       collocations,
       highlights,
-      isLastTurn,
+      isLastTurn: turnNum >= 3,
     });
   } catch (err) {
     console.error('[v2-chat/respond] 意外错误：', err.message);
@@ -374,12 +373,6 @@ router.post('/respond', async (req, res) => {
   }
 });
 
-/**
- * POST /api/v2/chat/complete
- * 完成群聊，AI 动态生成结算新闻，生成表达卡片
- * 入参: { chatSessionId, force? }
- * 出参: { success: true }
- */
 router.post('/complete', async (req, res) => {
   try {
     const { chatSessionId, force } = req.body;
@@ -388,51 +381,46 @@ router.post('/complete', async (req, res) => {
       return res.status(400).json({ error: 'chatSessionId 不能为空' });
     }
 
-    const session = db.prepare('SELECT * FROM v2_chat_sessions WHERE id = ?').get(chatSessionId.trim());
+    const trimmedSessionId = chatSessionId.trim();
+    const session = await db.queryOne('SELECT * FROM v2_chat_sessions WHERE id = ?', [trimmedSessionId]);
     if (!session) {
       return res.status(404).json({ error: '会话不存在' });
     }
 
-    // 幂等保护：已完成的会话直接返回成功
     if (session.status === 'completed') {
       return res.status(200).json({ success: true });
     }
-    // 非强制完成时，要求至少有一次发言
     if (!force && session.user_turn_count < 1) {
       return res.status(400).json({ error: '至少需要发言一次才能完成，或传 force=true 强制完成' });
     }
 
-    // 查询房间的结算模板和新闻标题
-    const roomForComplete = db.prepare('SELECT settlement_template, news_title FROM v2_rooms WHERE id = ?').get(session.room_id);
-    const templateForComplete = roomForComplete ? JSON.parse(roomForComplete.settlement_template) : {};
-    const newsTitle = roomForComplete ? roomForComplete.news_title : '';
+    const roomForComplete = await db.queryOne(
+      'SELECT settlement_template, news_title FROM v2_rooms WHERE id = ?',
+      [session.room_id]
+    );
+    const templateForComplete = safeJsonParse(roomForComplete?.settlement_template, {});
+    const newsTitle = roomForComplete?.news_title || '';
 
-    // 读取该会话所有用户发言和 NPC 回复，供 AI 生成结算
-    const userMessages = db.prepare(`
-      SELECT user_input, npc_reply FROM v2_user_messages
-      WHERE chat_session_id = ?
-      ORDER BY turn_index ASC
-    `).all(chatSessionId.trim());
+    const userMessages = await db.queryAll(
+      `
+        SELECT user_input, npc_reply FROM v2_user_messages
+        WHERE chat_session_id = ?
+        ORDER BY turn_index ASC
+      `,
+      [trimmedSessionId]
+    );
 
-    // 提取用户发言文本和 NPC 回复文本
-    const userMsgTexts = userMessages.map(m => m.user_input || '');
-    const npcReplyTexts = userMessages.map(m => {
-      if (!m.npc_reply) return '';
-      try {
-        const parsed = JSON.parse(m.npc_reply);
-        // 优先用中文回复，没有就用英文
-        return parsed.textZh || parsed.text || '';
-      } catch (e) {
-        return '';
-      }
+    const userMsgTexts = userMessages.map((message) => message.user_input || '');
+    const npcReplyTexts = userMessages.map((message) => {
+      const parsedReply = safeJsonParse(message.npc_reply, null);
+      if (!parsedReply) return '';
+      return parsedReply.textZh || parsedReply.text || '';
     });
 
-    // AI 调用：动态生成结算新闻（headline + epilogue + title）
     let dynamicNewsletter = null;
 
     try {
       const publisher = templateForComplete.newsletter?.publisher || '今日快报';
-
       const { systemPrompt, userPrompt } = generateSettlementPrompt({
         newsTopic: newsTitle,
         publisher,
@@ -448,75 +436,82 @@ router.post('/complete', async (req, res) => {
         { temperature: 0.8, maxTokens: 500 }
       );
 
-      // 组装 newsletter 对象（publisher 来自种子，headline/epilogue/title 来自 AI）
       if (aiResult && aiResult.headline) {
-        // 硬切 epilogue 最多 2 条（防 AI 偶尔返回 3 条）
-        const epilogueArr = Array.isArray(aiResult.epilogue)
-          ? aiResult.epilogue.slice(0, 2)
-          : (aiResult.epilogue || '');
         dynamicNewsletter = {
           publisher,
           headline: aiResult.headline,
-          epilogue: epilogueArr,
+          epilogue: Array.isArray(aiResult.epilogue)
+            ? aiResult.epilogue.slice(0, 2)
+            : (aiResult.epilogue || ''),
           title: aiResult.title || '',
         };
-        console.log(`[v2-chat/complete] AI 结算新闻生成成功：${aiResult.headline}｜称号：${aiResult.title}`);
+        console.log(
+          `[v2-chat/complete] AI 结算新闻生成成功：${aiResult.headline}｜称号：${aiResult.title}`
+        );
       }
     } catch (aiErr) {
-      // AI 调用失败，降级：只写 publisher，其他字段为空
       console.error('[v2-chat/complete] AI 结算生成失败，降级到空内容：', aiErr.message);
     }
 
-    // 更新会话状态为 completed，写入动态结算新闻（不再写 absurd_attributes）
-    db.prepare(`
-      UPDATE v2_chat_sessions
-      SET status = 'completed', completed_at = CURRENT_TIMESTAMP,
-          settlement_newsletter = ?
-      WHERE id = ?
-    `).run(
-      dynamicNewsletter ? JSON.stringify(dynamicNewsletter) : null,
-      chatSessionId.trim()
+    const allCards = await db.transaction(async (tx) => {
+      await tx.execute(
+        `
+          UPDATE v2_chat_sessions
+          SET status = 'completed', completed_at = CURRENT_TIMESTAMP,
+              settlement_newsletter = ?
+          WHERE id = ?
+        `,
+        [dynamicNewsletter ? JSON.stringify(dynamicNewsletter) : null, trimmedSessionId]
+      );
+
+      const cards = await tx.queryAll(
+        `
+          SELECT * FROM v2_expression_cards
+          WHERE chat_session_id = ?
+          ORDER BY turn_index ASC
+        `,
+        [trimmedSessionId]
+      );
+
+      const feedbackPriority = {
+        '更地道的说法': 1,
+        '进阶表达': 2,
+        '同样好用的说法': 3,
+      };
+
+      let featuredCard = null;
+      for (const card of cards) {
+        if (!featuredCard) {
+          featuredCard = card;
+          continue;
+        }
+
+        const currentPriority = feedbackPriority[card.feedback_type] || 99;
+        const bestPriority = feedbackPriority[featuredCard.feedback_type] || 99;
+        if (currentPriority < bestPriority) {
+          featuredCard = card;
+        }
+      }
+
+      if (cards.length > 0) {
+        await tx.execute(
+          'UPDATE v2_expression_cards SET is_saved = 1, is_featured = 0 WHERE chat_session_id = ?',
+          [trimmedSessionId]
+        );
+
+        if (featuredCard) {
+          await tx.execute('UPDATE v2_expression_cards SET is_featured = 1 WHERE id = ?', [
+            featuredCard.id,
+          ]);
+        }
+      }
+
+      return { cards, featuredCard };
+    });
+
+    console.log(
+      `[v2-chat/complete] 会话 ${chatSessionId} 完成，共 ${allCards.cards.length} 张卡片，featured: ${allCards.featuredCard?.id || '无'}`
     );
-
-    // 查询该会话在 respond 阶段生成的表达卡片
-    const allCards = db.prepare(`
-      SELECT * FROM v2_expression_cards
-      WHERE chat_session_id = ?
-      ORDER BY turn_index ASC
-    `).all(chatSessionId.trim());
-
-    // 按优先级挑选 featured 卡片：
-    //   "更地道的说法" > "进阶表达" > "同样好用的说法" > 其他（无 feedback_type 的老数据）
-    // 同类型中取 turn_index 最小的
-    const feedbackPriority = { '更地道的说法': 1, '进阶表达': 2, '同样好用的说法': 3 };
-    let featuredCard = null;
-    for (const card of allCards) {
-      if (!featuredCard) {
-        featuredCard = card;
-        continue;
-      }
-      const currPri = feedbackPriority[card.feedback_type] || 99;
-      const bestPri = feedbackPriority[featuredCard.feedback_type] || 99;
-      if (currPri < bestPri) {
-        featuredCard = card;
-      }
-    }
-
-    // 所有卡片 is_saved 设为 1（自动收藏），featured 那张额外设 is_featured = 1
-    if (allCards.length > 0) {
-      db.prepare(`
-        UPDATE v2_expression_cards SET is_saved = 1 WHERE chat_session_id = ?
-      `).run(chatSessionId.trim());
-
-      if (featuredCard) {
-        db.prepare(`
-          UPDATE v2_expression_cards SET is_featured = 1 WHERE id = ?
-        `).run(featuredCard.id);
-      }
-    }
-
-    const cardCount = allCards.length;
-    console.log(`[v2-chat/complete] 会话 ${chatSessionId} 完成，共 ${cardCount} 张卡片，featured: ${featuredCard?.id || '无'}`);
 
     return res.status(200).json({ success: true });
   } catch (err) {
@@ -525,16 +520,11 @@ router.post('/complete', async (req, res) => {
   }
 });
 
-/**
- * GET /api/v2/chat/:chatSessionId/settlement
- * 获取结算数据
- * 出参: { newsletter, stats, expressionCards }
- */
-router.get('/:chatSessionId/settlement', (req, res) => {
+router.get('/:chatSessionId/settlement', async (req, res) => {
   try {
     const { chatSessionId } = req.params;
 
-    const session = db.prepare('SELECT * FROM v2_chat_sessions WHERE id = ?').get(chatSessionId);
+    const session = await db.queryOne('SELECT * FROM v2_chat_sessions WHERE id = ?', [chatSessionId]);
     if (!session) {
       return res.status(404).json({ error: '会话不存在' });
     }
@@ -542,28 +532,21 @@ router.get('/:chatSessionId/settlement', (req, res) => {
       return res.status(400).json({ error: '会话尚未完成，无法查看结算' });
     }
 
-    // 查询房间信息：结算模板 + tags（用于取 ipName）
-    const room = db.prepare('SELECT settlement_template, tags FROM v2_rooms WHERE id = ?').get(session.room_id);
-    const settlementTemplate = room ? JSON.parse(room.settlement_template) : {};
+    const room = await db.queryOne(
+      'SELECT settlement_template, tags FROM v2_rooms WHERE id = ?',
+      [session.room_id]
+    );
+    const settlementTemplate = safeJsonParse(room?.settlement_template, {});
 
-    // 取 IP 名：从 tags JSON 数组取第一个元素
     let ipName = '';
-    if (room && room.tags) {
-      try {
-        const tagsArr = JSON.parse(room.tags);
-        ipName = (Array.isArray(tagsArr) && tagsArr[0]) ? tagsArr[0] : '';
-      } catch (e) {
-        ipName = '';
-      }
+    if (room?.tags) {
+      const tags = safeJsonParse(room.tags, []);
+      ipName = Array.isArray(tags) && tags[0] ? tags[0] : '';
     }
 
-    // 优先读 AI 动态生成的 newsletter，fallback 到种子模板
-    const dynamicNewsletter = session.settlement_newsletter
-      ? (() => { try { return JSON.parse(session.settlement_newsletter); } catch (e) { return null; } })()
-      : null;
+    const dynamicNewsletter = safeJsonParse(session.settlement_newsletter, null);
     const rawNewsletter = dynamicNewsletter || settlementTemplate.newsletter || {};
 
-    // 组装 newsletter 对象，旧数据缺 epilogue/title 时降级为空字符串
     const newsletter = {
       publisher: rawNewsletter.publisher || '',
       ipName,
@@ -572,66 +555,55 @@ router.get('/:chatSessionId/settlement', (req, res) => {
       title: rawNewsletter.title || '',
     };
 
-    // 计算对话时长（completed_at - started_at，格式 m:ss）
-    // 注：两个时间戳都由 SQLite CURRENT_TIMESTAMP 写入，格式一致（无时区标识）。
-    // new Date() 解析时会按本地时区，但因为两值偏移量相同，差值不受时区影响。
     let duration = '0:00';
     if (session.completed_at && session.started_at) {
-      try {
-        const startMs = new Date(session.started_at).getTime();
-        const endMs = new Date(session.completed_at).getTime();
-        if (!isNaN(startMs) && !isNaN(endMs)) {
-          const sec = Math.max(0, Math.floor((endMs - startMs) / 1000));
-          duration = formatDuration(sec);
-        }
-      } catch (e) {
-        duration = '0:00';
+      const startMs = new Date(session.started_at).getTime();
+      const endMs = new Date(session.completed_at).getTime();
+      if (!Number.isNaN(startMs) && !Number.isNaN(endMs)) {
+        duration = formatDuration((endMs - startMs) / 1000);
       }
     }
 
-    // 计算用户英文词数（统计所有 user_input 里含字母的 token）
-    const userInputRows = db.prepare(`
-      SELECT user_input FROM v2_user_messages
-      WHERE chat_session_id = ?
-      ORDER BY turn_index ASC
-    `).all(chatSessionId);
-    const allUserText = userInputRows.map(r => r.user_input || '').join(' ');
+    const userInputRows = await db.queryAll(
+      `
+        SELECT user_input FROM v2_user_messages
+        WHERE chat_session_id = ?
+        ORDER BY turn_index ASC
+      `,
+      [chatSessionId]
+    );
+    const allUserText = userInputRows.map((row) => row.user_input || '').join(' ');
     const wordCount = countEnglishWords(allUserText);
 
-    // 查询该会话的表达卡片
-    const cards = db.prepare(`
-      SELECT * FROM v2_expression_cards
-      WHERE chat_session_id = ?
-      ORDER BY turn_index ASC
-    `).all(chatSessionId);
+    const cards = await db.queryAll(
+      `
+        SELECT * FROM v2_expression_cards
+        WHERE chat_session_id = ?
+        ORDER BY turn_index ASC
+      `,
+      [chatSessionId]
+    );
 
-    const expressionCards = cards.map(card => ({
+    const expressionCards = cards.map((card) => ({
       id: card.id,
       turnIndex: card.turn_index,
       userSaid: card.user_said,
-      feedbackType: card.feedback_type || null,                    // 反馈类型
+      feedbackType: card.feedback_type || null,
       betterVersion: card.better_version,
-      learningType: card.learning_type || null,                    // 'pattern' | 'collocations' | null（老数据为 null）
-      pattern: card.pattern || null,                               // 句型骨架（learningType=pattern 时有值）
-      collocations: card.collocations_json                         // 可迁移搭配（learningType=collocations 时有值）
-        ? (() => { try { return JSON.parse(card.collocations_json); } catch (e) { return null; } })()
-        : null,
-      highlights: card.highlighted_phrases                         // 高亮短语数组（用于紫色加粗）
-        ? (() => { try { return JSON.parse(card.highlighted_phrases); } catch (e) { return []; } })()
-        : [],
-      isFeatured: card.is_featured === 1,                         // 是否 featured
+      learningType: card.learning_type || null,
+      pattern: card.pattern || null,
+      collocations: safeJsonParse(card.collocations_json, null),
+      highlights: safeJsonParse(card.highlighted_phrases, []),
+      isFeatured: card.is_featured === 1,
       isSaved: card.is_saved === 1,
     }));
 
     return res.status(200).json({
-      // 报纸风结算内容（publisher/ipName/headline/epilogue/title）
       newsletter,
-      // 对话统计（时长+词数）
       stats: {
         duration,
         wordCount,
       },
-      // 表达卡片
       expressionCards,
     });
   } catch (err) {
@@ -640,39 +612,34 @@ router.get('/:chatSessionId/settlement', (req, res) => {
   }
 });
 
-/**
- * POST /api/v2/chat/:chatSessionId/generate-hint
- * 动态生成💡参考说法
- * 读最近一条 NPC @用户消息，用 AI 生成一句符合用户水平的英文回应
- * 出参: { hint: string }
- */
 router.post('/:chatSessionId/generate-hint', async (req, res) => {
   try {
     const { chatSessionId } = req.params;
 
-    const session = db.prepare('SELECT * FROM v2_chat_sessions WHERE id = ?').get(chatSessionId);
+    const session = await db.queryOne('SELECT * FROM v2_chat_sessions WHERE id = ?', [chatSessionId]);
     if (!session) {
       return res.status(404).json({ error: '会话不存在' });
     }
 
-    // 查房间信息
-    const room = db.prepare('SELECT id, news_title, dialogue_script, npc_profiles FROM v2_rooms WHERE id = ?').get(session.room_id);
+    const room = await db.queryOne(
+      'SELECT id, news_title, dialogue_script, npc_profiles FROM v2_rooms WHERE id = ?',
+      [session.room_id]
+    );
     if (!room) {
       return res.status(404).json({ error: '房间不存在' });
     }
 
-    const dialogueScript = JSON.parse(room.dialogue_script);
-    const npcProfiles = JSON.parse(room.npc_profiles);
+    const dialogueScript = safeJsonParse(room.dialogue_script, []);
+    const npcProfiles = safeJsonParse(room.npc_profiles, []);
 
-    // 根据 user_turn_count 定位当前的 user_cue（第 N 次发言对应第 N 个 user_cue）
-    // user_turn_count 是已完成的发言次数，当前要回应第 (user_turn_count + 1) 个 cue
-    const targetCueIndex = session.user_turn_count; // 0-based：第一次是第 0 个
+    const targetCueIndex = session.user_turn_count;
     let cueCount = 0;
     let currentCueIdx = -1;
-    for (let i = 0; i < dialogueScript.length; i++) {
-      if (dialogueScript[i].type === 'user_cue') {
+
+    for (let index = 0; index < dialogueScript.length; index += 1) {
+      if (dialogueScript[index].type === 'user_cue') {
         if (cueCount === targetCueIndex) {
-          currentCueIdx = i;
+          currentCueIdx = index;
           break;
         }
         cueCount++;
@@ -683,31 +650,27 @@ router.post('/:chatSessionId/generate-hint', async (req, res) => {
       return res.status(400).json({ error: '找不到对应的发言节点' });
     }
 
-    // 找 user_cue 前面最后一条 npc 消息（真正的 @用户消息）
     let cueMessage = null;
     let speakerName = 'NPC';
-    for (let i = currentCueIdx - 1; i >= 0; i--) {
-      if (dialogueScript[i].type === 'npc') {
-        cueMessage = dialogueScript[i].text;
-        const profile = npcProfiles.find(p => p.id === dialogueScript[i].speaker);
-        if (profile) speakerName = profile.name;
+    for (let index = currentCueIdx - 1; index >= 0; index -= 1) {
+      if (dialogueScript[index].type === 'npc') {
+        cueMessage = dialogueScript[index].text;
+        const profile = npcProfiles.find((npc) => npc.id === dialogueScript[index].speaker);
+        if (profile) {
+          speakerName = profile.name;
+        }
         break;
       }
     }
 
-    // 兜底：如果找不到 @ 消息，用 user_cue 的 hint
     if (!cueMessage) {
       cueMessage = dialogueScript[currentCueIdx].hint || '';
     }
 
-    // 查用户花名，用于替换 @{username}
-    const user = db.prepare('SELECT nickname FROM v2_users WHERE id = ?').get(session.user_id);
-    const nickname = (user && user.nickname) || 'you';
+    const user = await db.queryOne('SELECT nickname FROM v2_users WHERE id = ?', [session.user_id]);
+    const nickname = user?.nickname || 'you';
+    const cueWithName = cueMessage.replace(/@\{username\}/g, `@${nickname}`);
 
-    // 把 @{username} 替换为实际花名，让 AI 看到的是完整语境
-    const cueWithName = (cueMessage || '').replace(/@\{username\}/g, '@' + nickname);
-
-    // 调 AI 生成参考说法
     const { systemPrompt, userPrompt } = generateHintPrompt({
       cueMessage: cueWithName,
       speakerName,
@@ -720,9 +683,8 @@ router.post('/:chatSessionId/generate-hint', async (req, res) => {
       { role: 'user', content: userPrompt },
     ]);
 
-    const hint = (result && result.hint) || '';
+    const hint = result?.hint || '';
     if (!hint) {
-      // AI 返回空 → 降级用 seed 里的 fallback
       const fallback = dialogueScript[currentCueIdx].options?.[0]?.example || 'What do you mean?';
       return res.status(200).json({ hint: fallback });
     }
@@ -730,66 +692,68 @@ router.post('/:chatSessionId/generate-hint', async (req, res) => {
     return res.status(200).json({ hint });
   } catch (err) {
     console.error('[v2-chat/generate-hint] 错误：', err.message);
-    // 失败时降级：尝试从 seed 拿 fallback
+
     try {
       const { chatSessionId } = req.params;
-      const session = db.prepare('SELECT room_id, user_turn_count FROM v2_chat_sessions WHERE id = ?').get(chatSessionId);
-      const room = db.prepare('SELECT dialogue_script FROM v2_rooms WHERE id = ?').get(session.room_id);
-      const script = JSON.parse(room.dialogue_script);
-      const targetIdx = session.user_turn_count;
-      let cnt = 0;
+      const session = await db.queryOne(
+        'SELECT room_id, user_turn_count FROM v2_chat_sessions WHERE id = ?',
+        [chatSessionId]
+      );
+      const room = session
+        ? await db.queryOne('SELECT dialogue_script FROM v2_rooms WHERE id = ?', [session.room_id])
+        : null;
+      const script = safeJsonParse(room?.dialogue_script, []);
+      const targetIdx = session?.user_turn_count || 0;
+
+      let cueCount = 0;
       for (const turn of script) {
         if (turn.type === 'user_cue') {
-          if (cnt === targetIdx) {
+          if (cueCount === targetIdx) {
             return res.status(200).json({ hint: turn.options?.[0]?.example || 'What do you mean?' });
           }
-          cnt++;
+          cueCount++;
         }
       }
-    } catch (_) { /* 兜底也失败就返回固定 fallback */ }
+    } catch (fallbackError) {
+      console.error('[v2-chat/generate-hint] fallback 失败：', fallbackError.message);
+    }
+
     return res.status(200).json({ hint: 'What do you mean?' });
   }
 });
 
-/**
- * GET /api/v2/chat/:chatSessionId/dm-banner
- * 获取 NPC 私信 Banner
- * 出参: { hasBanner, banner }
- */
-router.get('/:chatSessionId/dm-banner', (req, res) => {
+router.get('/:chatSessionId/dm-banner', async (req, res) => {
   try {
     const { chatSessionId } = req.params;
 
-    const session = db.prepare('SELECT * FROM v2_chat_sessions WHERE id = ?').get(chatSessionId);
+    const session = await db.queryOne('SELECT * FROM v2_chat_sessions WHERE id = ?', [chatSessionId]);
     if (!session) {
       return res.status(404).json({ error: '会话不存在' });
     }
 
-    // 只有已完成、有至少一次发言、且发送次数 < 2 才返回 Banner
     if (session.status !== 'completed' || session.user_turn_count < 1 || session.dm_sent_count >= 2) {
       return res.status(200).json({ hasBanner: false, banner: null });
     }
 
-    // 查询房间的 NPC 信息，随机选一个 NPC
-    const room = db.prepare('SELECT npc_profiles FROM v2_rooms WHERE id = ?').get(session.room_id);
-    const npcProfiles = room ? JSON.parse(room.npc_profiles) : [];
-
+    const room = await db.queryOne('SELECT npc_profiles FROM v2_rooms WHERE id = ?', [session.room_id]);
+    const npcProfiles = safeJsonParse(room?.npc_profiles, []);
     if (npcProfiles.length === 0) {
       return res.status(200).json({ hasBanner: false, banner: null });
     }
 
-    // 随机选择 NPC 和 Banner 文案
     const npc = npcProfiles[Math.floor(Math.random() * npcProfiles.length)];
     const bannerTemplate = DM_BANNERS[Math.floor(Math.random() * DM_BANNERS.length)];
 
-    // 更新 dm_sent_count
-    db.prepare('UPDATE v2_chat_sessions SET dm_sent_count = dm_sent_count + 1 WHERE id = ?').run(chatSessionId);
+    await db.execute(
+      'UPDATE v2_chat_sessions SET dm_sent_count = dm_sent_count + 1 WHERE id = ?',
+      [chatSessionId]
+    );
 
     return res.status(200).json({
       hasBanner: true,
       banner: {
         npcName: npc.name,
-        npcAvatar: null, // 暂无头像，前端用默认头像
+        npcAvatar: null,
         message: bannerTemplate.message,
         messageZh: bannerTemplate.messageZh,
       },

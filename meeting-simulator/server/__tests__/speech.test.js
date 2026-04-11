@@ -1,19 +1,13 @@
-const fs = require('fs');
-const os = require('os');
-const path = require('path');
 const request = require('supertest');
 
 describe('speech routes', () => {
   let app;
-  let tempDir;
   let speechToTextMock;
   let isWhisperConfiguredMock;
   let normalizeAudioMeta;
 
   beforeEach(() => {
     jest.resetModules();
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'meetinghero-speech-'));
-    process.env.DB_PATH = path.join(tempDir, 'meeting-simulator.test.db');
 
     speechToTextMock = jest.fn();
     isWhisperConfiguredMock = jest.fn(() => true);
@@ -34,10 +28,10 @@ describe('speech routes', () => {
     app = app();
   });
 
-  afterEach(() => {
-    delete process.env.DB_PATH;
+  afterEach(async () => {
+    const db = require('../db');
+    await db.close();
     jest.dontMock('../services/speech');
-    fs.rmSync(tempDir, { recursive: true, force: true });
   });
 
   it.each([

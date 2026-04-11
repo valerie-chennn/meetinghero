@@ -1,17 +1,11 @@
-const fs = require('fs');
-const os = require('os');
-const path = require('path');
 const request = require('supertest');
 
 describe('v2 chat flow', () => {
   let app;
-  let tempDir;
   let openAiMock;
 
   beforeEach(() => {
     jest.resetModules();
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'meetinghero-chat-'));
-    process.env.DB_PATH = path.join(tempDir, 'meeting-simulator.test.db');
 
     openAiMock = jest.fn();
     jest.doMock('../services/openai', () => ({
@@ -22,10 +16,10 @@ describe('v2 chat flow', () => {
     app = app();
   });
 
-  afterEach(() => {
-    delete process.env.DB_PATH;
+  afterEach(async () => {
+    const db = require('../db');
+    await db.close();
     jest.dontMock('../services/openai');
-    fs.rmSync(tempDir, { recursive: true, force: true });
   });
 
   it('supports join -> hint -> respond x3 -> complete -> settlement -> dm banner', async () => {
@@ -65,7 +59,7 @@ describe('v2 chat flow', () => {
     expect(feedRes.status).toBe(200);
     const roomId = feedRes.body.items[0].roomId;
 
-    const userId = 'user-001';
+    const userId = `user-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const initRes = await request(app)
       .post('/api/v2/users/init')
       .send({ userId, nickname: 'Alex' });

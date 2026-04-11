@@ -13,7 +13,7 @@ const db = require('../db');
  * 查询参数: userId
  * 出参: { cards }
  */
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { userId } = req.query;
 
@@ -21,19 +21,21 @@ router.get('/', (req, res) => {
       return res.status(400).json({ error: 'userId 不能为空' });
     }
 
-    const cards = db.prepare(`
-      SELECT * FROM v2_expression_cards
-      WHERE user_id = ?
-      ORDER BY created_at DESC
-    `).all(userId.trim());
+    const cards = await db.queryAll(
+      `
+        SELECT * FROM v2_expression_cards
+        WHERE user_id = ?
+        ORDER BY created_at DESC
+      `,
+      [userId.trim()]
+    );
 
-    // 统计总数、已收藏数、已练习数
     const total = cards.length;
-    const savedCount = cards.filter(c => c.is_saved === 1).length;
-    const practicedCount = cards.filter(c => c.is_practiced === 1).length;
+    const savedCount = cards.filter((card) => card.is_saved === 1).length;
+    const practicedCount = cards.filter((card) => card.is_practiced === 1).length;
 
     return res.status(200).json({
-      cards: cards.map(card => ({
+      cards: cards.map((card) => ({
         id: card.id,
         userSaid: card.user_said,
         betterVersion: card.better_version,
@@ -56,19 +58,19 @@ router.get('/', (req, res) => {
  * 入参: { userId }
  * 出参: { id, isSaved: true }
  */
-router.post('/:id/save', (req, res) => {
+router.post('/:id/save', async (req, res) => {
   try {
-    const cardId = parseInt(req.params.id);
+    const cardId = parseInt(req.params.id, 10);
     const { userId } = req.body;
 
-    if (isNaN(cardId)) {
+    if (Number.isNaN(cardId)) {
       return res.status(400).json({ error: '卡片 ID 无效' });
     }
     if (!userId || !userId.trim()) {
       return res.status(400).json({ error: 'userId 不能为空' });
     }
 
-    const card = db.prepare('SELECT * FROM v2_expression_cards WHERE id = ?').get(cardId);
+    const card = await db.queryOne('SELECT * FROM v2_expression_cards WHERE id = ?', [cardId]);
     if (!card) {
       return res.status(404).json({ error: '卡片不存在' });
     }
@@ -76,8 +78,7 @@ router.post('/:id/save', (req, res) => {
       return res.status(403).json({ error: '无权操作他人的卡片' });
     }
 
-    db.prepare('UPDATE v2_expression_cards SET is_saved = 1 WHERE id = ?').run(cardId);
-
+    await db.execute('UPDATE v2_expression_cards SET is_saved = 1 WHERE id = ?', [cardId]);
     return res.status(200).json({ id: cardId, isSaved: true });
   } catch (err) {
     console.error('[v2-expressions/save] 错误：', err.message);
@@ -91,19 +92,19 @@ router.post('/:id/save', (req, res) => {
  * 入参: { userId }（body）
  * 出参: { id, isSaved: false }
  */
-router.delete('/:id', (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
-    const cardId = parseInt(req.params.id);
+    const cardId = parseInt(req.params.id, 10);
     const { userId } = req.body;
 
-    if (isNaN(cardId)) {
+    if (Number.isNaN(cardId)) {
       return res.status(400).json({ error: '卡片 ID 无效' });
     }
     if (!userId || !userId.trim()) {
       return res.status(400).json({ error: 'userId 不能为空' });
     }
 
-    const card = db.prepare('SELECT * FROM v2_expression_cards WHERE id = ?').get(cardId);
+    const card = await db.queryOne('SELECT * FROM v2_expression_cards WHERE id = ?', [cardId]);
     if (!card) {
       return res.status(404).json({ error: '卡片不存在' });
     }
@@ -111,8 +112,7 @@ router.delete('/:id', (req, res) => {
       return res.status(403).json({ error: '无权操作他人的卡片' });
     }
 
-    db.prepare('UPDATE v2_expression_cards SET is_saved = 0 WHERE id = ?').run(cardId);
-
+    await db.execute('UPDATE v2_expression_cards SET is_saved = 0 WHERE id = ?', [cardId]);
     return res.status(200).json({ id: cardId, isSaved: false });
   } catch (err) {
     console.error('[v2-expressions/delete] 错误：', err.message);
@@ -126,19 +126,27 @@ router.delete('/:id', (req, res) => {
  * 入参: { userId }
  * 出参: { id, isPracticed: true }
  */
-router.post('/:id/practice', (req, res) => {
+router.post('/:id/practice', async (req, res) => {
   try {
-    const cardId = parseInt(req.params.id);
+    const cardId = parseInt(req.params.id, 10);
     const { userId } = req.body;
 
-    if (isNaN(cardId)) return res.status(400).json({ error: '卡片 ID 无效' });
-    if (!userId || !userId.trim()) return res.status(400).json({ error: 'userId 不能为空' });
+    if (Number.isNaN(cardId)) {
+      return res.status(400).json({ error: '卡片 ID 无效' });
+    }
+    if (!userId || !userId.trim()) {
+      return res.status(400).json({ error: 'userId 不能为空' });
+    }
 
-    const card = db.prepare('SELECT * FROM v2_expression_cards WHERE id = ?').get(cardId);
-    if (!card) return res.status(404).json({ error: '卡片不存在' });
-    if (card.user_id !== userId.trim()) return res.status(403).json({ error: '无权操作' });
+    const card = await db.queryOne('SELECT * FROM v2_expression_cards WHERE id = ?', [cardId]);
+    if (!card) {
+      return res.status(404).json({ error: '卡片不存在' });
+    }
+    if (card.user_id !== userId.trim()) {
+      return res.status(403).json({ error: '无权操作' });
+    }
 
-    db.prepare('UPDATE v2_expression_cards SET is_practiced = 1 WHERE id = ?').run(cardId);
+    await db.execute('UPDATE v2_expression_cards SET is_practiced = 1 WHERE id = ?', [cardId]);
     return res.status(200).json({ id: cardId, isPracticed: true });
   } catch (err) {
     console.error('[v2-expressions/practice] 错误：', err.message);

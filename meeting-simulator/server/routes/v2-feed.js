@@ -13,48 +13,50 @@ const db = require('../db');
  * 查询参数: page（默认1）, pageSize（默认10）
  * 出参: { items, total, hasMore }
  */
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const page = Math.max(1, parseInt(req.query.page) || 1);
-    const pageSize = Math.min(50, Math.max(1, parseInt(req.query.pageSize) || 10));
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const pageSize = Math.min(50, Math.max(1, parseInt(req.query.pageSize, 10) || 10));
     const offset = (page - 1) * pageSize;
 
-    // 查询总数（仅可见且激活的房间）
-    const totalRow = db.prepare(`
-      SELECT COUNT(*) as count
-      FROM v2_feed_items fi
-      JOIN v2_rooms r ON fi.room_id = r.id
-      WHERE fi.is_visible = 1 AND r.is_active = 1
-    `).get();
-    const total = totalRow.count;
+    const totalRow = await db.queryOne(
+      `
+        SELECT COUNT(*) AS count
+        FROM v2_feed_items fi
+        JOIN v2_rooms r ON fi.room_id = r.id
+        WHERE fi.is_visible = 1 AND r.is_active = 1
+      `
+    );
+    const total = totalRow?.count || 0;
 
-    // 查询分页数据，按 feed_items 的 sort_order 降序排列
-    const rows = db.prepare(`
-      SELECT
-        fi.id as feed_item_id,
-        r.id as room_id,
-        r.news_title,
-        r.npc_a_name,
-        r.npc_a_reaction,
-        r.npc_b_name,
-        r.npc_b_reaction,
-        r.news_title_en,
-        r.npc_a_reaction_en,
-        r.npc_b_reaction_en,
-        r.tags,
-        r.difficulty,
-        r.bg_color,
-        r.likes,
-        r.comment_count
-      FROM v2_feed_items fi
-      JOIN v2_rooms r ON fi.room_id = r.id
-      WHERE fi.is_visible = 1 AND r.is_active = 1
-      ORDER BY fi.sort_order DESC, r.created_at DESC
-      LIMIT ? OFFSET ?
-    `).all(pageSize, offset);
+    const rows = await db.queryAll(
+      `
+        SELECT
+          fi.id AS feed_item_id,
+          r.id AS room_id,
+          r.news_title,
+          r.npc_a_name,
+          r.npc_a_reaction,
+          r.npc_b_name,
+          r.npc_b_reaction,
+          r.news_title_en,
+          r.npc_a_reaction_en,
+          r.npc_b_reaction_en,
+          r.tags,
+          r.difficulty,
+          r.bg_color,
+          r.likes,
+          r.comment_count
+        FROM v2_feed_items fi
+        JOIN v2_rooms r ON fi.room_id = r.id
+        WHERE fi.is_visible = 1 AND r.is_active = 1
+        ORDER BY fi.sort_order DESC, r.created_at DESC
+        LIMIT ? OFFSET ?
+      `,
+      [pageSize, offset]
+    );
 
-    // 解析 JSON 字段
-    const items = rows.map(row => ({
+    const items = rows.map((row) => ({
       feedItemId: row.feed_item_id,
       roomId: row.room_id,
       newsTitle: row.news_title,
@@ -88,18 +90,21 @@ router.get('/', (req, res) => {
  * 获取单条房间详情
  * 出参: 完整房间信息（含 groupName、npcProfiles 等）
  */
-router.get('/:roomId', (req, res) => {
+router.get('/:roomId', async (req, res) => {
   try {
     const { roomId } = req.params;
 
-    const row = db.prepare(`
-      SELECT
-        fi.id as feed_item_id,
-        r.*
-      FROM v2_rooms r
-      LEFT JOIN v2_feed_items fi ON fi.room_id = r.id
-      WHERE r.id = ? AND r.is_active = 1
-    `).get(roomId);
+    const row = await db.queryOne(
+      `
+        SELECT
+          fi.id AS feed_item_id,
+          r.*
+        FROM v2_rooms r
+        LEFT JOIN v2_feed_items fi ON fi.room_id = r.id
+        WHERE r.id = ? AND r.is_active = 1
+      `,
+      [roomId]
+    );
 
     if (!row) {
       return res.status(404).json({ error: '房间不存在或已下线' });

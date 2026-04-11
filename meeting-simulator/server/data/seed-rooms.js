@@ -9,7 +9,30 @@
  * - options[0].example 严格 A2 级别，最多 1-2 句，每句不超过 8 词
  */
 
+const fs = require('fs');
+const path = require('path');
 const { NEW_SEED_ROOMS } = require('./new-seed-rooms-006-020');
+
+const COVERS_DIR = process.env.COVERS_DIR || path.join(__dirname, '../../client/public/images/covers');
+const COVER_EXTENSIONS = ['webp', 'jpg', 'jpeg', 'png'];
+
+function resolveRoomCoverImage(room) {
+  if (!room?.id) return room?.cover_image || null;
+
+  const declaredExt = room.cover_image ? path.extname(room.cover_image).replace(/^\./, '').toLowerCase() : '';
+  const candidateExtensions = declaredExt
+    ? [declaredExt, ...COVER_EXTENSIONS.filter((ext) => ext !== declaredExt)]
+    : COVER_EXTENSIONS;
+
+  for (const ext of candidateExtensions) {
+    const absolutePath = path.join(COVERS_DIR, `${room.id}.${ext}`);
+    if (fs.existsSync(absolutePath)) {
+      return `/images/covers/${room.id}.${ext}`;
+    }
+  }
+
+  return room.cover_image || null;
+}
 
 const SEED_ROOMS = [
   // ──────────────────────────────────────────────
@@ -460,7 +483,10 @@ const SEED_ROOMS = [
  */
 async function seedRooms(db) {
   let insertedCount = 0;
-  const ALL_ROOMS = [...SEED_ROOMS, ...NEW_SEED_ROOMS];
+  const ALL_ROOMS = [...SEED_ROOMS, ...NEW_SEED_ROOMS].map((room) => ({
+    ...room,
+    cover_image: resolveRoomCoverImage(room),
+  }));
 
   for (const room of ALL_ROOMS) {
     const result = await db.execute(`

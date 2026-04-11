@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 export type AppState = {
   userId: string | null;
@@ -127,26 +127,35 @@ export function AppStateProvider({ children, initialState, disablePersistence = 
     });
   }, [isReady, state]);
 
+  const updateState = useCallback((updates: Partial<AppState>) => {
+    setState((prev) => ({ ...prev, ...updates }));
+  }, []);
+
+  const resetState = useCallback(() => {
+    setState((prev) => ({
+      ...DEFAULT_STATE,
+      userId: prev.userId,
+      userName: prev.userName,
+      completedRoomIds: prev.completedRoomIds,
+    }));
+  }, []);
+
+  const clearAll = useCallback(async () => {
+    await Promise.all(PERSIST_KEYS.map((key) => AsyncStorage.removeItem(`app_${key}`)));
+    const newUserId = generateUuid();
+    await AsyncStorage.setItem('app_userId', newUserId);
+    setState({ ...DEFAULT_STATE, userId: newUserId });
+  }, []);
+
   const value = useMemo<AppStateContextValue>(
     () => ({
       state,
       isReady,
-      updateState: (updates) => setState((prev) => ({ ...prev, ...updates })),
-      resetState: () =>
-        setState((prev) => ({
-          ...DEFAULT_STATE,
-          userId: prev.userId,
-          userName: prev.userName,
-          completedRoomIds: prev.completedRoomIds,
-        })),
-      clearAll: async () => {
-        await Promise.all(PERSIST_KEYS.map((key) => AsyncStorage.removeItem(`app_${key}`)));
-        const newUserId = generateUuid();
-        await AsyncStorage.setItem('app_userId', newUserId);
-        setState({ ...DEFAULT_STATE, userId: newUserId });
-      },
+      updateState,
+      resetState,
+      clearAll,
     }),
-    [disablePersistence, initialState, isReady, state]
+    [clearAll, isReady, resetState, state, updateState]
   );
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;

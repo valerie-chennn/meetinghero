@@ -7,11 +7,13 @@ export function TypewriterText({
   text,
   userName,
   style,
+  durationMs,
   onDone,
 }: {
   text: string;
   userName?: string | null;
   style?: StyleProp<TextStyle>;
+  durationMs?: number;
   onDone?: () => void;
 }) {
   const content = useMemo(() => renderMentionText(text, userName), [text, userName]);
@@ -22,7 +24,8 @@ export function TypewriterText({
     setVisibleCount(0);
     doneRef.current = false;
 
-    const step = Math.max(18, Math.min(60, 1800 / Math.max(content.length, 1)));
+    const totalDuration = durationMs || 1800;
+    const step = Math.max(18, Math.min(90, totalDuration / Math.max(content.length, 1)));
     const timer = setInterval(() => {
       setVisibleCount((prev) => {
         const next = Math.min(content.length, prev + 1);
@@ -34,7 +37,7 @@ export function TypewriterText({
     }, step);
 
     return () => clearInterval(timer);
-  }, [content]);
+  }, [content, durationMs]);
 
   useEffect(() => {
     if (!doneRef.current && visibleCount >= content.length) {

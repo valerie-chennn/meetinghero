@@ -4,6 +4,7 @@ import {
   ActivityIndicator,
   FlatList,
   Image,
+  LayoutChangeEvent,
   Pressable,
   StyleSheet,
   Text,
@@ -52,13 +53,13 @@ function getCoverUrl(coverImage?: string | null) {
 export function FeedScreen() {
   const { state, updateState } = useAppState();
   const { height } = useResponsiveLayout();
-  const cardHeight = Math.max(560, height - 150);
 
   const [feeds, setFeeds] = useState<FeedItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [bannerData, setBannerData] = useState<null | { npcName: string; message: string; messageZh?: string }>(null);
   const [cardIndex, setCardIndex] = useState(0);
+  const [listHeight, setListHeight] = useState(0);
 
   const countedCardsRef = useRef(new Set<string>());
   const fetchingBannerRef = useRef(false);
@@ -155,6 +156,15 @@ export function FeedScreen() {
       setCardIndex(nextIndex);
     }
   );
+  const fallbackCardHeight = Math.max(520, height - 170);
+  const cardHeight = listHeight > 0 ? listHeight : fallbackCardHeight;
+
+  const handleListWrapLayout = useCallback((event: LayoutChangeEvent) => {
+    const nextHeight = Math.round(event.nativeEvent.layout.height);
+    if (nextHeight > 0 && nextHeight !== listHeight) {
+      setListHeight(nextHeight);
+    }
+  }, [listHeight]);
 
   const currentCard = cardIndex < filteredFeed.length ? filteredFeed[cardIndex] : null;
   const headerBg = currentCard?.headerBg || '#F0EBE4';
@@ -203,7 +213,7 @@ export function FeedScreen() {
           />
         )}
 
-        <View style={styles.listWrap}>
+        <View style={styles.listWrap} onLayout={handleListWrapLayout}>
           <FlatList
             ref={listRef}
             data={feedEntries}
@@ -254,12 +264,18 @@ function FeedCard({
   onJoin: () => void;
   cardHeight: number;
 }) {
+  const [coverFailed, setCoverFailed] = useState(false);
   const { source, headline } = parseNewsTitle(item.newsTitle);
   const headlineFontSize = getHeadlineFontSize(headline);
   const coverUrl = getCoverUrl(item.coverImage);
+  const showCoverImage = !!coverUrl && !coverFailed;
+
+  useEffect(() => {
+    setCoverFailed(false);
+  }, [item.coverImage]);
 
   return (
-    <View style={[styles.card, { backgroundColor: item.bgColor || colors.paper, minHeight: cardHeight }]}>
+    <View style={[styles.card, { backgroundColor: item.bgColor || colors.paper, height: cardHeight }]}>
       <View style={styles.topRule} />
       <View style={styles.topRuleThin} />
 
@@ -281,12 +297,32 @@ function FeedCard({
           ))}
         </View>
 
-        {!!coverUrl && (
-          <Image
-            source={{ uri: coverUrl }}
-            style={styles.coverImage}
-            resizeMode="cover"
-          />
+        {(showCoverImage || item.coverImage) && (
+          showCoverImage ? (
+            <Image
+              source={{ uri: coverUrl }}
+              style={styles.coverImage}
+              resizeMode="cover"
+              onError={() => setCoverFailed(true)}
+            />
+          ) : (
+            <View
+              style={[
+                styles.coverPlaceholder,
+                { backgroundColor: withAlpha(item.accentColor, '22') },
+              ]}
+            >
+              <Text style={[styles.coverPlaceholderKicker, { color: item.accentColor || colors.accent }]}>
+                {source || item.tags?.[0] || 'Breaking'}
+              </Text>
+              <Text style={styles.coverPlaceholderTitle} numberOfLines={2}>
+                {headline.replace(/\n/g, ' ')}
+              </Text>
+              <Text style={styles.coverPlaceholderMeta}>
+                {item.npcAName} × {item.npcBName}
+              </Text>
+            </View>
+          )
         )}
 
         <View style={styles.statementsSection}>
@@ -482,6 +518,33 @@ const styles = StyleSheet.create({
     height: 118,
     borderRadius: 18,
     backgroundColor: '#E9DED0',
+  },
+  coverPlaceholder: {
+    width: '100%',
+    minHeight: 118,
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: 'rgba(28,27,26,0.08)',
+  },
+  coverPlaceholderKicker: {
+    fontSize: 11,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  coverPlaceholderTitle: {
+    color: colors.ink,
+    fontSize: 18,
+    lineHeight: 24,
+    fontWeight: '800',
+  },
+  coverPlaceholderMeta: {
+    color: colors.inkSoft,
+    fontSize: 12,
+    fontWeight: '600',
   },
   statementsSection: {
     flex: 1,

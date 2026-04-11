@@ -23,10 +23,13 @@ import { TypingDots } from '../components/TypingDots';
 import { useAppState } from '../context/AppStateContext';
 import { useVoiceRecorder } from '../hooks/useVoiceRecorder';
 import { colors } from '../theme/colors';
-import { playTts, prefetchTts } from '../utils/audio';
+import { estimateSpeechDurationMs, playPreparedTts, prepareTts } from '../utils/audio';
 import { renderMentionText } from '../utils/text';
 
 const NPC_COLORS = ['#7C5CBF', '#1A8A6E', '#C84B31', '#1A6A8A', '#A05020'];
+const MIN_DOTS_MS = 450;
+const AUTO_TTS_READY_TIMEOUT_MS = 3200;
+const TTS_SYNC_START_WAIT_MS = 520;
 
 type Phase = 'idle' | 'dots' | 'typing_en' | 'typing_done' | 'wait_tap' | 'mic' | 'done';
 
@@ -51,6 +54,21 @@ function getNpcColor(id: string) {
     hash = id.charCodeAt(i) + ((hash << 5) - hash);
   }
   return NPC_COLORS[Math.abs(hash) % NPC_COLORS.length];
+}
+
+function getCueByCompletedTurns(script: any[] | undefined, completedTurns: number) {
+  if (!Array.isArray(script)) return null;
+
+  let cueCount = 0;
+  for (const turn of script) {
+    if (turn?.type !== 'user_cue') continue;
+    if (cueCount === completedTurns) {
+      return turn;
+    }
+    cueCount += 1;
+  }
+
+  return null;
 }
 
 export function ChatScreen() {
@@ -85,6 +103,7 @@ export function ChatScreen() {
   const typingResolverRef = useRef<null | (() => void)>(null);
   const dragStartRef = useRef(0);
   const pendingShakeX = useRef(new Animated.Value(0)).current;
+  const hintRequestIdRef = useRef(0);
 
   const { isRecording, duration, toggleRecording } = useVoiceRecorder({
     onResult: (result) => {
@@ -129,21 +148,41 @@ export function ChatScreen() {
     setMessages((prev) => [...prev, message]);
   }, []);
 
-  const fetchDynamicHint = useCallback(async (chatSessionId: string) => {
+  const fetchDynamicHint = useCallback(async (chatSessionId: string, requestId: number) => {
+    if (hintRequestIdRef.current !== requestId) {
+      return;
+    }
+
     setHintLoading(true);
     try {
       const result = await generateHint(chatSessionId);
-      if (result?.hint && shouldContinueRef.current) {
+      if (result?.hint && shouldContinueRef.current && hintRequestIdRef.current === requestId) {
         setDynamicHint(result.hint);
       }
     } catch {
       // 静默忽略
     } finally {
-      if (shouldContinueRef.current) {
+      if (shouldContinueRef.current && hintRequestIdRef.current === requestId) {
         setHintLoading(false);
       }
     }
   }, []);
+
+  const enterMicMode = useCallback((chatSessionId: string, cueIndex?: number) => {
+    if (typeof cueIndex === 'number') {
+      curIdxRef.current = cueIndex;
+      setCurIdx(cueIndex);
+    }
+
+    setHintOpen(false);
+    setDynamicHint(null);
+    setHintLoading(false);
+    setMicCollapsed(false);
+    setPhase('mic');
+
+    hintRequestIdRef.current += 1;
+    fetchDynamicHint(chatSessionId, hintRequestIdRef.current);
+  }, [fetchDynamicHint]);
 
   const showNpcReply = useCallback(
     async (
@@ -151,6 +190,7 @@ export function ChatScreen() {
       speakerName: string
     ) => {
       const speakerColor = getNpcColor(reply.speaker);
+      const typingDurationMs = estimateSpeechDurationMs(reply.text, state.userName);
       const preview = {
         id: `preview-${Date.now()}`,
         speaker: reply.speaker,
@@ -160,26 +200,60 @@ export function ChatScreen() {
         zh: reply.textZh,
         voiceId: reply.voiceId,
         shake: !!reply.shake,
+        typingDurationMs,
       };
 
       setDotsPreview(preview);
       setPhase('dots');
-      prefetchTts(reply.text, reply.voiceId, state.userName);
-      await new Promise((resolve) => setTimeout(resolve, 650));
+      const preparedUri = await Promise.race<string | null>([
+        Promise.all([
+          prepareTts(reply.text, reply.voiceId, state.userName),
+          new Promise((resolve) => setTimeout(resolve, MIN_DOTS_MS)),
+        ]).then(([uri]) => uri),
+        new Promise<null>((resolve) => {
+          setTimeout(() => resolve(null), AUTO_TTS_READY_TIMEOUT_MS);
+        }),
+      ]);
       if (!shouldContinueRef.current) return;
 
       setDotsPreview(null);
       setPendingNpcReply(preview);
-      setPhase('typing_en');
 
       const typingPromise = new Promise<void>((resolve) => {
         typingResolverRef.current = resolve;
       });
-      const ttsPromise = playTts(reply.text, reply.voiceId, state.userName);
+      const typingFallbackMs = Math.max(typingDurationMs + 400, 1600);
 
-      await typingPromise;
+      let ttsPromise: Promise<void> = Promise.resolve();
+      if (preparedUri) {
+        const waitForPlaybackStart = new Promise<void>((resolve) => {
+          ttsPromise = Promise.resolve(
+            playPreparedTts(preparedUri, {
+              onStart: resolve,
+            })
+          ).catch(() => undefined);
+        });
+
+        await Promise.race([
+          waitForPlaybackStart,
+          new Promise<void>((resolve) => {
+            setTimeout(resolve, TTS_SYNC_START_WAIT_MS);
+          }),
+        ]);
+        if (!shouldContinueRef.current) return;
+      }
+
+      setPhase('typing_en');
+
+      await Promise.race([
+        typingPromise,
+        new Promise<void>((resolve) => {
+          setTimeout(resolve, typingFallbackMs);
+        }),
+      ]);
+      typingResolverRef.current = null;
+
       setPhase('typing_done');
-      await ttsPromise;
 
       appendMessage({
         id: `npc-${Date.now()}`,
@@ -194,6 +268,13 @@ export function ChatScreen() {
       });
 
       setPendingNpcReply(null);
+
+      await Promise.race([
+        ttsPromise.then(() => undefined),
+        new Promise<void>((resolve) => {
+          setTimeout(resolve, 1200);
+        }),
+      ]);
     },
     [appendMessage, state.userName]
   );
@@ -230,11 +311,7 @@ export function ChatScreen() {
           index += 1;
           const nextTurn = script[index];
           if (nextTurn?.type === 'user_cue') {
-            setHintOpen(false);
-            setDynamicHint(null);
-            setMicCollapsed(false);
-            setPhase('mic');
-            fetchDynamicHint(chatSessionId);
+            enterMicMode(chatSessionId, index);
             return;
           }
 
@@ -247,11 +324,7 @@ export function ChatScreen() {
         }
 
         if (turn.type === 'user_cue') {
-          setHintOpen(false);
-          setDynamicHint(null);
-          setMicCollapsed(false);
-          setPhase('mic');
-          fetchDynamicHint(chatSessionId);
+          enterMicMode(chatSessionId, index);
           return;
         }
 
@@ -270,7 +343,7 @@ export function ChatScreen() {
         }
       }
     },
-    [appendMessage, fetchDynamicHint, showNpcReply, state.userName]
+    [appendMessage, enterMicMode, showNpcReply, state.userName]
   );
 
   useEffect(() => {
@@ -376,6 +449,24 @@ export function ChatScreen() {
     }
   }
 
+  const typingSource = pendingNpcReply || dotsPreview;
+
+  useEffect(() => {
+    if ((phase !== 'dots' && phase !== 'typing_en') || !typingSource?.shake) {
+      pendingShakeX.setValue(0);
+      return;
+    }
+
+    const animation = Animated.sequence([
+      Animated.timing(pendingShakeX, { toValue: -5, duration: 40, useNativeDriver: true }),
+      Animated.timing(pendingShakeX, { toValue: 5, duration: 40, useNativeDriver: true }),
+      Animated.timing(pendingShakeX, { toValue: -4, duration: 40, useNativeDriver: true }),
+      Animated.timing(pendingShakeX, { toValue: 4, duration: 40, useNativeDriver: true }),
+      Animated.timing(pendingShakeX, { toValue: 0, duration: 40, useNativeDriver: true }),
+    ]);
+    animation.start();
+  }, [pendingShakeX, phase, typingSource?.id, typingSource?.shake]);
+
   if (isLoading) {
     return (
       <AppSurface>
@@ -398,28 +489,10 @@ export function ChatScreen() {
     );
   }
 
-  const typingSource = pendingNpcReply || dotsPreview;
-  const currentUserCue =
-    phase === 'mic' && sessionData?.dialogueScript?.[curIdx]?.type === 'user_cue'
-      ? sessionData.dialogueScript[curIdx]
-      : null;
+  const currentUserCue = phase === 'mic'
+    ? getCueByCompletedTurns(sessionData?.dialogueScript, userTurnCount)
+    : null;
   const memberListText = sessionData?.npcProfiles?.map((profile: any) => profile.name).join(' · ') || '';
-
-  useEffect(() => {
-    if ((phase !== 'dots' && phase !== 'typing_en') || !typingSource?.shake) {
-      pendingShakeX.setValue(0);
-      return;
-    }
-
-    const animation = Animated.sequence([
-      Animated.timing(pendingShakeX, { toValue: -5, duration: 40, useNativeDriver: true }),
-      Animated.timing(pendingShakeX, { toValue: 5, duration: 40, useNativeDriver: true }),
-      Animated.timing(pendingShakeX, { toValue: -4, duration: 40, useNativeDriver: true }),
-      Animated.timing(pendingShakeX, { toValue: 4, duration: 40, useNativeDriver: true }),
-      Animated.timing(pendingShakeX, { toValue: 0, duration: 40, useNativeDriver: true }),
-    ]);
-    animation.start();
-  }, [pendingShakeX, phase, typingSource?.id, typingSource?.shake]);
 
   return (
     <AppSurface backgroundColor="#FBF7F0">
@@ -470,7 +543,7 @@ export function ChatScreen() {
             </Animated.View>
           )}
 
-          {phase === 'typing_en' && !!typingSource && (
+          {(phase === 'typing_en' || phase === 'typing_done') && !!typingSource && (
             <Animated.View style={[styles.pendingRow, { transform: [{ translateX: pendingShakeX }] }]}>
               <View style={[styles.pendingAvatar, { backgroundColor: typingSource.speakerColor }]}>
                 <Text style={styles.pendingAvatarLabel}>{typingSource.speakerName?.[0]}</Text>
@@ -478,15 +551,21 @@ export function ChatScreen() {
               <View style={styles.pendingMeta}>
                 <Text style={[styles.pendingName, { color: typingSource.speakerColor }]}>{typingSource.speakerName}</Text>
                 <View style={styles.pendingBubble}>
-                  <TypewriterText
-                    text={typingSource.en}
-                    userName={state.userName}
-                    style={styles.pendingText}
-                    onDone={() => {
-                      typingResolverRef.current?.();
-                      typingResolverRef.current = null;
-                    }}
-                  />
+                  {phase === 'typing_en' ? (
+                    <TypewriterText
+                      text={typingSource.en}
+                      userName={state.userName}
+                      style={styles.pendingText}
+                      durationMs={typingSource.typingDurationMs}
+                      onDone={() => {
+                        typingResolverRef.current?.();
+                        typingResolverRef.current = null;
+                      }}
+                    />
+                  ) : (
+                    <Text style={styles.pendingText}>{typingSource.en}</Text>
+                  )}
+                  {!!typingSource.zh && <Text style={styles.pendingTextZh}>{typingSource.zh}</Text>}
                 </View>
               </View>
             </Animated.View>
@@ -730,6 +809,12 @@ const styles = StyleSheet.create({
     color: colors.ink,
     fontSize: 16,
     lineHeight: 22,
+  },
+  pendingTextZh: {
+    color: colors.inkSoft,
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 6,
   },
   panelContainer: {
     backgroundColor: '#FFFFFF',

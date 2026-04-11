@@ -17,6 +17,57 @@ const SEEDREAM_API_KEY = '4a0259b1-f164-4fca-aa43-6c7c20ba0178';
 const SEEDREAM_MODEL = 'doubao-seedream-5-0-260128';
 const SEEDREAM_ENDPOINT = 'https://ark.cn-beijing.volces.com/api/v3/images/generations';
 const COVERS_DIR = process.env.COVERS_DIR || path.join(__dirname, '../../client/public/images/covers');
+const COVER_EXTENSIONS = ['webp', 'jpg', 'jpeg', 'png'];
+
+function ensureCoversDir() {
+  if (!fs.existsSync(COVERS_DIR)) {
+    fs.mkdirSync(COVERS_DIR, { recursive: true });
+  }
+}
+
+function detectImageExtension(buffer) {
+  if (!buffer || buffer.length < 12) {
+    return 'jpg';
+  }
+
+  if (buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF) {
+    return 'jpg';
+  }
+
+  if (
+    buffer[0] === 0x89 &&
+    buffer[1] === 0x50 &&
+    buffer[2] === 0x4E &&
+    buffer[3] === 0x47
+  ) {
+    return 'png';
+  }
+
+  if (buffer.subarray(0, 4).toString('ascii') === 'RIFF' && buffer.subarray(8, 12).toString('ascii') === 'WEBP') {
+    return 'webp';
+  }
+
+  return 'jpg';
+}
+
+function removeStaleCoverFiles(fileBaseName, keepExt) {
+  for (const ext of COVER_EXTENSIONS) {
+    if (ext === keepExt) continue;
+    const candidate = path.join(COVERS_DIR, `${fileBaseName}.${ext}`);
+    if (fs.existsSync(candidate)) {
+      fs.unlinkSync(candidate);
+    }
+  }
+}
+
+function saveCoverImageBuffer(fileBaseName, buffer) {
+  ensureCoversDir();
+  const ext = detectImageExtension(buffer);
+  removeStaleCoverFiles(fileBaseName, ext);
+  const fileName = `${fileBaseName}.${ext}`;
+  fs.writeFileSync(path.join(COVERS_DIR, fileName), buffer);
+  return `/images/covers/${fileName}`;
+}
 
 /**
  * 调用豆包 Seedream API 生成封面图
@@ -345,15 +396,9 @@ async function generateRoomsInBackground(count = 3) {
       let coverImagePath = null;
       if (aiResult.image_prompt) {
         try {
-          // 确保目录存在
-          if (!fs.existsSync(COVERS_DIR)) {
-            fs.mkdirSync(COVERS_DIR, { recursive: true });
-          }
           console.log(`[room-generator] [${i + 1}/${count}] 生成封面图...`);
           const imgBuffer = await generateCoverImage(aiResult.image_prompt);
-          const imgFileName = `${roomId}.webp`;
-          fs.writeFileSync(path.join(COVERS_DIR, imgFileName), imgBuffer);
-          coverImagePath = `/images/covers/${imgFileName}`;
+          coverImagePath = saveCoverImageBuffer(roomId, imgBuffer);
           console.log(`[room-generator] [${i + 1}/${count}] 封面图完成 (${(imgBuffer.length / 1024).toFixed(1)}KB)`);
         } catch (imgErr) {
           // 图片生成失败不影响房间创建，只记日志
@@ -422,6 +467,8 @@ async function generateRoomsInBackground(count = 3) {
 module.exports = {
   generateRoomsInBackground,
   generateCoverImage,
+  saveCoverImageBuffer,
+  ensureCoversDir,
   assignVoiceIds,
   getThemeByTags,
   pickNpcPair,

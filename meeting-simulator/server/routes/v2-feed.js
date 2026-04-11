@@ -6,6 +6,9 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const { generateRoomsInBackground } = require('../services/room-generator');
+
+let isGenerating = false;
 
 /**
  * GET /api/v2/feed
@@ -45,6 +48,11 @@ router.get('/', async (req, res) => {
           r.tags,
           r.difficulty,
           r.bg_color,
+          r.header_bg,
+          r.header_text,
+          r.accent_color,
+          r.accent_dark,
+          r.cover_image,
           r.likes,
           r.comment_count
         FROM v2_feed_items fi
@@ -70,15 +78,49 @@ router.get('/', async (req, res) => {
       tags: row.tags ? JSON.parse(row.tags) : [],
       difficulty: row.difficulty,
       bgColor: row.bg_color || '#F7F2EC',
+      headerBg: row.header_bg || null,
+      headerText: row.header_text || null,
+      accentColor: row.accent_color || null,
+      accentDark: row.accent_dark || null,
+      coverImage: row.cover_image || null,
       likes: row.likes || 0,
       commentCount: row.comment_count || 0,
     }));
 
-    return res.status(200).json({
+    res.status(200).json({
       items,
       total,
       hasMore: offset + items.length < total,
     });
+
+    const currentOffset = offset;
+    const currentItemsLength = items.length;
+
+    setImmediate(async () => {
+      if (isGenerating) return;
+
+      try {
+        const totalActive = await db.queryOne(`
+          SELECT COUNT(*) AS count
+          FROM v2_rooms r
+          JOIN v2_feed_items fi ON fi.room_id = r.id
+          WHERE fi.is_visible = 1 AND r.is_active = 1
+        `);
+        const remaining = (totalActive?.count || 0) - (currentOffset + currentItemsLength);
+        if (remaining <= 5) {
+          isGenerating = true;
+          console.log(`[v2-feed] 剩余房间 ${remaining} <= 5，触发预生成 3 个房间...`);
+          const result = await generateRoomsInBackground(3);
+          console.log(`[v2-feed] 预生成完成: 成功 ${result.success}, 失败 ${result.failed}`);
+        }
+      } catch (generationError) {
+        console.error('[v2-feed] 预生成检查失败:', generationError.message);
+      } finally {
+        isGenerating = false;
+      }
+    });
+
+    return;
   } catch (err) {
     console.error('[v2-feed/list] 错误：', err.message);
     return res.status(500).json({ error: '服务器内部错误，请稍后重试' });
@@ -125,6 +167,11 @@ router.get('/:roomId', async (req, res) => {
       tags: row.tags ? JSON.parse(row.tags) : [],
       difficulty: row.difficulty,
       bgColor: row.bg_color || '#F7F2EC',
+      headerBg: row.header_bg || null,
+      headerText: row.header_text || null,
+      accentColor: row.accent_color || null,
+      accentDark: row.accent_dark || null,
+      coverImage: row.cover_image || null,
       likes: row.likes || 0,
       commentCount: row.comment_count || 0,
     });

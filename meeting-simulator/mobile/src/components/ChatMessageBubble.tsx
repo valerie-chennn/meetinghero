@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors } from '../theme/colors';
 import { playTts } from '../utils/audio';
 import { renderMentionText } from '../utils/text';
 
 type Message =
-  | { id: string; type: 'system'; text: string; isError?: boolean }
-  | { id: string; type: 'user'; en: string }
+  | { id: string; type: 'system'; text: string; isError?: boolean; shake?: boolean }
+  | { id: string; type: 'user'; en: string; shake?: boolean }
   | {
       id: string;
       type: 'npc';
@@ -17,6 +17,7 @@ type Message =
       en: string;
       zh?: string;
       voiceId?: string;
+      shake?: boolean;
     };
 
 export function ChatMessageBubble({
@@ -27,6 +28,21 @@ export function ChatMessageBubble({
   userName?: string | null;
 }) {
   const [playing, setPlaying] = useState(false);
+  const shakeX = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (message.type !== 'npc' || !message.shake) return;
+
+    const animation = Animated.sequence([
+      Animated.timing(shakeX, { toValue: -5, duration: 40, useNativeDriver: true }),
+      Animated.timing(shakeX, { toValue: 5, duration: 40, useNativeDriver: true }),
+      Animated.timing(shakeX, { toValue: -4, duration: 40, useNativeDriver: true }),
+      Animated.timing(shakeX, { toValue: 4, duration: 40, useNativeDriver: true }),
+      Animated.timing(shakeX, { toValue: 0, duration: 40, useNativeDriver: true }),
+    ]);
+
+    animation.start();
+  }, [message, shakeX]);
 
   if (message.type === 'system') {
     return (
@@ -48,7 +64,7 @@ export function ChatMessageBubble({
   }
 
   return (
-    <View style={styles.npcRow}>
+    <Animated.View style={[styles.npcRow, { transform: [{ translateX: shakeX }] }]}>
       <View style={[styles.avatar, { backgroundColor: message.speakerColor }]}>
         <Text style={styles.avatarLabel}>{(message.speakerName || message.speaker)[0]}</Text>
       </View>
@@ -71,7 +87,7 @@ export function ChatMessageBubble({
           </Pressable>
         </View>
       </View>
-    </View>
+    </Animated.View>
   );
 }
 

@@ -36,6 +36,9 @@ services:
       - MYSQL_PASSWORD=${MYSQL_PASSWORD:-meetinghero}
       - MYSQL_DATABASE=${MYSQL_DATABASE:-meetinghero}
       - MYSQL_CONNECTION_LIMIT=${MYSQL_CONNECTION_LIMIT:-10}
+      - COVERS_DIR=/app/covers
+    volumes:
+      - ./client/public/images/covers:/app/covers
     depends_on:
       mysql:
         condition: service_healthy
@@ -53,8 +56,11 @@ services:
       context: .
       dockerfile: Dockerfile.nginx
     ports:
-      # 端口可通过环境变量覆盖：生产不传则默认 80，staging 用 NGINX_PORT=8080
       - "${NGINX_PORT:-80}:80"
+      - "443:443"
+    volumes:
+      - ./client/public/images/covers:/usr/share/nginx/html/images/covers
+      - ./ssl:/etc/nginx/ssl:ro
     depends_on:
       api:
         condition: service_healthy

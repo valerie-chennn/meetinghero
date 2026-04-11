@@ -1,7 +1,7 @@
 /**
  * v2 推流版种子房间数据
  * 首次启动时自动插入 5 个预制房间
- * 使用 INSERT IGNORE 避免重复插入
+ * 使用 INSERT OR IGNORE 避免重复插入
  *
  * NPC 消息写作规则：
  * - 每条最多 2 句短句，接住上一条，一条只说一个点
@@ -9,13 +9,15 @@
  * - options[0].example 严格 A2 级别，最多 1-2 句，每句不超过 8 词
  */
 
+const { NEW_SEED_ROOMS } = require('./new-seed-rooms-006-020');
+
 const SEED_ROOMS = [
   // ──────────────────────────────────────────────
   // 房间 1：西游记 × 职场 — 东海三太子闲鱼挂牌
   // ──────────────────────────────────────────────
   {
     id: 'room-001',
-    news_title: '【东海商报】东海三太子惊现闲鱼，挂牌价两万，卖家疑为队友',
+    news_title: '【东海商报】白龙马挂闲鱼标价两万\n卖家疑为队友',
     npc_a_name: '八戒',
     npc_a_reaction: '这马吃多干少，不卖留着干啥',
     npc_b_name: '白龙马',
@@ -64,6 +66,11 @@ const SEED_ROOMS = [
       { type: 'npc', speaker: 'npc_a', text: "Anyway, I'm hungry. Let's eat first.", textZh: '算了，我饿了。先吃饭吧。' },
     ]),
     bg_color: '#F7F2EC',
+    header_bg: '#F0EBE4',
+    header_text: '#3A2E22',
+    accent_color: '#C41E1E',
+    accent_dark: '#1A1A1A',
+    cover_image: '/images/covers/room-001.webp',
     likes: 2300,
     comment_count: 128,
     settlement_template: JSON.stringify({
@@ -88,7 +95,7 @@ const SEED_ROOMS = [
     tags: JSON.stringify(['西游记', '职场', '跨IP']),
     difficulty: 'A2',
     sort_order: 50,
-    news_title_en: 'Dragon Prince Listed on eBay for $2K — Seller Reportedly a Former Teammate',
+    news_title_en: 'White Dragon Horse Listed on eBay for $2K — Seller Reportedly a Teammate',
     npc_a_reaction_en: '"Eats loads, does nothing. Selling tracks."',
     npc_b_reaction_en: '"I carried bags the whole trip. Where were you?"',
   },
@@ -98,7 +105,7 @@ const SEED_ROOMS = [
   // ──────────────────────────────────────────────
   {
     id: 'room-002',
-    news_title: '【复联内部周报】灭霸入职首日提交裁员方案，饼状图获CEO好评',
+    news_title: '【复联内部周报】灭霸入职首日提交裁员方案\n饼状图获CEO好评',
     npc_a_name: '钢铁侠',
     npc_a_reaction: '数学上成立，但我不支持这么做',
     npc_b_name: '甄嬛',
@@ -126,7 +133,7 @@ const SEED_ROOMS = [
     ]),
     dialogue_script: JSON.stringify([
       { type: 'npc', speaker: 'npc_a', text: "@{username}, you're HR — Thanos dropped a restructuring plan on day one. Is this real?", textZh: '@{username}，你是HR——灭霸入职第一天就交了裁员方案。这是认真的？' },
-      { type: 'npc', speaker: 'npc_b', text: "You cannot cut people like a pie chart. @{username} tell him this plan is wrong.", textZh: '人不能像饼状图一样切。@{username} 告诉他这方案不对。' },
+      { type: 'npc', speaker: 'npc_b', text: "You cannot cut people like a pie chart. @{username} is this plan okay to you?", textZh: '人不能像饼状图一样切。@{username} 你觉得这方案没问题吗？' },
       { type: 'user_cue', speaker: 'npc_a', hint: '钢铁侠找你撑场，要你确认数字是真的', hintZh: '钢铁侠找你撑场，要你确认数字是真的', options: [
         { label: '否决方案', example: "But cutting people isn't the only answer." },
         { label: '支持执行', example: "He's right. The numbers are real." },
@@ -146,7 +153,12 @@ const SEED_ROOMS = [
       ]},
       { type: 'npc', speaker: 'npc_a', text: "Meeting over. I need coffee. Strong coffee.", textZh: '散会。我需要咖啡。浓的。' },
     ]),
-    bg_color: '#ECF0F7',
+    bg_color: '#FFF1F2',
+    header_bg: '#FFE4E6',
+    header_text: '#4C0519',
+    accent_color: '#BE123C',
+    accent_dark: '#881337',
+    cover_image: '/images/covers/room-002.webp',
     likes: 4100,
     comment_count: 267,
     settlement_template: JSON.stringify({
@@ -181,7 +193,7 @@ const SEED_ROOMS = [
   // ──────────────────────────────────────────────
   {
     id: 'room-003',
-    news_title: '【中土娱乐周刊】年会现场突发事故，舞台被不明力量冻住，司仪诸葛亮哑口无言',
+    news_title: '【中土娱乐周刊】年会舞台被不明力量冻住\n诸葛亮当场无语',
     npc_a_name: '诸葛亮',
     npc_a_reaction: '昨夜星象无异兆，此冻乃天意也',
     npc_b_name: 'Elsa',
@@ -209,7 +221,7 @@ const SEED_ROOMS = [
     ]),
     dialogue_script: JSON.stringify([
       { type: 'npc', speaker: 'npc_a', text: "@{username}, the stage just froze mid-show! Who did this?", textZh: '@{username}，舞台演到一半直接冻住了！谁干的？' },
-      { type: 'npc', speaker: 'npc_b', text: "Someone played 'Let It Go' without warning me. Not my fault. @{username} you saw it!", textZh: '有人没通知我就放了"随它吧"。不是我的错。@{username} 你亲眼看到了！' },
+      { type: 'npc', speaker: 'npc_b', text: "Someone played 'Let It Go' without warning me. Not my fault. @{username} who is wrong here?", textZh: '有人没通知我就放了"随它吧"。不是我的错。@{username} 到底谁的问题？' },
       { type: 'user_cue', speaker: 'npc_a', hint: '诸葛亮问你：冰雕事故谁来负责？Elsa还是主办方？', hintZh: '诸葛亮问你：冰雕事故谁来负责？Elsa还是主办方？', options: [
         { label: 'Elsa负责', example: "Honestly, Elsa should control her powers." },
         { label: '主办方负责', example: "The song was a bad choice. That started it." },
@@ -229,7 +241,12 @@ const SEED_ROOMS = [
       ]},
       { type: 'npc', speaker: 'npc_a', text: "Next year, I check the playlist myself.", textZh: '明年，歌单我自己审。' },
     ]),
-    bg_color: '#F7F4EC',
+    bg_color: '#F5F3FF',
+    header_bg: '#EDE9FE',
+    header_text: '#3B0764',
+    accent_color: '#6D28D9',
+    accent_dark: '#3B0764',
+    cover_image: '/images/covers/room-003.webp',
     likes: 1800,
     comment_count: 95,
     settlement_template: JSON.stringify({
@@ -254,7 +271,7 @@ const SEED_ROOMS = [
     tags: JSON.stringify(['迪士尼', '三国', '跨IP', '年会']),
     difficulty: 'A2',
     sort_order: 30,
-    news_title_en: 'Stage Frozen Mid-Show by "Unknown Force." Emcee Zhuge Liang Had No Words.',
+    news_title_en: 'Stage Frozen by Unknown Force Mid-Show. Zhuge Liang Speechless.',
     npc_a_reaction_en: '"Stars clear. Universe overruled the plan."',
     npc_b_reaction_en: '"Ice backdrop beats the original PPT, honestly."',
   },
@@ -264,7 +281,7 @@ const SEED_ROOMS = [
   // ──────────────────────────────────────────────
   {
     id: 'room-004',
-    news_title: '【魔法日报】霍格沃茨宣布引入AI教学系统，分院帽失业，邓布利多："它比我们分得准"',
+    news_title: '【魔法日报】AI一秒分完院\n分院帽失业\n邓布利多：它分得更准',
     npc_a_name: '赫敏',
     npc_a_reaction: '准确率97%是真的，但不代表该用',
     npc_b_name: '马尔福',
@@ -312,7 +329,12 @@ const SEED_ROOMS = [
       ]},
       { type: 'npc', speaker: 'npc_a', text: "Noted. I'll update the report tonight.", textZh: '记下了。今晚我更新报告。' },
     ]),
-    bg_color: '#ECF3F7',
+    bg_color: '#FFF7ED',
+    header_bg: '#FEF3C7',
+    header_text: '#78350F',
+    accent_color: '#92400E',
+    accent_dark: '#78350F',
+    cover_image: '/images/covers/room-004.webp',
     likes: 3200,
     comment_count: 186,
     settlement_template: JSON.stringify({
@@ -337,7 +359,7 @@ const SEED_ROOMS = [
     tags: JSON.stringify(['哈利波特', '科技', '跨IP', 'AI']),
     difficulty: 'B1',
     sort_order: 20,
-    news_title_en: 'Hogwarts Rolls Out AI Sorting System. Sorting Hat Laid Off. Dumbledore: "It\'s More Accurate."',
+    news_title_en: 'AI Sorts in One Second. Sorting Hat Laid Off. Dumbledore: "More Accurate."',
     npc_a_reaction_en: '"97% accuracy confirmed. Still shouldn\'t use it."',
     npc_b_reaction_en: '"Hufflepuff?! System is broken. Filing complaint."',
   },
@@ -347,7 +369,7 @@ const SEED_ROOMS = [
   // ──────────────────────────────────────────────
   {
     id: 'room-005',
-    news_title: '【中土娱乐快报】"中土好声音"总决赛现场爆冷，甘道夫盲选转椅直接脱轨，导师组集体道歉',
+    news_title: '【中土娱乐快报】"中土好声音"决赛\n甘道夫转椅直接飞出舞台',
     npc_a_name: '甘道夫',
     npc_a_reaction: '转椅可以解释，是魔法干扰',
     npc_b_name: '咕噜',
@@ -375,7 +397,7 @@ const SEED_ROOMS = [
     ]),
     dialogue_script: JSON.stringify([
       { type: 'npc', speaker: 'npc_a', text: "@{username}, you saw it — my chair flew off during the finals! It was NOT my fault!", textZh: '@{username}，你亲眼看到的——决赛时我的椅子飞出去了！不是我的问题！' },
-      { type: 'npc', speaker: 'npc_b', text: "Everyone saw your staff glow first. You broke the chair. @{username} tell him!", textZh: '所有人都看到你法杖先亮的。椅子是你弄坏的。@{username} 你说！' },
+      { type: 'npc', speaker: 'npc_b', text: "Everyone saw your staff glow first. You broke the chair. @{username} am I wrong?!", textZh: '所有人都看到你法杖先亮的。椅子是你弄坏的。@{username} 我说得不对吗？！' },
       { type: 'user_cue', speaker: 'npc_a', hint: '甘道夫问你：转椅事故是椅子故障还是他法杖干扰？', hintZh: '甘道夫问你：转椅事故是椅子故障还是他法杖干扰？', options: [
         { label: '是法杖', example: "Actually the staff glowed first." },
         { label: '是椅子故障', example: "Yeah, the chair looked broken." },
@@ -395,7 +417,12 @@ const SEED_ROOMS = [
       ]},
       { type: 'npc', speaker: 'npc_a', text: "Fine. But this stays off my Wikipedia page.", textZh: '行。但这事不许上我的维基百科。' },
     ]),
-    bg_color: '#F5ECF7',
+    bg_color: '#ECFDF5',
+    header_bg: '#D1FAE5',
+    header_text: '#064E3B',
+    accent_color: '#047857',
+    accent_dark: '#064E3B',
+    cover_image: '/images/covers/room-005.webp',
     likes: 5600,
     comment_count: 342,
     settlement_template: JSON.stringify({
@@ -420,7 +447,7 @@ const SEED_ROOMS = [
     tags: JSON.stringify(['指环王', '综艺', '跨IP', '选秀']),
     difficulty: 'B1',
     sort_order: 10,
-    news_title_en: 'The Voice of Middle-Earth Grand Finale: Gandalf\'s Chair Comes Off the Rails. Literally.',
+    news_title_en: 'Voice of Middle-Earth Finals: Gandalf\'s Chair Flew Off the Stage',
     npc_a_reaction_en: '"Magical interference. Not operator error."',
     npc_b_reaction_en: '"It\'s ours, precious. Trophy is OURS. We appeal!"',
   },
@@ -429,26 +456,27 @@ const SEED_ROOMS = [
 /**
  * 将种子房间数据插入数据库
  * 同时在 v2_feed_items 中创建对应的展示记录
- * @param {{ execute(sql: string, params?: any[]): Promise<{affectedRows: number}> }} db
+ * @param {{ execute(sql: string, params?: any[]): Promise<{ affectedRows: number }> }} db
  */
 async function seedRooms(db) {
   let insertedCount = 0;
+  const ALL_ROOMS = [...SEED_ROOMS, ...NEW_SEED_ROOMS];
 
-  for (const room of SEED_ROOMS) {
+  for (const room of ALL_ROOMS) {
     const result = await db.execute(`
-    INSERT IGNORE INTO v2_rooms (
-      id, news_title, npc_a_name, npc_a_reaction,
-      npc_b_name, npc_b_reaction,
-      news_title_en, npc_a_reaction_en, npc_b_reaction_en,
-      group_name, group_notice,
-      user_role_name, user_role_name_en, user_role_desc, npc_profiles, dialogue_script,
-      settlement_template, tags, difficulty, is_active, sort_order,
-      bg_color, likes, comment_count
-    ) VALUES (
-      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?,
-      ?, ?, ?
-    )
-  `, [
+      INSERT IGNORE INTO v2_rooms (
+        id, news_title, npc_a_name, npc_a_reaction,
+        npc_b_name, npc_b_reaction,
+        news_title_en, npc_a_reaction_en, npc_b_reaction_en,
+        group_name, group_notice,
+        user_role_name, user_role_name_en, user_role_desc, npc_profiles, dialogue_script,
+        settlement_template, tags, difficulty, is_active, sort_order,
+        bg_color, header_bg, header_text, accent_color, accent_dark, cover_image, likes, comment_count
+      ) VALUES (
+        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?,
+        ?, ?, ?, ?, ?, ?, ?, ?
+      )
+    `, [
       room.id,
       room.news_title,
       room.npc_a_name,
@@ -470,6 +498,11 @@ async function seedRooms(db) {
       room.difficulty || 'A2',
       room.sort_order || 0,
       room.bg_color || '#F7F2EC',
+      room.header_bg || null,
+      room.header_text || null,
+      room.accent_color || null,
+      room.accent_dark || null,
+      room.cover_image || null,
       room.likes || 0,
       room.comment_count || 0
     ]);
@@ -490,18 +523,25 @@ async function seedRooms(db) {
     console.log('[Seed] 种子房间已存在，跳过插入');
   }
 
-  // 更新已有房间的代码版本字段（INSERT IGNORE 不会更新已存在的记录）
+  // 更新已有房间的代码版本字段（INSERT OR IGNORE 不会更新已存在的记录）
   // 注意：likes/comment_count 是运营数据，只在值为 0 时初始化，不覆盖已有值
-  for (const room of SEED_ROOMS) {
+  for (const room of ALL_ROOMS) {
     await db.execute(`
       UPDATE v2_rooms
-      SET bg_color = ?, settlement_template = ?, dialogue_script = ?, user_role_name_en = ?
+      SET news_title = ?, bg_color = ?, settlement_template = ?, dialogue_script = ?, user_role_name_en = ?,
+        header_bg = ?, header_text = ?, accent_color = ?, accent_dark = ?, cover_image = ?
       WHERE id = ?
     `, [
+      room.news_title,
       room.bg_color || '#F7F2EC',
       room.settlement_template,
       room.dialogue_script,
       room.user_role_name_en || null,
+      room.header_bg || null,
+      room.header_text || null,
+      room.accent_color || null,
+      room.accent_dark || null,
+      room.cover_image || null,
       room.id,
     ]);
 

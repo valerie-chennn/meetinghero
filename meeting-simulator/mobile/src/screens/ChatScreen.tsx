@@ -2,6 +2,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   KeyboardAvoidingView,
   PanResponder,
   Platform,
@@ -41,6 +42,7 @@ type UiMessage =
       en: string;
       zh?: string;
       voiceId?: string;
+      shake?: boolean;
     };
 
 function getNpcColor(id: string) {
@@ -82,6 +84,7 @@ export function ChatScreen() {
   const advanceResolverRef = useRef<null | (() => void)>(null);
   const typingResolverRef = useRef<null | (() => void)>(null);
   const dragStartRef = useRef(0);
+  const pendingShakeX = useRef(new Animated.Value(0)).current;
 
   const { isRecording, duration, toggleRecording } = useVoiceRecorder({
     onResult: (result) => {
@@ -143,15 +146,20 @@ export function ChatScreen() {
   }, []);
 
   const showNpcReply = useCallback(
-    async (reply: { speaker: string; text: string; textZh?: string; voiceId?: string }, speakerName: string) => {
+    async (
+      reply: { speaker: string; text: string; textZh?: string; voiceId?: string; shake?: boolean },
+      speakerName: string
+    ) => {
       const speakerColor = getNpcColor(reply.speaker);
       const preview = {
+        id: `preview-${Date.now()}`,
         speaker: reply.speaker,
         speakerName,
         speakerColor,
         en: reply.text,
         zh: reply.textZh,
         voiceId: reply.voiceId,
+        shake: !!reply.shake,
       };
 
       setDotsPreview(preview);
@@ -182,6 +190,7 @@ export function ChatScreen() {
         en: reply.text,
         zh: reply.textZh,
         voiceId: reply.voiceId,
+        shake: !!reply.shake,
       });
 
       setPendingNpcReply(null);
@@ -213,6 +222,7 @@ export function ChatScreen() {
               text: renderMentionText(turn.text, state.userName),
               textZh: turn.textZh ? renderMentionText(turn.textZh, state.userName) : undefined,
               voiceId: profile.voiceId,
+              shake: index === 3,
             },
             profile.name
           );
@@ -277,6 +287,12 @@ export function ChatScreen() {
         const data = await joinChat(state.userId, roomId);
         if (cancelled) return;
 
+        const nextScript = Array.isArray(data.dialogueScript) ? [...data.dialogueScript] : [];
+        if (nextScript.length > 0 && nextScript[nextScript.length - 1].type === 'npc') {
+          nextScript.pop();
+        }
+        data.dialogueScript = nextScript;
+
         const nextNpcMap = Object.fromEntries((data.npcProfiles || []).map((profile: any) => [profile.id, profile]));
         npcMapRef.current = nextNpcMap;
         setSessionData(data);
@@ -320,6 +336,10 @@ export function ChatScreen() {
       const turnCount = userTurnCount + 1;
       const result = await respondChat(sessionData.chatSessionId, turnCount, text);
       const profile = npcMapRef.current[result.npcReply.speaker] || { name: result.npcReply.speaker };
+      const replyEmotion = result.npcReply.emotion || 'neutral';
+      const shouldShake =
+        turnCount === 2 ||
+        (turnCount === 3 && (replyEmotion === 'angry' || replyEmotion === 'sad'));
 
       await showNpcReply(
         {
@@ -327,6 +347,7 @@ export function ChatScreen() {
           text: renderMentionText(result.npcReply.text, state.userName),
           textZh: result.npcReply.textZh ? renderMentionText(result.npcReply.textZh, state.userName) : undefined,
           voiceId: result.npcReply.voiceId || profile.voiceId,
+          shake: shouldShake,
         },
         profile.name
       );
@@ -384,6 +405,22 @@ export function ChatScreen() {
       : null;
   const memberListText = sessionData?.npcProfiles?.map((profile: any) => profile.name).join(' · ') || '';
 
+  useEffect(() => {
+    if ((phase !== 'dots' && phase !== 'typing_en') || !typingSource?.shake) {
+      pendingShakeX.setValue(0);
+      return;
+    }
+
+    const animation = Animated.sequence([
+      Animated.timing(pendingShakeX, { toValue: -5, duration: 40, useNativeDriver: true }),
+      Animated.timing(pendingShakeX, { toValue: 5, duration: 40, useNativeDriver: true }),
+      Animated.timing(pendingShakeX, { toValue: -4, duration: 40, useNativeDriver: true }),
+      Animated.timing(pendingShakeX, { toValue: 4, duration: 40, useNativeDriver: true }),
+      Animated.timing(pendingShakeX, { toValue: 0, duration: 40, useNativeDriver: true }),
+    ]);
+    animation.start();
+  }, [pendingShakeX, phase, typingSource?.id, typingSource?.shake]);
+
   return (
     <AppSurface backgroundColor="#FBF7F0">
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -423,18 +460,18 @@ export function ChatScreen() {
           ))}
 
           {phase === 'dots' && !!typingSource && (
-            <View style={styles.pendingRow}>
+            <Animated.View style={[styles.pendingRow, { transform: [{ translateX: pendingShakeX }] }]}>
               <View style={[styles.pendingAvatar, { backgroundColor: typingSource.speakerColor }]}>
                 <Text style={styles.pendingAvatarLabel}>{typingSource.speakerName?.[0]}</Text>
               </View>
               <View style={styles.pendingBubble}>
                 <TypingDots />
               </View>
-            </View>
+            </Animated.View>
           )}
 
           {phase === 'typing_en' && !!typingSource && (
-            <View style={styles.pendingRow}>
+            <Animated.View style={[styles.pendingRow, { transform: [{ translateX: pendingShakeX }] }]}>
               <View style={[styles.pendingAvatar, { backgroundColor: typingSource.speakerColor }]}>
                 <Text style={styles.pendingAvatarLabel}>{typingSource.speakerName?.[0]}</Text>
               </View>
@@ -452,7 +489,7 @@ export function ChatScreen() {
                   />
                 </View>
               </View>
-            </View>
+            </Animated.View>
           )}
         </ScrollView>
 

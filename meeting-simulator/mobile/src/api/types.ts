@@ -12,6 +12,11 @@ export type FeedItem = {
   tags: string[];
   difficulty: string;
   bgColor: string;
+  headerBg?: string | null;
+  headerText?: string | null;
+  accentColor?: string | null;
+  accentDark?: string | null;
+  coverImage?: string | null;
   likes: number;
   commentCount: number;
 };

@@ -1,5 +1,5 @@
 export function parseNewsTitle(title: string) {
-  const match = title.match(/【(.+?)】(.+)/);
+  const match = title.match(/【(.+?)】([\s\S]+)/);
   if (match) {
     return { source: match[1], headline: match[2] };
   }

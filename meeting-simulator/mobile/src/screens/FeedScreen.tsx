@@ -1,35 +1,58 @@
 import { router } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View, ViewToken } from 'react-native';
+import {
+  ActivityIndicator,
+  FlatList,
+  Image,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  ViewToken,
+} from 'react-native';
 
+import { getApiBaseUrl } from '../api/client';
 import { getDmBanner, getFeedList } from '../api';
-import { DmBanner } from '../components/DmBanner';
-import { AppSurface } from '../components/AppSurface';
-import { useAppState } from '../context/AppStateContext';
 import type { FeedItem } from '../api/types';
+import { AppSurface } from '../components/AppSurface';
+import { DmBanner } from '../components/DmBanner';
+import { FeedEndCard } from '../components/FeedEndCard';
+import { useAppState } from '../context/AppStateContext';
 import { colors } from '../theme/colors';
-import { parseNewsTitle, formatCount } from '../utils/text';
+import { formatCount, parseNewsTitle } from '../utils/text';
 import { useResponsiveLayout } from '../utils/responsive';
 
-const SOURCE_COLORS: Record<string, string> = {
-  '西游记': '#C41E1E',
-  '漫威': '#1A56DB',
-  '迪士尼': '#7C5CBF',
-  '哈利波特': '#B45309',
-  '指环王': '#1A56DB',
-  '三国': '#C41E1E',
-  '宫斗': '#9B2C5E',
-  '综艺': '#B45309',
-};
+type FeedListEntry =
+  | (FeedItem & { kind?: 'room' })
+  | { kind: 'end'; id: 'feed-end-card' };
 
-function getSourceColor(tags: string[]) {
-  return tags.find((tag) => SOURCE_COLORS[tag]) ? SOURCE_COLORS[tags.find((tag) => SOURCE_COLORS[tag])!] : '#C41E1E';
+function withAlpha(color?: string | null, alpha = '1A') {
+  if (!color || !/^#[0-9a-fA-F]{6}$/.test(color)) {
+    return `#C41E1E${alpha}`;
+  }
+  return `${color}${alpha}`;
+}
+
+function getHeadlineFontSize(headline: string) {
+  const longestLine = headline
+    .split('\n')
+    .reduce((max, line) => Math.max(max, line.trim().length), 0);
+
+  if (longestLine >= 15) return 26;
+  if (longestLine >= 12) return 29;
+  return 33;
+}
+
+function getCoverUrl(coverImage?: string | null) {
+  if (!coverImage) return null;
+  if (/^https?:\/\//i.test(coverImage)) return coverImage;
+  return `${getApiBaseUrl()}${coverImage.startsWith('/') ? coverImage : `/${coverImage}`}`;
 }
 
 export function FeedScreen() {
   const { state, updateState } = useAppState();
   const { height } = useResponsiveLayout();
-  const cardHeight = Math.max(560, height - 92);
+  const cardHeight = Math.max(560, height - 150);
 
   const [feeds, setFeeds] = useState<FeedItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -39,11 +62,21 @@ export function FeedScreen() {
 
   const countedCardsRef = useRef(new Set<string>());
   const fetchingBannerRef = useRef(false);
-  const listRef = useRef<FlatList<FeedItem>>(null);
+  const listRef = useRef<FlatList<FeedListEntry>>(null);
+  const cardsSinceLastChatRef = useRef(state.cardsSinceLastChat);
+
+  useEffect(() => {
+    cardsSinceLastChatRef.current = state.cardsSinceLastChat;
+  }, [state.cardsSinceLastChat]);
 
   const filteredFeed = useMemo(() => {
-    return feeds.filter((item) => !(state.completedRoomIds || []).includes(item.roomId));
-  }, [feeds, state.completedRoomIds]);
+    // 与 main 保持一致：当前版本不在 Feed 中隐藏已完成房间。
+    return feeds;
+  }, [feeds]);
+
+  const feedEntries = useMemo<FeedListEntry[]>(() => {
+    return [...filteredFeed, { kind: 'end', id: 'feed-end-card' }];
+  }, [filteredFeed]);
 
   const fetchFeeds = useCallback(async () => {
     setIsLoading(true);
@@ -63,11 +96,37 @@ export function FeedScreen() {
     fetchFeeds();
   }, [fetchFeeds]);
 
-  useEffect(() => {
-    if (feeds.length > 0 && filteredFeed.length === 0) {
-      updateState({ completedRoomIds: [] });
+  const checkDmBanner = useCallback(async () => {
+    if (
+      state.cardsSinceLastChat < 2 ||
+      state.dmBannerShown >= 2 ||
+      !state.currentChatSessionId ||
+      fetchingBannerRef.current
+    ) {
+      return;
     }
-  }, [feeds.length, filteredFeed.length, updateState]);
+
+    fetchingBannerRef.current = true;
+
+    try {
+      const data = await getDmBanner(state.currentChatSessionId);
+      if (data.hasBanner && data.banner) {
+        setBannerData(data.banner);
+        updateState({
+          dmBannerShown: state.dmBannerShown + 1,
+          cardsSinceLastChat: 0,
+        });
+      }
+    } catch {
+      // 忽略 banner 拉取失败
+    } finally {
+      fetchingBannerRef.current = false;
+    }
+  }, [state.cardsSinceLastChat, state.currentChatSessionId, state.dmBannerShown, updateState]);
+
+  useEffect(() => {
+    checkDmBanner();
+  }, [checkDmBanner]);
 
   useEffect(() => {
     if (filteredFeed.length === 0) return;
@@ -75,64 +134,46 @@ export function FeedScreen() {
     if (!currentCard || countedCardsRef.current.has(currentCard.roomId)) return;
 
     countedCardsRef.current.add(currentCard.roomId);
-    updateState({ cardsSinceLastChat: state.cardsSinceLastChat + 1, feedScrollIndex: cardIndex });
-  }, [cardIndex, filteredFeed, state.cardsSinceLastChat, updateState]);
+    updateState({
+      cardsSinceLastChat: cardsSinceLastChatRef.current + 1,
+      feedScrollIndex: cardIndex,
+    });
+  }, [cardIndex, filteredFeed, updateState]);
 
   useEffect(() => {
-    async function maybeLoadBanner() {
-      if (
-        state.cardsSinceLastChat < 2 ||
-        state.dmBannerShown >= 2 ||
-        !state.currentChatSessionId ||
-        fetchingBannerRef.current
-      ) {
-        return;
-      }
-
-      fetchingBannerRef.current = true;
-
-      try {
-        const data = await getDmBanner(state.currentChatSessionId);
-        if (data.hasBanner && data.banner) {
-          setBannerData(data.banner);
-          updateState({
-            dmBannerShown: state.dmBannerShown + 1,
-            cardsSinceLastChat: 0,
-          });
-        }
-      } catch {
-        // 忽略 banner 拉取失败
-      } finally {
-        fetchingBannerRef.current = false;
-      }
-    }
-
-    maybeLoadBanner();
-  }, [state.cardsSinceLastChat, state.currentChatSessionId, state.dmBannerShown, updateState]);
-
-  useEffect(() => {
-    if (!filteredFeed.length || !state.feedScrollIndex) return;
-    const nextIndex = Math.min(state.feedScrollIndex, filteredFeed.length - 1);
+    if (filteredFeed.length === 0) return;
+    const nextIndex = Math.min(state.feedScrollIndex || 0, feedEntries.length - 1);
     requestAnimationFrame(() => {
       listRef.current?.scrollToIndex({ animated: false, index: nextIndex });
       setCardIndex(nextIndex);
     });
-  }, [filteredFeed.length, state.feedScrollIndex]);
+  }, [feedEntries.length, filteredFeed.length, state.feedScrollIndex]);
 
   const onViewableItemsChanged = useRef(
-    ({ viewableItems }: { viewableItems: ViewToken<FeedItem>[] }) => {
-      const item = viewableItems[0]?.index ?? 0;
-      setCardIndex(item);
+    ({ viewableItems }: { viewableItems: ViewToken<FeedListEntry>[] }) => {
+      const nextIndex = viewableItems[0]?.index ?? 0;
+      setCardIndex(nextIndex);
     }
   );
 
+  const currentCard = cardIndex < filteredFeed.length ? filteredFeed[cardIndex] : null;
+  const headerBg = currentCard?.headerBg || '#F0EBE4';
+  const headerText = currentCard?.headerText || '#3A2E22';
+
   if (isLoading) {
-    return <LoadingState />;
+    return (
+      <AppSurface backgroundColor={headerBg}>
+        <View style={styles.centerState}>
+          <ActivityIndicator size="large" color={colors.accent} />
+          <Text style={styles.loadingText}>正在加载 Feed...</Text>
+        </View>
+      </AppSurface>
+    );
   }
 
   if (error) {
     return (
-      <AppSurface>
+      <AppSurface backgroundColor={headerBg}>
         <View style={styles.centerState}>
           <Text style={styles.errorText}>{error}</Text>
           <Pressable onPress={fetchFeeds} style={styles.retryButton}>
@@ -144,8 +185,15 @@ export function FeedScreen() {
   }
 
   return (
-    <AppSurface>
+    <AppSurface backgroundColor={headerBg}>
       <View style={styles.container}>
+        <View style={[styles.header, { backgroundColor: headerBg }]}>
+          <Text style={[styles.headerTitle, { color: headerText }]}>每日胡说</Text>
+          <Pressable onPress={() => router.push('/profile')} style={styles.headerAvatar}>
+            <Text style={styles.headerAvatarText}>{state.userName?.[0] || '?'}</Text>
+          </Pressable>
+        </View>
+
         {!!bannerData && (
           <DmBanner
             npcName={bannerData.npcName}
@@ -154,30 +202,43 @@ export function FeedScreen() {
             onClose={() => setBannerData(null)}
           />
         )}
-        <FlatList
-          ref={listRef}
-          data={filteredFeed}
-          pagingEnabled
-          showsVerticalScrollIndicator={false}
-          onViewableItemsChanged={onViewableItemsChanged.current}
-          viewabilityConfig={{ itemVisiblePercentThreshold: 70 }}
-          keyExtractor={(item) => item.roomId}
-          getItemLayout={(_, index) => ({ index, length: cardHeight, offset: cardHeight * index })}
-          renderItem={({ item }) => (
-            <FeedCard
-              item={item}
-              cardHeight={cardHeight}
-              onJoin={() => {
-                updateState({ currentRoomId: item.roomId });
-                router.push(`/chat/${item.roomId}`);
-              }}
-            />
+
+        <View style={styles.listWrap}>
+          <FlatList
+            ref={listRef}
+            data={feedEntries}
+            pagingEnabled
+            showsVerticalScrollIndicator={false}
+            keyExtractor={(item) => (item.kind === 'end' ? item.id : item.roomId)}
+            renderItem={({ item }) =>
+              item.kind === 'end' ? (
+                <FeedEndCard height={cardHeight} expressionCount={0} />
+              ) : (
+                <FeedCard
+                  item={item}
+                  cardHeight={cardHeight}
+                  onJoin={() => {
+                    updateState({ currentRoomId: item.roomId });
+                    router.push(`/chat/${item.roomId}`);
+                  }}
+                />
+              )
+            }
+            getItemLayout={(_, index) => ({ index, length: cardHeight, offset: cardHeight * index })}
+            onViewableItemsChanged={onViewableItemsChanged.current}
+            viewabilityConfig={{ itemVisiblePercentThreshold: 70 }}
+          />
+
+          {feedEntries.length > 0 && (
+            <View style={styles.pagination}>
+              {feedEntries.map((item, index) => (
+                <View
+                  key={item.kind === 'end' ? item.id : item.roomId}
+                  style={[styles.dot, index === cardIndex ? styles.dotActive : null]}
+                />
+              ))}
+            </View>
           )}
-        />
-        <View style={styles.pagination}>
-          {filteredFeed.map((item, index) => (
-            <View key={item.roomId} style={[styles.dot, index === cardIndex ? styles.dotActive : null]} />
-          ))}
         </View>
       </View>
     </AppSurface>
@@ -194,58 +255,136 @@ function FeedCard({
   cardHeight: number;
 }) {
   const { source, headline } = parseNewsTitle(item.newsTitle);
-  const sourceColor = getSourceColor(item.tags || []);
+  const headlineFontSize = getHeadlineFontSize(headline);
+  const coverUrl = getCoverUrl(item.coverImage);
 
   return (
     <View style={[styles.card, { backgroundColor: item.bgColor || colors.paper, minHeight: cardHeight }]}>
       <View style={styles.topRule} />
       <View style={styles.topRuleThin} />
+
       <View style={styles.cardBody}>
-        {!!item.tags?.[0] && <Text style={styles.pill}>{item.tags[0]}</Text>}
-        {!!source && <Text style={[styles.source, { color: sourceColor }]}>{source}</Text>}
+        {!!item.tags?.[0] && (
+          <View style={[styles.pill, { backgroundColor: withAlpha(item.accentColor) }]}>
+            <Text style={[styles.pillText, { color: item.accentColor || '#C41E1E' }]}>{item.tags[0]}</Text>
+          </View>
+        )}
+
+        {!!source && <Text style={[styles.source, { color: item.accentColor || '#C41E1E' }]}>{source}</Text>}
         <View style={styles.headlineRule} />
-        <Text style={styles.headline}>{headline}</Text>
-        {!!item.newsTitleEn && <Text style={styles.headlineEn}>{item.newsTitleEn}</Text>}
-        <View style={styles.contentRule} />
-        <View style={styles.commentsCard}>
-          <Text style={styles.commentsLabel}>当事人回应 / Statements</Text>
-          <View style={styles.commentItem}>
-            <Text style={styles.commentName}>{item.npcAName}</Text>
-            <Text style={styles.commentText}>{item.npcAReaction}</Text>
-            {!!item.npcAReactionEn && <Text style={styles.commentTextEn}>{item.npcAReactionEn}</Text>}
+
+        <View style={styles.headlineWrap}>
+          {headline.split('\n').map((line, index) => (
+            <Text key={`${line}-${index}`} style={[styles.headline, { fontSize: headlineFontSize }]}>
+              {line}
+            </Text>
+          ))}
+        </View>
+
+        {!!coverUrl && (
+          <Image
+            source={{ uri: coverUrl }}
+            style={styles.coverImage}
+            resizeMode="cover"
+          />
+        )}
+
+        <View style={styles.statementsSection}>
+          <View style={styles.statementsHeader}>
+            <Text style={styles.statementsLabel}>Statements</Text>
+            <View style={styles.statementsLine} />
           </View>
-          <View style={styles.commentItem}>
-            <Text style={styles.commentName}>{item.npcBName}</Text>
-            <Text style={styles.commentText}>{item.npcBReaction}</Text>
-            {!!item.npcBReactionEn && <Text style={styles.commentTextEn}>{item.npcBReactionEn}</Text>}
+
+          <QuoteBlock
+            name={item.npcAName}
+            english={item.npcAReactionEn || item.npcAReaction}
+            chinese={item.npcAReaction}
+            color={item.accentColor || '#C41E1E'}
+          />
+
+          <View style={styles.quoteSeparator} />
+
+          <QuoteBlock
+            name={item.npcBName}
+            english={item.npcBReactionEn || item.npcBReaction}
+            chinese={item.npcBReaction}
+            color={item.accentDark || '#1A1A1A'}
+          />
+
+          <View style={styles.metaRow}>
+            <Text style={styles.metaText}>{formatCount(item.likes || 0)}人围观</Text>
+            <View style={styles.metaDot} />
+            <Text style={styles.metaText}>{formatCount(item.commentCount || 0)}条评论</Text>
           </View>
         </View>
-        <View style={styles.metaRow}>
-          <Text style={styles.metaText}>❤️ {formatCount(item.likes || 0)}</Text>
-          <Text style={styles.metaText}>💬 {formatCount(item.commentCount || 0)}</Text>
-          <Text style={styles.metaText}>{item.difficulty}</Text>
-        </View>
-        <Pressable onPress={onJoin} style={styles.joinButton}>
-          <Text style={styles.joinLabel}>加入讨论</Text>
+
+        <Pressable
+          onPress={onJoin}
+          style={[styles.joinButton, { backgroundColor: item.accentDark || '#1A1A1A' }]}
+        >
+          <Text style={styles.joinLabel}>Join Chat</Text>
         </Pressable>
+
+        <View style={styles.swipeHint}>
+          <Text style={styles.swipeHintText}>˄ 上划看下一条</Text>
+        </View>
       </View>
     </View>
   );
 }
 
-function LoadingState() {
+function QuoteBlock({
+  name,
+  english,
+  chinese,
+  color,
+}: {
+  name: string;
+  english: string;
+  chinese: string;
+  color: string;
+}) {
   return (
-    <AppSurface>
-      <View style={styles.centerState}>
-        <ActivityIndicator size="large" color={colors.accent} />
-        <Text style={styles.loadingText}>正在加载 Feed...</Text>
-      </View>
-    </AppSurface>
+    <View style={[styles.quoteBlock, { borderLeftColor: color }]}>
+      <Text style={[styles.quoteName, { color }]}>{name}</Text>
+      <Text style={styles.quoteEn}>{english}</Text>
+      <Text style={styles.quoteZh}>{chinese}</Text>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  header: {
+    minHeight: 68,
+    paddingHorizontal: 18,
+    paddingTop: 8,
+    paddingBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  headerAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.72)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(58,46,34,0.08)',
+  },
+  headerAvatarText: {
+    color: colors.ink,
+    fontWeight: '800',
+  },
+  listWrap: {
     flex: 1,
   },
   centerState: {
@@ -263,26 +402,43 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   retryButton: {
+    minWidth: 120,
     paddingHorizontal: 18,
     paddingVertical: 12,
-    borderRadius: 16,
-    backgroundColor: colors.paperStrong,
-    borderColor: colors.line,
-    borderWidth: 1,
+    borderRadius: 999,
+    backgroundColor: colors.ink,
   },
   retryLabel: {
-    color: colors.ink,
+    color: '#FFFFFF',
     fontWeight: '700',
   },
+  pagination: {
+    position: 'absolute',
+    right: 12,
+    top: '42%',
+    gap: 8,
+    alignItems: 'center',
+  },
+  dot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: 'rgba(28,27,26,0.18)',
+  },
+  dotActive: {
+    width: 9,
+    height: 18,
+    borderRadius: 999,
+    backgroundColor: colors.ink,
+  },
   card: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 32,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
   },
   topRule: {
     height: 3,
     backgroundColor: colors.ink,
-    marginBottom: 6,
+    marginBottom: 4,
   },
   topRuleThin: {
     height: 1,
@@ -291,114 +447,127 @@ const styles = StyleSheet.create({
   cardBody: {
     flex: 1,
     paddingTop: 18,
+    paddingBottom: 12,
+    gap: 14,
   },
   pill: {
     alignSelf: 'flex-start',
-    backgroundColor: colors.paperStrong,
     borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  pillText: {
     fontSize: 12,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colors.line,
-    marginBottom: 12,
+    fontWeight: '700',
   },
   source: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '700',
-    marginBottom: 10,
   },
   headlineRule: {
-    height: 4,
-    backgroundColor: colors.ink,
-    marginBottom: 14,
+    height: 2,
+    backgroundColor: 'rgba(28,27,26,0.12)',
+  },
+  headlineWrap: {
+    gap: 2,
   },
   headline: {
-    fontSize: 30,
-    lineHeight: 38,
+    lineHeight: 39,
+    fontWeight: '900',
     color: colors.ink,
-    fontWeight: '800',
+    letterSpacing: -0.4,
   },
-  headlineEn: {
-    marginTop: 10,
-    fontSize: 14,
-    color: colors.inkSoft,
-    lineHeight: 20,
+  coverImage: {
+    width: '100%',
+    height: 118,
+    borderRadius: 18,
+    backgroundColor: '#E9DED0',
   },
-  contentRule: {
-    marginTop: 18,
-    marginBottom: 18,
-    height: 1,
-    backgroundColor: colors.line,
-  },
-  commentsCard: {
-    gap: 14,
-    backgroundColor: colors.paperStrong,
-    borderRadius: 20,
+  statementsSection: {
+    flex: 1,
+    borderRadius: 22,
     padding: 16,
-    borderColor: colors.line,
+    backgroundColor: 'rgba(255,255,255,0.54)',
     borderWidth: 1,
+    borderColor: 'rgba(28,27,26,0.08)',
+    gap: 14,
   },
-  commentsLabel: {
-    fontSize: 12,
+  statementsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  statementsLabel: {
     color: colors.inkSoft,
-    fontWeight: '700',
+    fontSize: 12,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
-  commentItem: {
+  statementsLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(28,27,26,0.12)',
+  },
+  quoteBlock: {
+    borderLeftWidth: 3,
+    paddingLeft: 12,
     gap: 4,
   },
-  commentName: {
+  quoteName: {
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  quoteEn: {
     color: colors.ink,
+    fontSize: 16,
+    lineHeight: 22,
     fontWeight: '700',
-    fontSize: 14,
   },
-  commentText: {
-    color: colors.ink,
-    fontSize: 15,
-  },
-  commentTextEn: {
+  quoteZh: {
     color: colors.inkSoft,
     fontSize: 13,
     lineHeight: 18,
   },
+  quoteSeparator: {
+    height: 1,
+    backgroundColor: 'rgba(28,27,26,0.08)',
+  },
   metaRow: {
-    flexDirection: 'row',
-    gap: 12,
     marginTop: 'auto',
-    marginBottom: 16,
-    paddingTop: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingTop: 4,
   },
   metaText: {
-    fontSize: 13,
     color: colors.inkSoft,
+    fontSize: 12,
+  },
+  metaDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.inkSoft,
   },
   joinButton: {
     minHeight: 54,
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.ink,
   },
   joinLabel: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '800',
+    letterSpacing: 0.2,
   },
-  pagination: {
-    position: 'absolute',
-    right: 12,
-    top: 120,
-    gap: 6,
+  swipeHint: {
+    alignItems: 'center',
+    paddingTop: 2,
   },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: 'rgba(28, 27, 26, 0.18)',
-  },
-  dotActive: {
-    backgroundColor: colors.ink,
-    height: 18,
+  swipeHintText: {
+    color: colors.inkSoft,
+    fontSize: 12,
   },
 });

@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -51,7 +52,21 @@ export function ExpressionsScreen() {
   return (
     <AppSurface>
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>表达本</Text>
+        <View style={styles.headerRow}>
+          <Pressable
+            onPress={() => {
+              if (typeof router.canGoBack === 'function' && router.canGoBack()) {
+                router.back();
+                return;
+              }
+              router.replace('/feed');
+            }}
+            style={styles.backButton}
+          >
+            <Text style={styles.backButtonText}>‹</Text>
+          </Pressable>
+          <Text style={styles.title}>表达本</Text>
+        </View>
         <Text style={styles.desc}>收藏你学到的地道英语表达</Text>
 
         {stats && !isLoading && !error && (
@@ -113,6 +128,27 @@ const styles = StyleSheet.create({
   container: {
     padding: 20,
     gap: 18,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  backButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.paperStrong,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  backButtonText: {
+    color: colors.ink,
+    fontSize: 24,
+    lineHeight: 24,
+    fontWeight: '500',
   },
   title: {
     fontSize: 34,

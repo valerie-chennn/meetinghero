@@ -249,6 +249,11 @@ async function ensureSchema() {
   `);
 
   await ensureColumnExists('v2_rooms', 'bg_color', "bg_color VARCHAR(32) DEFAULT '#1a1028'");
+  await ensureColumnExists('v2_rooms', 'header_bg', 'header_bg VARCHAR(32)');
+  await ensureColumnExists('v2_rooms', 'header_text', 'header_text VARCHAR(32)');
+  await ensureColumnExists('v2_rooms', 'accent_color', 'accent_color VARCHAR(32)');
+  await ensureColumnExists('v2_rooms', 'accent_dark', 'accent_dark VARCHAR(32)');
+  await ensureColumnExists('v2_rooms', 'cover_image', 'cover_image TEXT');
   await ensureColumnExists('v2_rooms', 'likes', 'likes INT DEFAULT 0');
   await ensureColumnExists('v2_rooms', 'comment_count', 'comment_count INT DEFAULT 0');
   await ensureColumnExists('v2_rooms', 'user_role_name_en', 'user_role_name_en VARCHAR(255)');

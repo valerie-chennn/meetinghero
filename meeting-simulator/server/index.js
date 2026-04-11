@@ -8,6 +8,7 @@ require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 
 const db = require('./db');
 
@@ -58,6 +59,9 @@ function createApp() {
   app.use(express.json({ limit: '50mb' }));
   app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
+  const coversDir = process.env.COVERS_DIR || path.join(__dirname, '../client/public/images/covers');
+  app.use('/images/covers', express.static(coversDir));
+
   // 请求日志中间件
   app.use((req, res, next) => {
     console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
@@ -73,11 +77,13 @@ function createApp() {
   const v2FeedRouter = require('./routes/v2-feed');
   const v2ChatRouter = require('./routes/v2-chat');
   const v2ExpressionsRouter = require('./routes/v2-expressions');
+  const v2AdminRouter = require('./routes/v2-admin');
 
   app.use('/api/v2/users', v2UsersRouter);
   app.use('/api/v2/feed', v2FeedRouter);
   app.use('/api/v2/chat', v2ChatRouter);
   app.use('/api/v2/expressions', v2ExpressionsRouter);
+  app.use('/api/v2/admin', v2AdminRouter);
 
   // ==================== 健康检查 ====================
 

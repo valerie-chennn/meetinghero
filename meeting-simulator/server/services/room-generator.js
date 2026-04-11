@@ -16,7 +16,7 @@ const { CHARACTER_POOL } = require('../data/character-pool');
 const SEEDREAM_API_KEY = '4a0259b1-f164-4fca-aa43-6c7c20ba0178';
 const SEEDREAM_MODEL = 'doubao-seedream-5-0-260128';
 const SEEDREAM_ENDPOINT = 'https://ark.cn-beijing.volces.com/api/v3/images/generations';
-const COVERS_DIR = path.join(__dirname, '../../client/public/images/covers');
+const COVERS_DIR = process.env.COVERS_DIR || path.join(__dirname, '../../client/public/images/covers');
 
 /**
  * 调用豆包 Seedream API 生成封面图
@@ -197,8 +197,8 @@ function validateRoomData(result) {
   if (!Array.isArray(result.dialogue_script)) {
     return { valid: false, reason: 'dialogue_script 不是数组' };
   }
-  if (result.dialogue_script.length !== 8) {
-    return { valid: false, reason: `dialogue_script 长度为 ${result.dialogue_script.length}，应为 8` };
+  if (result.dialogue_script.length !== 7) {
+    return { valid: false, reason: `dialogue_script 长度为 ${result.dialogue_script.length}，应为 7` };
   }
 
   // 恰好 3 个 user_cue

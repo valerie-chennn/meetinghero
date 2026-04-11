@@ -47,8 +47,7 @@ function generateRoomPrompt({ npcA, npcB, existingTitles = [] }) {
     { "type": "npc", "speaker": "npc_b", "text": "...", "textZh": "..." },
     { "type": "user_cue", "speaker": "npc_b", "hint": "...", "hintZh": "...", "options": [...] },
     { "type": "npc", "speaker": "npc_a", "text": "...", "textZh": "..." },
-    { "type": "user_cue", "speaker": "npc_a", "hint": "...", "hintZh": "...", "options": [...] },
-    { "type": "npc", "speaker": "npc_a", "text": "收尾台词", "textZh": "..." }
+    { "type": "user_cue", "speaker": "npc_a", "hint": "...", "hintZh": "...", "options": [...] }
   ],
   "settlement_template": {
     "type": "news",
@@ -116,8 +115,8 @@ function generateRoomPrompt({ npcA, npcB, existingTitles = [] }) {
   - "宙斯空投雷云封港\\n路飞直播开船硬闯引众怒"（× 两件事拼一起）
   - "长城扫雪外包算法上线首日崩盘"（× 塞太多概念，一句话说了五件事）
 
-### dialogue_script 严格 8 条
-结构顺序：npc_a → npc_b → user_cue_1 → npc → user_cue_2 → npc → user_cue_3 → npc_closing
+### dialogue_script 严格 7 条
+结构顺序：npc_a → npc_b → user_cue_1 → npc → user_cue_2 → npc → user_cue_3
 
 - 每条 NPC 消息最多 2 句短句，A2 级别英语（每句≤15词）
 - 每条 NPC 消息必须包含 @{username}（这是运行时替换的占位符）
@@ -134,6 +133,9 @@ function generateRoomPrompt({ npcA, npcB, existingTitles = [] }) {
 
 ### settlement_template
 - publisher 与 news_title 的报社名必须呼应
+- headline 是后续新闻标题，描述事件的最终结果（≤20字）
+- bullets 恰好 3 条，每条必须用角色的中文名（如"八戒"、"白龙马"），禁止写"NPC"、"角色A"等泛称
+- bullets 每条内容必须不同，分别描述事件的不同后续进展，禁止重复表达同一个意思
 - absurd_attributes_pool 恰好 5 个，delta 范围 -3 到 +5，至少 1 个负数
 - 属性名要搞笑、贴合场景（如"摸鱼指数"、"吃瓜热情"、"官方认可度"）
 
@@ -178,7 +180,7 @@ function generateRoomPrompt({ npcA, npcB, existingTitles = [] }) {
 要求：
 1. 创造一个让这两个角色产生有趣冲突的现代化新闻事件
 2. 保持各自鲜明的人设性格
-3. dialogue_script 严格 8 条，结构顺序：npc_a → npc_b → user_cue_1 → npc → user_cue_2 → npc → user_cue_3 → npc_closing
+3. dialogue_script 严格 7 条，结构顺序：npc_a → npc_b → user_cue_1 → npc → user_cue_2 → npc → user_cue_3（不要收尾台词）
 4. 直接输出 JSON，不加任何说明文字`;
 
   return { systemPrompt: fullSystemPrompt, userPrompt };

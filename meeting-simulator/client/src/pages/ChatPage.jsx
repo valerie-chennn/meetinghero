@@ -302,6 +302,13 @@ function ChatPage() {
         const data = await joinChat(state.userId, roomId);
         if (cancelled) return;
 
+        // 去掉脚本最后一条 npc_closing（收尾台词），直接进入结算
+        const script = data.dialogueScript;
+        if (script.length > 0 && script[script.length - 1].type === 'npc') {
+          script.pop();
+        }
+        data.dialogueScript = script;
+
         setSessionData(data);
         updateState({
           currentRoomId: roomId,

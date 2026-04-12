@@ -28,6 +28,7 @@ export function ChatMessageBubble({
   userName?: string | null;
 }) {
   const [playing, setPlaying] = useState(false);
+  const [playError, setPlayError] = useState('');
   const shakeX = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -77,7 +78,12 @@ export function ChatMessageBubble({
             onPress={async () => {
               if (playing) return;
               setPlaying(true);
-              await playTts(message.en, message.voiceId, userName);
+              const result = await playTts(message.en, message.voiceId, userName);
+              if (result.reason !== 'completed') {
+                setPlayError('语音播放失败，请稍后重试。');
+              } else {
+                setPlayError('');
+              }
               setPlaying(false);
             }}
             hitSlop={8}
@@ -85,6 +91,7 @@ export function ChatMessageBubble({
           >
             <Text style={[styles.ttsLabel, playing ? styles.ttsLabelActive : null]}>🔊 重听</Text>
           </Pressable>
+          {!!playError && <Text style={styles.ttsError}>{playError}</Text>}
         </View>
       </View>
     </Animated.View>
@@ -180,5 +187,10 @@ const styles = StyleSheet.create({
   },
   ttsLabelActive: {
     color: colors.accent,
+  },
+  ttsError: {
+    color: colors.danger,
+    fontSize: 12,
+    lineHeight: 16,
   },
 });

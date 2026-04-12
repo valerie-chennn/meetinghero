@@ -11,6 +11,8 @@ jest.mock('expo-router', () => ({
     replace: jest.fn(),
     push: jest.fn(),
     back: jest.fn(),
+    dismissTo: jest.fn(),
+    dismissAll: jest.fn(),
     canGoBack: jest.fn(() => false),
   },
   useLocalSearchParams: jest.fn(() => ({})),
@@ -77,6 +79,7 @@ jest.mock('expo-audio', () => ({
     HIGH_QUALITY: {},
   },
   requestRecordingPermissionsAsync: jest.fn(async () => ({ granted: true })),
+  setIsAudioActiveAsync: jest.fn(async () => undefined),
   setAudioModeAsync: jest.fn(async () => undefined),
   useAudioRecorder: jest.fn(() => ({
     prepareToRecordAsync: jest.fn(async () => undefined),

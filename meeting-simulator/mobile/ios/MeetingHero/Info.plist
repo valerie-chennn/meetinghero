@@ -44,6 +44,14 @@
       <false/>
       <key>NSAllowsLocalNetworking</key>
       <true/>
+      <key>NSExceptionDomains</key>
+      <dict>
+        <key>115.190.10.83</key>
+        <dict>
+          <key>NSExceptionAllowsInsecureHTTPLoads</key>
+          <true/>
+        </dict>
+      </dict>
     </dict>
     <key>NSMicrophoneUsageDescription</key>
     <string>MeetingHero needs microphone access so you can practice speaking in chat.</string>

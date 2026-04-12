@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLocalSearchParams, router } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { getSettlement } from '../api';
 import { AppSurface } from '../components/AppSurface';
@@ -23,6 +23,8 @@ export function SettlementScreen() {
   const [view, setView] = useState<'settlement' | 'expression'>('settlement');
   const [hintVisible, setHintVisible] = useState(false);
   const [cardIndex, setCardIndex] = useState(0);
+  const [expressionPageWidth, setExpressionPageWidth] = useState(0);
+  const { width: windowWidth } = useWindowDimensions();
 
   useEffect(() => {
     if (!sessionId) return;
@@ -48,6 +50,7 @@ export function SettlementScreen() {
     const featured = cards.find((card: any) => card.isFeatured);
     return featured ? [featured, ...cards.filter((card: any) => card.id !== featured.id)] : cards;
   }, [settlement?.expressionCards]);
+  const resolvedExpressionPageWidth = expressionPageWidth || Math.max(windowWidth - 40, 280);
 
   async function handleBackToFeed() {
     if (roomId && !state.completedRoomIds.includes(roomId)) {
@@ -110,18 +113,39 @@ export function SettlementScreen() {
         <View style={styles.container}>
           <Text style={styles.sectionTitle}>更地道的说法</Text>
           {hintVisible && <Text style={styles.swipeHint}>左右滑动查看更多表达卡片</Text>}
-          <FlatList
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            data={expressionCards}
-            keyExtractor={(item) => String(item.id)}
-            onMomentumScrollEnd={(event) => {
-              const nextIndex = Math.round(event.nativeEvent.contentOffset.x / event.nativeEvent.layoutMeasurement.width);
-              handleSwipeOnce(nextIndex);
+          <View
+            style={styles.expressionPagerWrap}
+            onLayout={(event) => {
+              const nextWidth = Math.round(event.nativeEvent.layout.width);
+              if (nextWidth > 0 && nextWidth !== expressionPageWidth) {
+                setExpressionPageWidth(nextWidth);
+              }
             }}
-            renderItem={({ item }) => <ExpressionCard card={item} />}
-          />
+          >
+            <FlatList
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              data={expressionCards}
+              extraData={resolvedExpressionPageWidth}
+              keyExtractor={(item) => String(item.id)}
+              onMomentumScrollEnd={(event) => {
+                const pageWidth = event.nativeEvent.layoutMeasurement.width || resolvedExpressionPageWidth;
+                const nextIndex = Math.round(event.nativeEvent.contentOffset.x / pageWidth);
+                handleSwipeOnce(nextIndex);
+              }}
+              getItemLayout={(_, index) => ({
+                index,
+                length: resolvedExpressionPageWidth,
+                offset: resolvedExpressionPageWidth * index,
+              })}
+              renderItem={({ item }) => (
+                <View style={[styles.expressionPage, { width: resolvedExpressionPageWidth }]}>
+                  <ExpressionCard card={item} />
+                </View>
+              )}
+            />
+          </View>
           <View style={styles.pagination}>
             {expressionCards.map((item: any, index: number) => (
               <View key={item.id} style={[styles.dot, cardIndex === index ? styles.dotActive : null]} />
@@ -351,9 +375,14 @@ const styles = StyleSheet.create({
     color: colors.accent,
     fontWeight: '600',
   },
+  expressionPagerWrap: {
+    width: '100%',
+  },
+  expressionPage: {
+    width: '100%',
+  },
   expressionCard: {
-    width: 340,
-    marginRight: 16,
+    width: '100%',
     backgroundColor: colors.paperStrong,
     borderWidth: 1,
     borderColor: colors.line,

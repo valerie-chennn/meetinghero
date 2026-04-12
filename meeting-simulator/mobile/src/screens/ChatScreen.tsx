@@ -23,13 +23,12 @@ import { TypingDots } from '../components/TypingDots';
 import { useAppState } from '../context/AppStateContext';
 import { useVoiceRecorder } from '../hooks/useVoiceRecorder';
 import { colors } from '../theme/colors';
-import { estimateSpeechDurationMs, playPreparedTts, prepareTts } from '../utils/audio';
+import { estimateSpeechDurationMs, playTts, prepareTts, prefetchTts, warmupTtsPlaybackSession } from '../utils/audio';
 import { renderMentionText } from '../utils/text';
 
 const NPC_COLORS = ['#7C5CBF', '#1A8A6E', '#C84B31', '#1A6A8A', '#A05020'];
 const MIN_DOTS_MS = 450;
-const AUTO_TTS_READY_TIMEOUT_MS = 3200;
-const TTS_SYNC_START_WAIT_MS = 520;
+const AUTO_TTS_READY_TIMEOUT_MS = 5500;
 
 type Phase = 'idle' | 'dots' | 'typing_en' | 'typing_done' | 'wait_tap' | 'mic' | 'done';
 
@@ -117,6 +116,20 @@ export function ChatScreen() {
     },
     onTranscribing: setIsTranscribing,
   });
+
+  const leaveChatToFeed = useCallback((abortChat?: boolean) => {
+    shouldContinueRef.current = false;
+    advanceResolverRef.current?.();
+    advanceResolverRef.current = null;
+    typingResolverRef.current?.();
+    typingResolverRef.current = null;
+
+    if (abortChat && sessionData?.chatSessionId) {
+      void completeChat(sessionData.chatSessionId, true).catch(() => undefined);
+    }
+
+    router.dismissTo('/feed');
+  }, [sessionData?.chatSessionId]);
 
   useEffect(() => {
     scrollRef.current?.scrollToEnd({ animated: true });
@@ -223,24 +236,31 @@ export function ChatScreen() {
         typingResolverRef.current = resolve;
       });
       const typingFallbackMs = Math.max(typingDurationMs + 400, 1600);
+      let resolvePlaybackStart: ((started: boolean) => void) | null = null;
+      const playbackStartPromise = new Promise<boolean>((resolve) => {
+        resolvePlaybackStart = resolve;
+      });
 
-      let ttsPromise: Promise<void> = Promise.resolve();
-      if (preparedUri) {
-        const waitForPlaybackStart = new Promise<void>((resolve) => {
-          ttsPromise = Promise.resolve(
-            playPreparedTts(preparedUri, {
-              onStart: resolve,
-            })
-          ).catch(() => undefined);
-        });
+      const ttsPromise = Promise.resolve(
+        playTts(reply.text, reply.voiceId, state.userName, {
+          onStart: () => {
+            resolvePlaybackStart?.(true);
+            resolvePlaybackStart = null;
+          },
+        })
+      ).then((result) => {
+        resolvePlaybackStart?.(result.started);
+        resolvePlaybackStart = null;
+        return result;
+      });
 
-        await Promise.race([
-          waitForPlaybackStart,
-          new Promise<void>((resolve) => {
-            setTimeout(resolve, TTS_SYNC_START_WAIT_MS);
-          }),
-        ]);
-        if (!shouldContinueRef.current) return;
+      const playbackStarted = await playbackStartPromise;
+      if (!shouldContinueRef.current) return;
+      if (!playbackStarted) {
+        typingResolverRef.current = null;
+        setPendingNpcReply(null);
+        setPhase('idle');
+        throw new Error('NPC 语音播放失败，请退出当前题目后重试。');
       }
 
       setPhase('typing_en');
@@ -255,6 +275,15 @@ export function ChatScreen() {
 
       setPhase('typing_done');
 
+      const playbackResult = await ttsPromise;
+      if (!shouldContinueRef.current) return;
+      if (playbackResult.reason !== 'completed') {
+        typingResolverRef.current = null;
+        setPendingNpcReply(null);
+        setPhase('idle');
+        throw new Error('NPC 语音播放失败，请退出当前题目后重试。');
+      }
+
       appendMessage({
         id: `npc-${Date.now()}`,
         type: 'npc',
@@ -268,13 +297,6 @@ export function ChatScreen() {
       });
 
       setPendingNpcReply(null);
-
-      await Promise.race([
-        ttsPromise.then(() => undefined),
-        new Promise<void>((resolve) => {
-          setTimeout(resolve, 1200);
-        }),
-      ]);
     },
     [appendMessage, state.userName]
   );
@@ -297,16 +319,27 @@ export function ChatScreen() {
 
         if (turn.type === 'npc') {
           const profile = npcMapRef.current[turn.speaker] || { name: turn.speaker };
-          await showNpcReply(
-            {
-              speaker: turn.speaker,
-              text: renderMentionText(turn.text, state.userName),
-              textZh: turn.textZh ? renderMentionText(turn.textZh, state.userName) : undefined,
-              voiceId: profile.voiceId,
-              shake: index === 3,
-            },
-            profile.name
-          );
+          try {
+            await showNpcReply(
+              {
+                speaker: turn.speaker,
+                text: renderMentionText(turn.text, state.userName),
+                textZh: turn.textZh ? renderMentionText(turn.textZh, state.userName) : undefined,
+                voiceId: profile.voiceId,
+                shake: index === 3,
+              },
+              profile.name
+            );
+          } catch (error) {
+            appendMessage({
+              id: `npc-tts-${Date.now()}`,
+              type: 'system',
+              text: error instanceof Error ? error.message : 'NPC 语音播放失败，请退出当前题目后重试。',
+              isError: true,
+            });
+            setPhase('idle');
+            return;
+          }
 
           index += 1;
           const nextTurn = script[index];
@@ -376,6 +409,18 @@ export function ChatScreen() {
           chatProgress: 0,
           userTurnCount: 0,
         });
+        const firstNpcTurn = data.dialogueScript.find((turn: any) => turn?.type === 'npc') as
+          | { speaker: string; text: string }
+          | undefined;
+        if (firstNpcTurn) {
+          const profile = nextNpcMap[firstNpcTurn.speaker] || {};
+          void warmupTtsPlaybackSession();
+          prefetchTts(
+            renderMentionText(firstNpcTurn.text, state.userName),
+            profile.voiceId,
+            state.userName
+          );
+        }
         setIsLoading(false);
         setTimeout(() => {
           if (!cancelled) {
@@ -437,13 +482,14 @@ export function ChatScreen() {
 
       startPlayback(sessionData.dialogueScript, curIdxRef.current + 1, sessionData.chatSessionId);
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : '发送失败，请重试';
       appendMessage({
         id: `err-${Date.now()}`,
         type: 'system',
-        text: error instanceof Error ? error.message : '发送失败，请重试',
+        text: errorMessage,
         isError: true,
       });
-      setPhase('mic');
+      setPhase(errorMessage.includes('NPC 语音播放失败') ? 'idle' : 'mic');
     } finally {
       setIsSubmitting(false);
     }
@@ -499,16 +545,8 @@ export function ChatScreen() {
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={styles.header}>
           <Pressable
-            onPress={async () => {
-              shouldContinueRef.current = false;
-              if (sessionData?.chatSessionId) {
-                try {
-                  await completeChat(sessionData.chatSessionId, true);
-                } catch {
-                  // ignore
-                }
-              }
-              router.replace('/feed');
+            onPress={() => {
+              leaveChatToFeed(true);
             }}
           >
             <Text style={styles.backLabel}>‹ 返回</Text>

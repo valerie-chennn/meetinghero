@@ -1,7 +1,7 @@
 /**
  * 语音服务封装
  * 提供文字转语音（TTS）和语音转文字（STT）功能
- * TTS 优先使用 ElevenLabs，fallback 到 Azure
+ * TTS 在传入 voiceId 时优先使用 ElevenLabs，否则使用 Azure
  * STT 使用 Azure Whisper
  */
 
@@ -11,6 +11,21 @@
  */
 function isElevenLabsConfigured() {
   return !!process.env.ELEVENLABS_API_KEY;
+}
+
+const ELEVENLABS_MAX_ATTEMPTS = 2;
+const ELEVENLABS_RETRY_DELAY_MS = 400;
+
+function createSpeechError(message, extra = {}) {
+  const error = new Error(message);
+  Object.assign(error, extra);
+  return error;
+}
+
+function waitMs(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 }
 
 function normalizeAudioMeta({ mimeType, originalName } = {}) {
@@ -31,13 +46,12 @@ function normalizeAudioMeta({ mimeType, originalName } = {}) {
 }
 
 /**
- * 文字转语音（ElevenLabs TTS）
  * 调用 ElevenLabs REST API 生成音频数据
  * @param {string} text - 要转换的文本
  * @param {string} voiceId - ElevenLabs 音色 ID
  * @returns {Promise<Buffer>} 返回音频 Buffer（MP3 格式）
  */
-async function textToSpeechElevenLabs(text, voiceId) {
+async function requestElevenLabsTts(text, voiceId) {
   const https = require('https');
 
   const apiKey = process.env.ELEVENLABS_API_KEY;
@@ -73,7 +87,13 @@ async function textToSpeechElevenLabs(text, voiceId) {
       res.on('end', () => {
         if (res.statusCode >= 400) {
           const errBody = Buffer.concat(chunks).toString();
-          reject(new Error(`ElevenLabs TTS 错误 (${res.statusCode}): ${errBody}`));
+          reject(createSpeechError(`ElevenLabs TTS 错误 (${res.statusCode}): ${errBody}`, {
+            provider: 'elevenlabs',
+            code: 'ELEVENLABS_HTTP_ERROR',
+            statusCode: res.statusCode,
+            responseBody: errBody,
+            retriable: res.statusCode >= 500 || res.statusCode === 429,
+          }));
           return;
         }
         resolve(Buffer.concat(chunks));
@@ -81,16 +101,94 @@ async function textToSpeechElevenLabs(text, voiceId) {
     });
 
     req.on('error', (err) => {
-      reject(new Error(`ElevenLabs TTS 请求失败: ${err.message}`));
+      reject(createSpeechError(`ElevenLabs TTS 请求失败: ${err.message}`, {
+        provider: 'elevenlabs',
+        code: 'ELEVENLABS_REQUEST_ERROR',
+        causeCode: err.code || null,
+        errorName: err.name || 'Error',
+        retriable: true,
+      }));
     });
 
     req.setTimeout(30000, () => {
       req.destroy();
-      reject(new Error('ElevenLabs TTS 请求超时'));
+      reject(createSpeechError('ElevenLabs TTS 请求超时', {
+        provider: 'elevenlabs',
+        code: 'ELEVENLABS_TIMEOUT',
+        retriable: true,
+      }));
     });
 
     req.write(body);
     req.end();
+  });
+}
+
+/**
+ * 文字转语音（ElevenLabs TTS）
+ * ElevenLabs 失败时自动重试一次，并返回尝试明细
+ * @param {string} text - 要转换的文本
+ * @param {string} voiceId - ElevenLabs 音色 ID
+ * @param {{ maxAttempts?: number, retryDelayMs?: number }} options
+ * @returns {Promise<{ audioBuffer: Buffer, attempts: Array<object>, provider: string }>}
+ */
+async function textToSpeechElevenLabs(text, voiceId, options = {}) {
+  const maxAttempts = Math.max(1, options.maxAttempts || ELEVENLABS_MAX_ATTEMPTS);
+  const retryDelayMs = Math.max(0, options.retryDelayMs || ELEVENLABS_RETRY_DELAY_MS);
+  const attempts = [];
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const startedAt = Date.now();
+
+    try {
+      const audioBuffer = await requestElevenLabsTts(text, voiceId);
+      attempts.push({
+        attempt,
+        ok: true,
+        durationMs: Date.now() - startedAt,
+      });
+
+      return {
+        audioBuffer,
+        attempts,
+        provider: 'elevenlabs',
+      };
+    } catch (error) {
+      const normalizedError = error instanceof Error ? error : new Error(String(error));
+      lastError = normalizedError;
+
+      attempts.push({
+        attempt,
+        ok: false,
+        durationMs: Date.now() - startedAt,
+        code: normalizedError.code || 'UNKNOWN_ERROR',
+        statusCode: normalizedError.statusCode ?? null,
+        retriable: normalizedError.retriable !== false,
+        errorName: normalizedError.errorName || normalizedError.name || 'Error',
+        message: normalizedError.message,
+        causeCode: normalizedError.causeCode || null,
+        responseSnippet: typeof normalizedError.responseBody === 'string'
+          ? normalizedError.responseBody.slice(0, 200)
+          : null,
+      });
+
+      if (attempt < maxAttempts) {
+        await waitMs(retryDelayMs);
+      }
+    }
+  }
+
+  if (lastError) {
+    lastError.attempts = attempts;
+    lastError.provider = 'elevenlabs';
+    throw lastError;
+  }
+
+  throw createSpeechError('ElevenLabs TTS 未产生有效结果', {
+    provider: 'elevenlabs',
+    code: 'ELEVENLABS_UNKNOWN_ERROR',
+    attempts,
   });
 }
 

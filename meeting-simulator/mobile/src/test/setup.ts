@@ -1,6 +1,8 @@
 import '@testing-library/jest-native/extend-expect';
 import React from 'react';
 
+process.env.EXPO_PUBLIC_API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://test-api.local';
+
 jest.mock('expo-router', () => ({
   Redirect: () => null,
   Stack: Object.assign(() => null, { Screen: () => null }),

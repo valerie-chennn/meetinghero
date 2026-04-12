@@ -1,10 +1,18 @@
 import Constants from 'expo-constants';
 import { File, Paths } from 'expo-file-system';
 
-const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3001';
+function requireApiBaseUrl() {
+  const apiBase = process.env.EXPO_PUBLIC_API_BASE_URL?.trim();
+
+  if (!apiBase) {
+    throw new Error('EXPO_PUBLIC_API_BASE_URL 未配置，请在 Expo / EAS 环境中设置可访问的 API 地址');
+  }
+
+  return apiBase;
+}
 
 export function getApiBaseUrl() {
-  return API_BASE.replace(/\/$/, '');
+  return requireApiBaseUrl().replace(/\/$/, '');
 }
 
 export function getBuildInfo() {
@@ -15,13 +23,20 @@ export function getBuildInfo() {
 }
 
 export async function request<T>(path: string, options: RequestInit = {}) {
-  const response = await fetch(`${getApiBaseUrl()}/api${path}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-    ...options,
-  });
+  const url = `${getApiBaseUrl()}/api${path}`;
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+      ...options,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Network request failed';
+    throw new Error(`${message} (${url})`);
+  }
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ error: '请求失败' }));

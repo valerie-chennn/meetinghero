@@ -3,14 +3,22 @@ const request = require('supertest');
 describe('speech routes', () => {
   let app;
   let speechToTextMock;
+  let textToSpeechElevenLabsMock;
+  let textToSpeechMock;
   let isWhisperConfiguredMock;
+  let isSpeechConfiguredMock;
+  let isElevenLabsConfiguredMock;
   let normalizeAudioMeta;
 
   beforeEach(() => {
     jest.resetModules();
 
     speechToTextMock = jest.fn();
+    textToSpeechElevenLabsMock = jest.fn();
+    textToSpeechMock = jest.fn();
     isWhisperConfiguredMock = jest.fn(() => true);
+    isSpeechConfiguredMock = jest.fn(() => false);
+    isElevenLabsConfiguredMock = jest.fn(() => false);
 
     jest.doMock('../services/speech', () => {
       const actual = jest.requireActual('../services/speech');
@@ -18,9 +26,11 @@ describe('speech routes', () => {
       return {
         ...actual,
         speechToText: speechToTextMock,
+        textToSpeechElevenLabs: textToSpeechElevenLabsMock,
+        textToSpeech: textToSpeechMock,
         isWhisperConfigured: isWhisperConfiguredMock,
-        isSpeechConfigured: jest.fn(() => false),
-        isElevenLabsConfigured: jest.fn(() => false),
+        isSpeechConfigured: isSpeechConfiguredMock,
+        isElevenLabsConfigured: isElevenLabsConfiguredMock,
       };
     });
 
@@ -32,6 +42,45 @@ describe('speech routes', () => {
     const db = require('../db');
     await db.close();
     jest.dontMock('../services/speech');
+  });
+
+  it('returns mp3 audio for ElevenLabs TTS', async () => {
+    isElevenLabsConfiguredMock.mockReturnValue(true);
+    textToSpeechElevenLabsMock.mockResolvedValueOnce({
+      audioBuffer: Buffer.from('mock-mp3'),
+      attempts: [{ attempt: 1, ok: true, durationMs: 12 }],
+      provider: 'elevenlabs',
+    });
+
+    const res = await request(app)
+      .post('/api/speech/tts')
+      .send({ text: 'Hello team', voiceId: 'voice-123' });
+
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toContain('audio/mpeg');
+    expect(Number(res.headers['content-length'])).toBe(Buffer.byteLength('mock-mp3'));
+    expect(textToSpeechElevenLabsMock).toHaveBeenCalledWith('Hello team', 'voice-123', {
+      maxAttempts: 2,
+    });
+  });
+
+  it('returns 500 when ElevenLabs TTS fails after retrying', async () => {
+    isElevenLabsConfiguredMock.mockReturnValue(true);
+    const error = new Error('ElevenLabs TTS 请求超时');
+    error.code = 'ELEVENLABS_TIMEOUT';
+    error.provider = 'elevenlabs';
+    error.attempts = [
+      { attempt: 1, ok: false, code: 'ELEVENLABS_TIMEOUT' },
+      { attempt: 2, ok: false, code: 'ELEVENLABS_TIMEOUT' },
+    ];
+    textToSpeechElevenLabsMock.mockRejectedValueOnce(error);
+
+    const res = await request(app)
+      .post('/api/speech/tts')
+      .send({ text: 'Need a retry', voiceId: 'voice-456' });
+
+    expect(res.status).toBe(500);
+    expect(res.body.error).toContain('请求超时');
   });
 
   it.each([
